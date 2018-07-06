@@ -105,23 +105,6 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
 
 
-    //@Autowired
-    //private DataSource dataSource;
-
-//    public void setDataSource(DataSource dataSource){
-//        this.dataSource = dataSource;
-//    }
-
-
-
-//    private Connection getConnection(){
-//        return Manager.getManager().getConnection(dataSource);
-//    }
-//
-//    private void close(ResultSet rs, Statement statement, Connection connection){
-//        Manager.getManager().close(rs, statement, connection, dataSource);
-//    }
-
     public boolean save(T t) {
         PreparedStatement ps = null;
         Connection conn = null;
@@ -396,8 +379,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         Connection conn = null;
         SQLHelper helper = null;
         try {
-            helper = SQLHelperCreator.query(thisClass, null, null, null, null, null);
-
+            helper = dataSourceManager.getQueryPage().doQuery(thisClass, null, null, null, null, null);
             if(ORMUtils.getDebug()) {
                 logger.info("list() : " + helper);
             }
@@ -432,7 +414,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         Connection conn = null;
         SQLHelper helper = null;
         try {
-            helper = SQLHelperCreator.query(thisClass, null, null, null, start, size);
+            helper = dataSourceManager.getQueryPage().doQuery(thisClass, null, null, null, start, size);
             if(ORMUtils.getDebug()) {
                 logger.info("list(start,size) : " + helper);
             }
@@ -509,7 +491,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         Connection conn = null;
         SQLHelper helper = null;
         try {
-            helper = SQLHelperCreator.query(thisClass, null, terms, multiOrder, null, null);
+            helper = dataSourceManager.getQueryPage().doQuery(thisClass, null, terms, multiOrder, null, null);
             if(ORMUtils.getDebug()) {
                 logger.info("list(terms, multiOrder) : " + helper);
             }
@@ -685,8 +667,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
         Connection conn = getConnection();
         //setClob通用
-
-        QueryInfo qinfo = QueryUtils.doQuery(query, null);// = queryString(names, false);
+        QueryInfo qinfo = dataSourceManager.getQueryPage().doQuery(query, null);// = queryString(names, false);
 
         if(ORMUtils.getDebug()) {
             logger.info("list:" + qinfo);
@@ -786,9 +767,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
         List<S> temp = new ArrayList<S>();
 
-
-
-        QueryInfo qinfo = QueryUtils.doQuery(q, page);// = queryString(names, false);
+        QueryInfo qinfo = dataSourceManager.getQueryPage().doQuery(q, page);// = queryString(names, false);
 
         if(ORMUtils.getDebug()) {
             logger.info("list:" + qinfo);
@@ -833,9 +812,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
         List<S> temp = new ArrayList<S>();
 
-
-
-        QueryInfo qinfo = QueryUtils.doQuery(q, page);// = queryString(names, false);
+        QueryInfo qinfo = dataSourceManager.getQueryPage().doQuery(q, page);// = queryString(names, false);
 
         if(ORMUtils.getDebug()) {
             logger.info("list:" + qinfo);
@@ -877,18 +854,21 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
         Connection conn = null;
         int count = 0;
-        QueryInfo qinfo = QueryUtils.doQueryCount(q);
 
-        if(ORMUtils.getDebug()) {
-            logger.info("list:" + qinfo);
-        }
-
-        String query = qinfo.getSql();// = queryString(names, false);
 
         PreparedStatement ps = null;
         ResultSet rs = null;
+        QueryInfo qinfo = null;
         try {
             conn = getConnection();
+            DatabaseType databaseType = dataSourceManager.getDatabaseType();
+            qinfo = dataSourceManager.getQueryPage().doQueryCount(q);
+            if(ORMUtils.getDebug()) {
+                logger.info("list:" + qinfo);
+            }
+
+            String query = qinfo.getSql();// = queryString(names, false);
+
             ps = conn.prepareStatement(query);
             SQLHelperCreator.setParameter(ps, qinfo.getValues());
             rs = ps.executeQuery();

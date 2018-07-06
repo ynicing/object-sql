@@ -4,6 +4,7 @@ import com.ursful.framework.core.datasource.DynamicDataSource;
 import com.ursful.framework.orm.ISQLService;
 import com.ursful.framework.orm.helper.SQLHelperCreator;
 import com.ursful.framework.orm.query.QueryUtils;
+import com.ursful.framework.orm.support.DatabaseType;
 import com.ursful.framework.orm.support.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.datasource.DataSourceUtils;
@@ -29,9 +30,16 @@ public class SQLServiceImpl implements ISQLService{
         return dataSourceManager;
     }
 
+    @Override
+    public String currentDatabaseType() {
+        return dataSourceManager.getDatabaseType().name();
+    }
+
     public void setDataSourceManager(DataSourceManager dataSourceManager) {
         this.dataSourceManager = dataSourceManager;
     }
+
+
 
     @Override
     public boolean execute(String sql, Object... params) {
@@ -262,7 +270,7 @@ public class SQLServiceImpl implements ISQLService{
                 source = dynamicDataSource.currentDataSource();
             }
         }
-        close(rs, statement, connection, source);
+        dataSourceManager.close(rs, statement, connection, source);
     }
 
 
@@ -270,19 +278,6 @@ public class SQLServiceImpl implements ISQLService{
         String sql = "select * from a where id=:xx and ";
     }
 
-    public synchronized void close(ResultSet rs, Statement stmt, Connection conn, DataSource ds){
-        try {
-            if(rs != null){
-                rs.close();
-            }
-            if(stmt != null){
-                stmt.close();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            DataSourceUtils.releaseConnection(conn, ds);
-        }
-    }
+
 
 }

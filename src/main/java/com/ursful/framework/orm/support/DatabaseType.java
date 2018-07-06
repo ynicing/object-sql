@@ -19,5 +19,6 @@ public enum DatabaseType {
     NONE,
     MYSQL,
     ORACLE,
-    SQLServer
+    SQLServer,
+    H2
 }

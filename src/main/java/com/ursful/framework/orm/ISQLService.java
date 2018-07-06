@@ -1,5 +1,7 @@
 package com.ursful.framework.orm;
 
+import com.ursful.framework.orm.support.DatabaseType;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.util.List;
@@ -13,6 +15,8 @@ import java.util.Map;
  * 说明：[类说明必填内容，请修改]
  */
 public interface ISQLService {
+
+    String currentDatabaseType();
 
     void setDataSourceManager(DataSourceManager dataSourceManager);
 

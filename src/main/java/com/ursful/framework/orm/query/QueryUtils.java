@@ -16,6 +16,7 @@
 package com.ursful.framework.orm.query;
 
 
+import com.ursful.framework.orm.DataSourceManager;
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.utils.ORMUtils;
 import com.ursful.framework.orm.error.ORMErrorCode;
@@ -28,6 +29,7 @@ import com.ursful.framework.core.exception.CommonException;
 
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class QueryUtils {
 
@@ -204,7 +206,7 @@ public class QueryUtils {
             }
         }
         if(column.getAsName() != null){
-            sb.append(" AS " + column.getAsName());
+            sb.append(" " + column.getAsName());
         }
 		return sb.toString();
 	}
@@ -467,213 +469,22 @@ public class QueryUtils {
 //        return info;
 //    }
 
-
-    public static QueryInfo doQuery(IQuery query, Page page) throws CommonException {
-
-		QueryInfo qinfo = new QueryInfo();
-
-		List<Pair> values = new ArrayList<Pair>();
-
-		StringBuffer sb = new StringBuffer();
-        List<String> temp = new ArrayList<String>();
-        sb.append("SELECT ");
-        List<Column> returnColumns = query.getReturnColumns();
-		if(returnColumns != null && returnColumns.size() > 0){
-            if(query.isDistinct()){
-                sb.append(" DISTINCT ");
-            }
-			for(Column column : returnColumns){
-                temp.add(QueryUtils.parseColumn(column));
-			}
-            sb.append(ORMUtils.join(temp, ","));
-		}else {
-            sb.append(" * ");
-        }
-
-//		if(page != null && Manager.getManager().getDatabaseType() == DatabaseType.ORACLE){
-//			sb.append(", ROWNUM rn_");
-//		}
-
-        sb.append(getWordAfterFrom(query, values, false));
+    private static AtomicInteger count = new AtomicInteger(0);
 
 
-		if(page != null){
-			/*if(Manager.getManager().getDatabaseType() == DatabaseType.ORACLE){
-				if(helper.getOrders().isEmpty()){
-					if(helper.getConditions().isEmpty()){
-						sb = new StringBuffer("SELECT * FROM (" + sb.toString() + " ROWNUM <= ? ) WHERE rn_ > ? ");
-					}else{
-						sb = new StringBuffer("SELECT * FROM (" + sb.toString() + " AND ROWNUM <= ? ) WHERE rn_ > ? ");
-					}
-				}else{
-					sb = new StringBuffer("SELECT * FROM (SELECT a_t_.*, ROWNUM rn_ FROM (" + sb.toString() + ") WHERE a_t_ ROWNUM <= ?) WHERE rn_ > ?  ");
-				}
-				values.add(new Pair(new Integer(page.getSize() + page.getOffset())));
-				values.add(new Pair(new Integer(page.getOffset())));
-			}else if(Manager.getManager().getDatabaseType() == DatabaseType.MYSQL){*/
-				sb.append(" LIMIT ? OFFSET ? ");
-				values.add(new Pair(new Integer(page.getSize())));
-				values.add(new Pair(new Integer(page.getOffset())));
-			//}
+//    public static QueryInfo doQuery(IQuery query, Page page, DatabaseType databaseType) throws CommonException {
+//
+//
+//	}
 
-		}
-		qinfo.setClazz(query.getReturnClass());
-		qinfo.setSql(sb.toString());
-		qinfo.setValues(values);
-		qinfo.setColumns(query.getReturnColumns());
-
-		return qinfo;
-	}
-
-    public static QueryInfo doQueryCount(IQuery helper) throws CommonException {
-
-
-        QueryInfo qinfo = new QueryInfo();
-
-        List<Pair> values = new ArrayList<Pair>();
-
-        StringBuffer sb = new StringBuffer();
-
-        sb.append("SELECT ");
-        if(!helper.isDistinct()){
-            sb.append("COUNT(*) ");
-        }else{
-            sb.append(" DISTINCT ");
-            List<Column> returnColumns = helper.getReturnColumns();
-            List<String> temp = new ArrayList<String>();
-            for(Column column : returnColumns){
-                temp.add(QueryUtils.parseColumn(column));
-            }
-            sb.append(ORMUtils.join(temp, ","));
-        }
-
-        sb.append(getWordAfterFrom(helper, values, true));
-
-        qinfo.setClazz(Integer.class);
-        if(helper.isDistinct()) {
-            qinfo.setSql("SELECT COUNT(*) FROM (" + sb.toString() + ") AS _distinct_table");
-        }else{
-            qinfo.setSql(sb.toString());
-        }
-        qinfo.setValues(values);
-
-        return qinfo;
-    }
 
     public static void main(String[] args) {
 
     }
 
-    public static String getWordAfterFrom(IQuery query, List<Pair> values, boolean count) throws CommonException{
-        StringBuffer sb = new StringBuffer();
-        sb.append(" FROM ");
 
-        if(query.getTable() != null){
-            RdTable table = (RdTable)query.getTable().getAnnotation(RdTable.class);
-            sb.append(table.name());
-        }else{
-            List<String> words = new ArrayList<String>();
-            Map<String, Class<?>> aliasMap = query.getAliasTable();
-            Map<String, IQuery> aliasQuery = query.getAliasQuery();
-            List<String> aliasList = query.getAliasList();
-            for(String alias : aliasList) {
-                if(aliasMap.containsKey(alias)) {
-                    RdTable table = (RdTable) aliasMap.get(alias).getAnnotation(RdTable.class);
-                    words.add(table.name() + " AS " + alias);
-                }else if(aliasQuery.containsKey(alias)){
-                    IQuery q = aliasQuery.get(alias);
-                    QueryInfo queryInfo = QueryUtils.doQuery(q, null);
-                    words.add("(" + queryInfo.getSql() + ") AS " + alias);
-                    values.addAll(queryInfo.getValues());
-                }
-            }
-            sb.append(ORMUtils.join(words, ","));
-        }
 
-        String join = join(query.getJoins(), values);
-        if(join != null && !"".equals(join)){
-            sb.append(join);
-        }
 
-        String whereCondition = QueryUtils.getConditions(query.getConditions(), values);
-        if(whereCondition != null && !"".equals(whereCondition)){
-            sb.append(" WHERE " + whereCondition);
-        }
-
-        String groupString = QueryUtils.getGroups(query.getGroups());
-
-        if(groupString != null && !"".equals(groupString)){
-            sb.append(" GROUP BY ");
-            sb.append(groupString);
-        }
-
-        String havingString = QueryUtils.getConditions(query.getHavings(), values);
-        if(havingString != null && !"".equals(havingString)){
-            sb.append(" HAVING ");
-            sb.append(havingString);
-        }
-
-        if(!count) {
-            String orderString = QueryUtils.getOrders(query.getOrders());
-            if (orderString != null && !"".equals(orderString)) {
-                sb.append(" ORDER BY ");
-                sb.append(orderString);
-            }
-        }
-
-        return sb.toString();
-
-    }
-
-    public static String join(List<Join> joins, List<Pair> values) throws CommonException{
-        StringBuffer sb = new StringBuffer();
-        if(joins == null){
-            return  sb.toString();
-        }
-        for(int i = 0; i < joins.size(); i++){
-            Join join = joins.get(i);
-            String tableName = null;
-            Object table = join.getTable();
-            if(table instanceof Class) {
-                RdTable rdTable = (RdTable)((Class<?>)table).getAnnotation(RdTable.class);
-                if(rdTable == null){
-                    continue;
-                }
-                tableName = rdTable.name();
-            }else if(table instanceof IQuery){
-                QueryInfo info = QueryUtils.doQuery((IQuery)table, null);
-                tableName = "(" + info.getSql() + ") ";
-                values.addAll(info.getValues());
-            }
-
-            switch (join.getType()){
-                case FULL_JOIN:
-                    sb.append(" FULL JOIN ");
-                    break;
-                case INNER_JOIN:
-                    sb.append(" INNER JOIN ");
-                    break;
-                case LEFT_JOIN:
-                    sb.append(" LEFT JOIN ");
-                    break;
-                case RIGHT_JOIN:
-                    sb.append(" RIGHT JOIN ");
-                    break;
-            }
-            String alias = join.getAlias();
-
-            sb.append(tableName + " AS " + alias);
-
-            List<Condition> temp = join.getConditions();
-
-            String cdt = QueryUtils.getConditions(temp, values);
-            if(cdt != null && !"".equals(cdt)) {
-                sb.append(" ON ");
-                sb.append(cdt);
-            }
-        }
-        return sb.toString();
-    }
 
 
 }

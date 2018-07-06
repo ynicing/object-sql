@@ -26,6 +26,7 @@ import com.ursful.framework.core.exception.CommonException;
 import org.springframework.validation.DataBinder;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
 import java.util.Date;
@@ -450,50 +451,6 @@ public class SQLHelperCreator {
 
     }
 
-    public static SQLHelper query(Class<?> clazz, String [] names, Terms terms, MultiOrder multiOrder, Integer start, Integer size) throws CommonException{
-
-        RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
-        if(table == null){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_NOT_FOUND, "Class(" + clazz.getName() + ")");
-        }
-        String tableName = table.name();
-
-        StringBuffer sql = new StringBuffer("SELECT ");
-        if(names != null && names.length == 2) {
-            sql.append(names[0] + ", " + names[1]);
-        }else{
-            sql.append("*");
-        }
-        sql.append(" FROM " + tableName);
-        List<Pair> values = new ArrayList<Pair>();
-        if(terms != null) {
-            String conditions = QueryUtils.getConditions(ORMUtils.newList(terms.getCondition()), values);
-            if (conditions != null && !"".equals(conditions)) {
-                sql.append(" WHERE " + conditions);
-            }
-        }
-
-        if(multiOrder != null) {
-            String orders = QueryUtils.getOrders(multiOrder.getOrders());
-            if (orders != null && !"".equals(orders)) {
-                sql.append(" ORDER BY " + orders);
-            }
-        }
-
-        if(start != null && size != null){
-            sql.append(" LIMIT ? OFFSET ? ");
-            values.add(new Pair(size));
-            values.add(new Pair(start));
-        }
-
-        SQLHelper helper = new SQLHelper();
-        helper.setSql(sql.toString());
-        helper.setParameters(values);
-
-        return helper;
-
-    }
-
 
 
     public static SQLHelper queryCountExpress(Class<?> clazz, Express ... expresses) throws CommonException{
@@ -797,6 +754,11 @@ public class SQLHelperCreator {
                         Timestamp ts =  (Timestamp)object;
                         if(ts != null) {
                             obj = new Date(ts.getTime());
+                        }
+                    }else if(object instanceof BigDecimal){
+                        BigDecimal ts =  (BigDecimal)object;
+                        if(ts != null) {
+                            obj = new Date(ts.longValue());
                         }
                     }else{
                         throw new RuntimeException("not support");
