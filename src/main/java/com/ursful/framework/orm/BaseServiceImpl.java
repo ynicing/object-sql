@@ -66,15 +66,32 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         }
     }
 
+    public void removeDefaultListener(IDefaultListener listener){
+        if(defaultListeners.contains(listener)) {
+            defaultListeners.remove(listener);
+        }
+    }
+
     public void addChangeListener(IChangeListener listener){
         if(!changeListeners.contains(listener)){
             changeListeners.add(listener);
         }
     }
 
+    public void removeChangeListener(IChangeListener listener){
+        if(changeListeners.contains(listener)){
+            changeListeners.remove(listener);
+        }
+    }
+
     public void addORMListener(IORMListener listener){
         if(!listeners.contains(listener)){
             listeners.add(listener);
+        }
+    }
+    public void removeORMListener(IORMListener listener){
+        if(listeners.contains(listener)){
+            listeners.remove(listener);
         }
     }
 
@@ -126,6 +143,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             }
 
             conn = getConnection();
+            logger.debug("connection :" + conn);
             if(helper.getIdField() != null) {
                 ps = conn.prepareStatement(helper.getSql(), Statement.RETURN_GENERATED_KEYS);
             }else{

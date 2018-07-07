@@ -36,6 +36,7 @@ public enum DataType {
 	TIMESTAMP("Timestamp","java.sql.Timestamp"),
 	STRING("String", "java.lang.String"),
 	OBJECT("Object","java.lang.Object"),
+	BINARY("Byte[]","byte[]"),
 	UNKNOWN("UNKOWN");
 
 	private String [] types;

@@ -15,13 +15,6 @@
  */
 package com.ursful.framework.orm.listener;
 
-/**
- * 类名：IChangeListener
- * 创建者：huangyonghua
- * 日期：2017-11-12 10:12
- * 版权：厦门维途信息技术有限公司 Copyright(c) 2017
- * 说明：[类说明必填内容，请修改]
- */
 public interface IChangeListener<T> {
     void change(T original, T current);
 }

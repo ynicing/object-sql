@@ -17,9 +17,6 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Created by ynice on 27/06/2018.
- */
 public class DataSourceManager {
 
     private static Map<DataSource, DatabaseType> databaseTypeMap = new HashMap<DataSource, DatabaseType>();
@@ -46,7 +43,7 @@ public class DataSourceManager {
             String productName = connection.getMetaData().getDatabaseProductName().toUpperCase();
             DatabaseType databaseType = null;
             if(productName.contains("MYSQL")){
-                databaseType = DatabaseType.MYSQL;
+                databaseType = DatabaseType.MySQL;
             }else if(productName.contains("ORACLE")){
                 databaseType = DatabaseType.ORACLE;
             }else if(productName.contains("H2")){
@@ -80,7 +77,7 @@ public class DataSourceManager {
         QueryPage queryPage = queryPageMap.get(databaseType);
         if(queryPage == null){
             switch (databaseType){
-                case MYSQL:
+                case MySQL:
                     queryPage = new MySQLQueryPage();
                     break;
                 case ORACLE:

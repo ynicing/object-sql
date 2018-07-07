@@ -7,13 +7,6 @@ import java.sql.Connection;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 类名：ISQLService
- * 创建者：huangyonghua
- * 日期：2018-02-22 16:56
- * 版权：厦门维途信息技术有限公司 Copyright(c) 2017
- * 说明：[类说明必填内容，请修改]
- */
 public interface ISQLService {
 
     String currentDatabaseType();

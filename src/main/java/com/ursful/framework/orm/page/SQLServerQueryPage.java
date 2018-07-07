@@ -14,9 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Created by Administrator on 2018/7/5.
- */
 public class SQLServerQueryPage extends AbstractQueryPage{
 
     private AtomicInteger count = new AtomicInteger(0);

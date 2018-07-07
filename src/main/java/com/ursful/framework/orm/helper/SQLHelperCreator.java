@@ -25,6 +25,8 @@ import com.ursful.framework.orm.utils.ORMUtils;
 import com.ursful.framework.core.exception.CommonException;
 import org.springframework.validation.DataBinder;
 
+import javax.sql.rowset.serial.SerialClob;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.sql.*;
@@ -655,11 +657,9 @@ public class SQLHelperCreator {
                             obj = new Date(((java.sql.Date)obj).getTime());
                         }else if((obj instanceof  Long) && metaMap.getPrecision(i) == 15) {
                             obj = new Date((Long)obj);
-                        }
-                        //oracle clob
-                        /*else{
-                            obj.getClass().getSimpleName()
-                            Clob clob = rs.getClob(columnName);
+                        }if(obj instanceof Clob){
+                            StringBuffer sb = new StringBuffer();
+                            Clob clob = (Clob) obj;
                             if(clob != null){
                                 Reader reader = clob.getCharacterStream();
                                 BufferedReader br = new BufferedReader(reader);
@@ -672,8 +672,30 @@ public class SQLHelperCreator {
                                 }
                             }
                             obj = sb.toString();
-                        }*/
+                        }else if(obj instanceof Blob){
+                            Blob blob = (Blob) obj;
+                            InputStream stream = blob.getBinaryStream();
+                            try {
+                                byte[] temp = new byte[(int)blob.length()];
+                                stream.read(temp);
+                                stream.close();
+                                obj = new String(temp, "utf-8");
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
 
+                        }else if(obj instanceof byte[]){
+                            try {
+                                obj = new String((byte[])obj, "utf-8");
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
+                        }else if(obj instanceof BigDecimal){
+                            obj = ((BigDecimal) obj).toPlainString();
+                        }else if(obj instanceof Double || obj instanceof Long || obj instanceof Float){
+                            obj = new BigDecimal(obj.toString()).toPlainString();
+                        }
                     }
                     String key = QueryUtils.displayNameOrAsName(metaMap.getColumnLabel(i), metaMap.getColumnName(i));
                     tempMap.put(key, obj);
@@ -715,15 +737,33 @@ public class SQLHelperCreator {
 	public static <T> Object getFieldObject(Field field, Object object) throws IllegalAccessException, SQLException {
 		Object obj = null;
         DataType type = DataType.getDataType(field.getType().getSimpleName());
+
+
         if(object != null){
             switch (type) {
+                case BINARY:
+                    if(object instanceof byte[]){
+                        obj = object;
+                    }else if(object instanceof Blob){
+                        Blob blob = (Blob) object;
+                        InputStream stream = blob.getBinaryStream();
+                        byte[] temp = null;
+                        try {
+                            temp = new byte[(int)blob.length()];
+                            stream.read(temp);
+                            stream.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        obj = temp;
+                    }else{
+                        obj = object;
+                    }
+                    break;
                 case STRING:
-                    //RdColumnType ls = (RdColumnType) field.getAnnotation(RdColumnType.class);
-                    /*
-                    如果是MySQL 不处理
-                    if(ls != null && ls.type() == LargeType.LARGE_ORACLE_CLOB){
+                    if(object instanceof Clob){
                         StringBuffer sb = new StringBuffer();
-                        Clob clob = (Clob)object;
+                        Clob clob = (Clob) object;
                         if(clob != null){
                             Reader reader = clob.getCharacterStream();
                             BufferedReader br = new BufferedReader(reader);
@@ -736,10 +776,28 @@ public class SQLHelperCreator {
                             }
                         }
                         obj = sb.toString();
+                    }else if(object instanceof Blob){
+                        Blob blob = (Blob) object;
+                        InputStream stream = blob.getBinaryStream();
+                        try {
+                            byte[] temp = new byte[(int)blob.length()];
+                            stream.read(temp);
+                            stream.close();
+                            obj = new String(temp, "utf-8");
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
+                    }else if(object instanceof byte[]){
+                        try {
+                            obj = new String((byte[])object, "utf-8");
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
                     }else{
-                        obj = object.toString();
-                    }*/
-                    obj = object.toString();
+                        obj = object;
+                    }
                     break;
                 case DATE:
                     if(object instanceof Long) {
@@ -765,6 +823,11 @@ public class SQLHelperCreator {
                     }
                     break;
                 default:
+                    if(object instanceof BigDecimal){
+                        object = ((BigDecimal) object).toPlainString();
+                    }else if(object instanceof Double || object instanceof Long || object instanceof Float){
+                        object = new BigDecimal(object.toString()).toPlainString();
+                    }
                     DataBinder binder = new DataBinder(field, field.getName());
                     obj = binder.convertIfNecessary(object.toString(), field.getType());
             }
@@ -782,18 +845,55 @@ public class SQLHelperCreator {
 			Object obj = pair.getValue();
 			ColumnType columnType = pair.getColumnType();
 			DataType type =  DataType.getDataType(pair.getType());
-			switch (type) {
-				case STRING:
-//					if((obj != null) && (columnType == ColumnType.LARGE)){
-//						//Clob clob = new SerialClob(obj.toString().toCharArray());
-//						//ps.setClob(i + 1, clob);
-//					}else{
-//
-//					}
-                    if(obj != null && "".equals(obj.toString().trim())){
-                        obj = null;
+            switch (type) {
+                case BINARY:
+                    if(obj != null) {
+                        if(obj instanceof byte[]) {
+                            ps.setBinaryStream(i + 1, new ByteArrayInputStream((byte[]) obj));
+                        }else{
+                            try {
+                                ps.setBinaryStream(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
+                            } catch (UnsupportedEncodingException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }else{
+                        ps.setBinaryStream(i + 1, null);
                     }
-                    ps.setString(i + 1, (String) obj);
+                    break;
+				case STRING:
+                    if(columnType == ColumnType.BINARY){
+                        if(obj != null) {
+                            try {
+                                ps.setBinaryStream(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
+                            } catch (UnsupportedEncodingException e) {
+                                e.printStackTrace();
+                            }
+                        }else{
+                            ps.setBinaryStream(i + 1, null);
+                        }
+                    }else if(columnType == ColumnType.BLOB){
+                        if(obj != null) {
+                            try {
+                                ps.setBlob(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
+                            } catch (UnsupportedEncodingException e) {
+                                e.printStackTrace();
+                            }
+                        }else{
+                            ps.setBinaryStream(i + 1, null);
+                        }
+                    }else if(columnType == ColumnType.CLOB){
+                        Clob clob = null;
+                        if(obj != null) {
+						    clob = new SerialClob(obj.toString().toCharArray());
+                        }
+                        ps.setClob(i + 1, clob);
+                    }else {
+                        if (obj != null && "".equals(obj.toString().trim())) {
+                            obj = null;
+                        }
+                        ps.setString(i + 1, (String) obj);
+                    }
 					break;
 				case DATE:
 					if(obj == null){
@@ -801,7 +901,7 @@ public class SQLHelperCreator {
 					}else {
                         if(columnType == ColumnType.LONG) {
                             ps.setLong(i + 1, ((Date) obj).getTime());
-                        }else if(columnType == ColumnType.DATE) {
+                        }else if(columnType == ColumnType.DATETIME) {
                             Date date = (Date)obj;
                             ps.setDate(i + 1, new java.sql.Date(date.getTime()));
                         }else{//timestamp

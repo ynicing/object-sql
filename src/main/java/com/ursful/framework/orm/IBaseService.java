@@ -30,8 +30,11 @@ public interface IBaseService<T> extends ISQLService{
     void setDataSourceManager(DataSourceManager dataSourceManager);
 
     void addDefaultListener(IDefaultListener listener);
+    void removeDefaultListener(IDefaultListener listener);
     void addChangeListener(IChangeListener listener);
+    void removeChangeListener(IChangeListener listener);
     void addORMListener(IORMListener listener);
+    void removeORMListener(IORMListener listener);
 
     /*  查询一个对象 方式一 :  取条件第一个值
         Test tmp = new Test();

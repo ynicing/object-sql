@@ -6,13 +6,6 @@ import com.ursful.framework.orm.query.BaseQueryImpl;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * 类名：AliasTable
- * 创建者：huangyonghua
- * 日期：2018-06-01 10:15
- * 版权：厦门维途信息技术有限公司 Copyright(c) 2017
- * 说明：[类说明必填内容，请修改]
- */
 public class AliasTable{
 
     private String alias;

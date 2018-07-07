@@ -14,13 +14,6 @@ import java.sql.*;
 import java.sql.Date;
 import java.util.*;
 
-/**
- * 类名：SQLServiceImpl
- * 创建者：huangyonghua
- * 日期：2018-02-22 17:01
- * 版权：厦门维途信息技术有限公司 Copyright(c) 2017
- * 说明：[类说明必填内容，请修改]
- */
 public class SQLServiceImpl implements ISQLService{
 
     @Autowired
