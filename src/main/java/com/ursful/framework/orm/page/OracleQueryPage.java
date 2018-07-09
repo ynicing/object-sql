@@ -13,12 +13,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Created by Administrator on 2018/7/5.
- */
 public class OracleQueryPage extends AbstractQueryPage{
 
     private AtomicInteger count = new AtomicInteger(0);
+
+    @Override
+    public DatabaseType databaseType() {
+        return DatabaseType.ORACLE;
+    }
+
 
     @Override
     public QueryInfo doQueryCount(IQuery query) {
@@ -137,12 +140,12 @@ public class OracleQueryPage extends AbstractQueryPage{
         if(names != null && names.length == 2) {
             sql.append(names[0] + ", " + names[1]);
         }else{
-            sql.append("*");
+            sql.append("x.*");
         }
         if(start != null && size != null){
             sql.append(",ROWNUM rn_ ");
         }
-        sql.append(" FROM " + tableName);
+        sql.append(" FROM " + tableName + " x ");
         List<Pair> values = new ArrayList<Pair>();
         if(terms != null) {
             String conditions = QueryUtils.getConditions(ORMUtils.newList(terms.getCondition()), values);
@@ -169,8 +172,8 @@ public class OracleQueryPage extends AbstractQueryPage{
             }else{
                 sql = new StringBuffer("SELECT * FROM (SELECT * FROM (" + sql.toString() + ") WHERE rn_ <= ?) WHERE rn_ > ?  ");
             }
-            values.add(new Pair(size));
-            values.add(new Pair(start));
+            values.add(new Pair( ((Math.max(1, start)) * size)));
+            values.add(new Pair( ((Math.max(1, start) - 1) * size)));
         }
 
         SQLHelper helper = new SQLHelper();

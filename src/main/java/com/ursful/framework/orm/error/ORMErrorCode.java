@@ -18,14 +18,6 @@ package com.ursful.framework.orm.error;
 
 import com.ursful.framework.core.error.ErrorCode;
 
-/**
- * 枚举：QueryErrorCode
- * 创建者：huangyonghua
- * 日期：2017-11-11 23:30
- * 版权：厦门维途信息技术有限公司 Copyright(c) 2017
- * 说明：[类说明必填内容，请修改]
- */
-
 public enum ORMErrorCode implements ErrorCode{
 
     TABLE_NOT_FOUND(1001, "table.not.found.in.class"),

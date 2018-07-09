@@ -13,9 +13,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Created by Administrator on 2018/7/5.
- */
 public class H2QueryPage extends MySQLQueryPage{
+    @Override
+    public DatabaseType databaseType() {
+        return DatabaseType.H2;
+    }
 
 }

@@ -14,13 +14,6 @@ import java.sql.*;
 import java.sql.Date;
 import java.util.*;
 
-/**
- * 类名：SQLServiceImpl
- * 创建者：huangyonghua
- * 日期：2018-02-22 17:01
- * 版权：厦门维途信息技术有限公司 Copyright(c) 2017
- * 说明：[类说明必填内容，请修改]
- */
 public class SQLServiceImpl implements ISQLService{
 
     @Autowired
@@ -49,7 +42,7 @@ public class SQLServiceImpl implements ISQLService{
         try {
             conn = getConnection();
             ps = conn.prepareStatement(sql);
-            setParams(ps, params);
+            setParams(ps, params, conn);
             return ps.execute();
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -58,13 +51,13 @@ public class SQLServiceImpl implements ISQLService{
         }
     }
 
-    private void setParams(PreparedStatement ps, Object[] params) throws SQLException {
+    private void setParams(PreparedStatement ps, Object[] params, Connection connection) throws SQLException {
         if(params != null && params.length > 0){
             List<Pair> pairList = new ArrayList<Pair>();
             for(Object object : params){
                 pairList.add(new Pair(object));
             }
-            SQLHelperCreator.setParameter(ps, pairList);
+            SQLHelperCreator.setParameter(ps, pairList, dataSourceManager.getDatabaseType(), connection);
         }
     }
 
@@ -79,7 +72,7 @@ public class SQLServiceImpl implements ISQLService{
             conn.setAutoCommit(false);
             if(params != null && params.length > 0){
                 for(int i = 0; i < params.length; i++) {
-                    setParams(ps, params[i]);
+                    setParams(ps, params[i], conn);
                     ps.addBatch();
                 }
             }
@@ -113,7 +106,7 @@ public class SQLServiceImpl implements ISQLService{
         try {
             conn = getConnection();
             ps = conn.prepareStatement(sql);
-            setParams(ps, params);
+            setParams(ps, params, conn);
             rs = ps.executeQuery();
             if(rs.next()){
                 ResultSetMetaData metaMap = rs.getMetaData();
@@ -149,7 +142,7 @@ public class SQLServiceImpl implements ISQLService{
         try {
             conn = getConnection();
             ps = conn.prepareStatement(sql);
-            setParams(ps, params);
+            setParams(ps, params, conn);
             rs = ps.executeQuery();
             while(rs.next()){
                 ResultSetMetaData metaMap = rs.getMetaData();
@@ -186,7 +179,7 @@ public class SQLServiceImpl implements ISQLService{
         try {
             conn = getConnection();
             ps = conn.prepareStatement(sql);
-            setParams(ps, params);
+            setParams(ps, params, conn);
             rs = ps.executeQuery();
             if(rs.next()){
                 temp = rs.getInt(1);
@@ -207,7 +200,7 @@ public class SQLServiceImpl implements ISQLService{
         try {
             conn = getConnection();
             ps = conn.prepareStatement(sql);
-            setParams(ps, params);
+            setParams(ps, params, conn);
             rs = ps.executeQuery();
             if(rs.next()){
                 temp = rs.getObject(1);

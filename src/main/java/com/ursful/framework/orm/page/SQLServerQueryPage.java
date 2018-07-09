@@ -14,12 +14,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * Created by Administrator on 2018/7/5.
- */
 public class SQLServerQueryPage extends AbstractQueryPage{
 
     private AtomicInteger count = new AtomicInteger(0);
+
+    @Override
+    public DatabaseType databaseType() {
+        return DatabaseType.SQLServer;
+    }
 
     @Override
     public QueryInfo doQueryCount(IQuery query) {
@@ -143,7 +145,10 @@ public class SQLServerQueryPage extends AbstractQueryPage{
         }
 
         if(start != null && size != null){
-            String byOrders = QueryUtils.getOrders(multiOrder.getOrders());
+            String byOrders = null;
+            if(multiOrder != null){
+                byOrders =  QueryUtils.getOrders(multiOrder.getOrders());
+            }
             if(byOrders != null){
                 sql.append(" ,row_number() over(order by " + byOrders + ") rn_ ");
             }else{

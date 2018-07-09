@@ -15,13 +15,6 @@
  */
 package com.ursful.framework.orm.listener;
 
-/**
- * 接口：IDefaultListener
- * 创建者：huangyonghua
- * 日期：2017-11-10 07:36
- * 版权：厦门维途信息技术有限公司 Copyright(c) 2017
- * 说明：[类说明必填内容，请修改]
- */
 
 public interface IDefaultListener<T>{
     void insert(T object);

@@ -15,17 +15,23 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-/**
- * Created by ynice on 27/06/2018.
- */
 public class DataSourceManager {
 
     private static Map<DataSource, DatabaseType> databaseTypeMap = new HashMap<DataSource, DatabaseType>();
     private static Map<DatabaseType, QueryPage> queryPageMap = new HashMap<DatabaseType, QueryPage>();
 
     private DataSource dataSource;
+
+    private List<QueryPage> queryPageList;
+    public void setQueryPageList(List<QueryPage> queryPageList){
+        this.queryPageList = queryPageList;
+        for(QueryPage queryPage : queryPageList){
+            registerQueryPage(queryPage);
+        }
+    }
 
     public DatabaseType getDatabaseType(){
         if(dataSource == null){
@@ -46,7 +52,7 @@ public class DataSourceManager {
             String productName = connection.getMetaData().getDatabaseProductName().toUpperCase();
             DatabaseType databaseType = null;
             if(productName.contains("MYSQL")){
-                databaseType = DatabaseType.MYSQL;
+                databaseType = DatabaseType.MySQL;
             }else if(productName.contains("ORACLE")){
                 databaseType = DatabaseType.ORACLE;
             }else if(productName.contains("H2")){
@@ -80,7 +86,7 @@ public class DataSourceManager {
         QueryPage queryPage = queryPageMap.get(databaseType);
         if(queryPage == null){
             switch (databaseType){
-                case MYSQL:
+                case MySQL:
                     queryPage = new MySQLQueryPage();
                     break;
                 case ORACLE:
@@ -99,8 +105,8 @@ public class DataSourceManager {
         return queryPage;
     }
 
-    public void registerQueryPage(DatabaseType databaseType, QueryPage queryPage){
-        queryPageMap.put(databaseType, queryPage);
+    public void registerQueryPage(QueryPage queryPage){
+        queryPageMap.put(queryPage.databaseType(), queryPage);
     }
 
     public synchronized void close(ResultSet rs, Statement stmt, Connection conn, DataSource ds){

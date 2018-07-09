@@ -11,10 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Created by Administrator on 2018/7/5.
- */
 public abstract class AbstractQueryPage implements QueryPage{
+
 
     public String getWordAfterFrom(IQuery query, List<Pair> values, boolean count, String baseName) throws CommonException{
         StringBuffer sb = new StringBuffer();

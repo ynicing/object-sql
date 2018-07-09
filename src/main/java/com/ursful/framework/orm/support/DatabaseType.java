@@ -17,8 +17,8 @@ package com.ursful.framework.orm.support;
 
 public enum DatabaseType {
     NONE,
-    MYSQL,
+    H2,
+    MySQL,
     ORACLE,
-    SQLServer,
-    H2
+    SQLServer
 }
