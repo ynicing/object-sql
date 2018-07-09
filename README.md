@@ -70,3 +70,37 @@
 <br/>
 --------------------listener 监听器------------------------------<br/>
  IDefaultListener/IORMListener/IChangeListener<br/>
+ <br/>
+ <br/>
+ ---------------------Entity----------------------------------------<br/>
+ //类型<br/>
+ @RdTable(name = "ROSE_TYPE")<br/>
+ public class RoseType implements Serializable{<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;private static final long serialVersionUID = 1L;<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;//排序;默认升序 (NULL)<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;public static final String T_ORDER_NUM = "ORDER_NUM";<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;//编号;UUID (NOT NULL)<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;public static final String T_ID = "ID";<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;//名称;姓名 (NOT NULL)<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;public static final String T_NAME = "NAME";<br/>
+ <br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;@RdColumn(name = T_ORDER_NUM)<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;private Integer orderNum;<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;@RdId<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;@RdColumn(name = T_ID, unique = true)<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;private String id;<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;@RdColumn(name = T_NAME)<br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;private String name;<br/>
+ <br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;public Integer getOrderNum(){return this.orderNum;}<br/>
+ <br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;public void setOrderNum(Integer orderNum){this.orderNum = orderNum;}<br/>
+ <br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;public String getId(){return this.id;}<br/>
+ <br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;public void setId(String id){this.id = id;}<br/>
+ <br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;public String getName(){return this.name;}<br/>
+ <br/>
+ &nbsp;&nbsp;&nbsp;&nbsp;public void setName(String name){this.name = name;}<br/>
+ }
