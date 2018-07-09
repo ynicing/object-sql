@@ -1,72 +1,72 @@
-# Light ORM by ursful.com
+# Light ORM by ursful.com\r
+\r
+--------------------save 保存----------------------\r
+ RoseType roseType = new RoseType();\r
+ roseType.setId("ID");\r
+ roseType.setName("Rose Type");\r
+ roseType.setOrderNum(1);\r
+ roseTypeService.save(roseType);\r
+\r
+--------------------update 更新----------------------\r
+ RoseType roseType = new RoseType();\r
+ roseType.setId("ID");\r
+ roseType.setOrderNum(2);\r
+ roseTypeService.update(roseType);\r
+\r
+--------------------delete 删除----------------------\r
+ RoseType roseType = new RoseType();\r
+ roseType.setId("ID");\r
+ roseTypeService.delete(roseType);\r
+ or\r
+ roseTypeService.delete("ID");\r
 
---------------------save 保存----------------------
- RoseType roseType = new RoseType();
- roseType.setId("ID");
- roseType.setName("Rose Type");
- roseType.setOrderNum(1);
- roseTypeService.save(roseType);
-
---------------------update 更新----------------------
- RoseType roseType = new RoseType();
- roseType.setId("ID");
- roseType.setOrderNum(2);
- roseTypeService.update(roseType);
-
---------------------delete 删除----------------------
- RoseType roseType = new RoseType();
- roseType.setId("ID");
- roseTypeService.delete(roseType);
- or
- roseTypeService.delete("ID");
-
---------------------list 列表----------------------
- List<Rose> list = roseService.list();
-
- List<Rose> list = roseService.list(new Express(Rose.T_ORDER_NUM, 3, ExpressionType.CDT_Equal));
-
- List<Rose> list = roseService.list(new Express(Rose.T_ORDER_NUM, 3, ExpressionType.CDT_Less),
-                new Express(Rose.T_ORDER_NUM, 0, ExpressionType.CDT_More));
- List<Rose> list = roseService.list(1, 5);
-
- Terms terms = new Terms();
- terms.and(new Express(Rose.T_ORDER_NUM, 2, ExpressionType.CDT_MoreEqual))
-      .or(new Express(Rose.T_ORDER_NUM, 6, ExpressionType.CDT_Less));
-
- List<Rose> list = roseService.list(terms);
-
- List<Rose> list = roseService.list(terms, new MultiOrder().asc(Rose.T_ORDER_NUM));
-
---------------------base Query 简单查询------------------------------
- IBaseQuery query = new BaseQueryImpl();
- query.table(RoseType.class);
- query.where(Rose.T_ORDER_NUM, 2, ExpressionType.CDT_MoreEqual);
-
- List<Rose> roses = roseService.query(query);
-
- List<Rose> roses = roseService.query(query, 2);
-
-  int c = roseService.queryCount(query);
-
-  Page page = new Page();
-  page.setPage(1);
-  page.setSize(2);
-  page = roseService.queryPage(query, page);
-
---------------------multi Query 复杂查询------------------------------
-  IMultiQuery query = new MultiQueryImpl();
-
-  AliasTable arose = query.table(Rose.class);
-  AliasTable aroseType = query.table(RoseType.class);
-
-  query.where(arose.c(Rose.T_TYPE), aroseType.c(RoseType.T_ID));
-  query.where(arose.c(Rose.T_ORDER_NUM), 2, ExpressionType.CDT_MoreEqual);
-  query.createQuery(Map.class, arose.c(Expression.EXPRESSION_ALL), aroseType.c(RoseType.T_NAME, "TYPE_NAME"));
-
-  List<Map<String, Object>> roses = roseService.query(query);
-  for(Map<String, Object> rose : roses) {
-      System.out.println(rose.get("typeName"));
-  }
-
---------------------listener 监听器------------------------------
- IDefaultListener/IORMListener/IChangeListener
+--------------------list 列表----------------------\r
+ List<Rose> list = roseService.list();\r
+\r
+ List<Rose> list = roseService.list(new Express(Rose.T_ORDER_NUM, 3, ExpressionType.CDT_Equal));\r
+\r
+ List<Rose> list = roseService.list(new Express(Rose.T_ORDER_NUM, 3, ExpressionType.CDT_Less),\r
+                new Express(Rose.T_ORDER_NUM, 0, ExpressionType.CDT_More));\r
+ List<Rose> list = roseService.list(1, 5);\r
+\r
+ Terms terms = new Terms();\r
+ terms.and(new Express(Rose.T_ORDER_NUM, 2, ExpressionType.CDT_MoreEqual))\r
+      .or(new Express(Rose.T_ORDER_NUM, 6, ExpressionType.CDT_Less));\r
+\r
+ List<Rose> list = roseService.list(terms);\r
+\r
+ List<Rose> list = roseService.list(terms, new MultiOrder().asc(Rose.T_ORDER_NUM));\r
+\r
+--------------------base Query 简单查询------------------------------\r
+ IBaseQuery query = new BaseQueryImpl();\r
+ query.table(RoseType.class);\r
+ query.where(Rose.T_ORDER_NUM, 2, ExpressionType.CDT_MoreEqual);\r
+\r
+ List<Rose> roses = roseService.query(query);\r
+\r
+ List<Rose> roses = roseService.query(query, 2);\r
+\r
+  int c = roseService.queryCount(query);\r
+\r
+  Page page = new Page();\r
+  page.setPage(1);\r
+  page.setSize(2);\r
+  page = roseService.queryPage(query, page);\r
+\r
+--------------------multi Query 复杂查询------------------------------\r
+  IMultiQuery query = new MultiQueryImpl();\r
+\r
+  AliasTable arose = query.table(Rose.class);\r
+  AliasTable aroseType = query.table(RoseType.class);\r
+\r
+  query.where(arose.c(Rose.T_TYPE), aroseType.c(RoseType.T_ID));\r
+  query.where(arose.c(Rose.T_ORDER_NUM), 2, ExpressionType.CDT_MoreEqual);\r
+  query.createQuery(Map.class, arose.c(Expression.EXPRESSION_ALL), aroseType.c(RoseType.T_NAME, "TYPE_NAME"));\r
+\r
+  List<Map<String, Object>> roses = roseService.query(query);\r
+  for(Map<String, Object> rose : roses) {\r
+      System.out.println(rose.get("typeName"));\r
+  }\r
+\r
+--------------------listener 监听器------------------------------\r
+ IDefaultListener/IORMListener/IChangeListener\r
