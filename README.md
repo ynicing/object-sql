@@ -107,10 +107,10 @@
 <br/>
 <br/>
   -------------------- Service ----------------------------------------<br/>
-  public interface IRoseTypeService extends IBaseService<RoseType> {<br/>
+  public interface IRoseTypeService extends IBaseService&lt;RoseType&gt; {<br/>
 <br/>
   }<br/>
   @Service("roseTypeService")<br/>
-  public class RoseTypeServiceImpl extends BaseServiceImpl<RoseType> implements IRoseTypeService {<br/>
+  public class RoseTypeServiceImpl extends BaseServiceImpl&lt;RoseType&gt; implements IRoseTypeService {<br/>
   <br/>
   }<br/>
