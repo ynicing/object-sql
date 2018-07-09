@@ -1,12 +1,12 @@
 # Light ORM by ursful.com
-
---------------------save 保存----------------------
- RoseType roseType = new RoseType();
- roseType.setId("ID");
- roseType.setName("Rose Type");
- roseType.setOrderNum(1);
- roseTypeService.save(roseType);
-
+<br/>
+--------------------save 保存----------------------<br/>
+ RoseType roseType = new RoseType();<br/>
+ roseType.setId("ID");<br/>
+ roseType.setName("Rose Type");<br/>
+ roseType.setOrderNum(1);<br/>
+ roseTypeService.save(roseType);<br/>
+<br/>
 --------------------update 更新----------------------\r
  RoseType roseType = new RoseType();\r
  roseType.setId("ID");\r
