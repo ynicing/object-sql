@@ -19,7 +19,7 @@
  roseTypeService.delete(roseType);<br/>
  or<br/>
  roseTypeService.delete("ID");<br/>
-
+<br/>
 --------------------list 列表----------------------<br/>
  List<Rose> list = roseService.list();<br/>
 <br/>
@@ -65,7 +65,7 @@
 <br/>
   List<Map<String, Object>> roses = roseService.query(query);<br/>
   for(Map<String, Object> rose : roses) {<br/>
-      System.out.println(rose.get("typeName"));<br/>
+  &nbsp;&nbsp;System.out.println(rose.get("typeName"));<br/>
   }<br/>
 <br/>
 --------------------listener 监听器------------------------------<br/>
