@@ -103,4 +103,14 @@
  &nbsp;&nbsp;&nbsp;&nbsp;public String getName(){return this.name;}<br/>
  <br/>
  &nbsp;&nbsp;&nbsp;&nbsp;public void setName(String name){this.name = name;}<br/>
- }
+ }<br/>
+<br/>
+<br/>
+  -------------------- Service ----------------------------------------<br/>
+  public interface IRoseTypeService extends IBaseService<RoseType> {<br/>
+<br/>
+  }<br/>
+  @Service("roseTypeService")<br/>
+  public class RoseTypeServiceImpl extends BaseServiceImpl<RoseType> implements IRoseTypeService {<br/>
+  <br/>
+  }<br/>
