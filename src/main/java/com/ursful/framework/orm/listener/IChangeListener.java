@@ -16,5 +16,8 @@
 package com.ursful.framework.orm.listener;
 
 public interface IChangeListener<T> {
+    //参与事务
     void change(T original, T current);
+    //不参与事务
+//    void changed(T original, T current);
 }

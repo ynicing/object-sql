@@ -47,7 +47,7 @@ public class SQLHelperCreator {
     /**
      * 按对象的id删除
      * @param obj
-     * @return
+     * @return SQLHelper
      * @throws CommonException
      */
     public static SQLHelper delete(Object obj) throws CommonException{
@@ -113,7 +113,7 @@ public class SQLHelperCreator {
      *
      * @param clazz
      * @param idObject id
-     * @return
+     * @return SQLHelper
      * @throws CommonException
      */
     public static SQLHelper delete(Class clazz, Object idObject) throws CommonException{
@@ -191,7 +191,7 @@ public class SQLHelperCreator {
      * 更新 只能使用id，否则初学者不填id 全部更新了。
      * @param obj
      * @param updateNull
-     * @return
+     * @return SQLHelper
      * @throws CommonException
      */
 	public static SQLHelper update(Object obj, DatabaseType databaseType, boolean updateNull) throws CommonException{
@@ -355,7 +355,7 @@ public class SQLHelperCreator {
      * 允许获取 id，匹配，唯一等值
      * 有id根据id获取，其他根据列 等值获取
      * @param obj
-     * @return
+     * @return SQLHelper
      * @throws CommonException
      */
 	public static SQLHelper get(Object obj) throws CommonException{
@@ -507,7 +507,7 @@ public class SQLHelperCreator {
      * 只允许ID
      * @param obj
      * @param clazz
-     * @return
+     * @return SQLHelperCreator
      * @throws CommonException
      */
     public static SQLHelper get(Object obj, Class clazz) throws CommonException{

@@ -44,8 +44,6 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
     private Logger logger = Logger.getLogger(BaseServiceImpl.class);
 
-    private static final int ERROR_QUERY_TABLE = 101;
-
     private Class<?> thisClass;
 
     protected BaseServiceImpl() {
@@ -121,29 +119,83 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
     }
 
 
+    private void triggerDefaultListener(T  t){
+        for (IDefaultListener listener : defaultListeners) {
+            try {
+                listener.insert(t);
+            }catch (Exception e){
+                logger.error("Default Listener Error", e);
+                throw e;
+            }
+        }
+    }
+
+    private void triggerORMListener(Object t, ORMType type){
+        for (IORMListener listener : listeners) {
+            try {
+                if(type == ORMType.INSERT) {
+                    listener.insert((T)t);
+                }else if(type == ORMType.UPDATE){
+                    listener.update((T)t);
+                }else if(type == ORMType.DELETE){
+                    listener.delete(t);
+                }else{
+                    logger.warn("Other type, not support.");
+                }
+            }catch (Exception e){
+                logger.error("ORM Listener Error", e);
+                throw e;
+            }
+        }
+    }
+
+    private void triggerChangeListener(final T original, final T t, Connection connection){
+        final String changeHolder = ChangeHolder.get();
+        for (final IChangeListener listener : changeListeners) {
+            try {
+                listener.change(original, t);
+//                if(connection.getAutoCommit()){
+//                    System.out.println(connection);
+//                }else{
+//                    if(changeHolder != null){
+//
+//                    }
+//                    //ChangeHolder.get(changeHolder);
+//
+//                    System.out.println(connection);
+//                    //TransactionInfo info = ((DruidPooledConnection) connection).getTransactionInfo();
+//                }
+//            }catch (SQLException e){
+//                logger.error("Change Listener Error", e);
+//                throw new RuntimeException("SQL:" + e.getMessage());
+            }catch (Exception e){
+                logger.error("Change Listener Error", e);
+                throw e;
+            }
+        }
+    }
 
     public boolean save(T t) {
+        return save(t, true);
+    }
+
+    public boolean saveWithoutListener(T t){
+        return save(t, false);
+    }
+
+    private boolean save(T t, boolean enableListener) {
         PreparedStatement ps = null;
         Connection conn = null;
         SQLHelper helper = null;
         try {
-
-            for (IDefaultListener listener : defaultListeners) {
-                try {
-                    listener.insert(t);
-                }catch (Exception e){
-                    logger.error("Default Listener insert Error", e);
-                }
-            }
-
+            triggerDefaultListener(t);
             helper = SQLHelperCreator.save(t, dataSourceManager.getDatabaseType());
-
             if(ORMUtils.getDebug()) {
                 logger.info("SAVE : " + helper);
             }
-
             conn = getConnection();
-            logger.debug("connection :" + conn);
+            String change = ChangeHolder.getAndIncrease();
+            logger.debug("connection :" + conn + ">" + change);
             if(helper.getIdField() != null) {
                 ps = conn.prepareStatement(helper.getSql(), Statement.RETURN_GENERATED_KEYS);
             }else{
@@ -152,10 +204,8 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             //ps = conn.prepareStatement(sql);
             //ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             //ps = conn.prepareStatement(sql, new String[]{idCols.getFirst()});
-
             SQLHelperCreator.setParameter(ps, helper.getParameters(), dataSourceManager.getDatabaseType(), conn);
             boolean flag =  ps.executeUpdate() > 0;
-
             try {
                 if(helper.getIdField() != null) {
                     ResultSet seqRs = ps.getGeneratedKeys();
@@ -167,23 +217,9 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             }catch (Exception e){
                 logger.error("not support.", e);
             }
-            if(flag) {
-                for (IORMListener listener : listeners) {
-                    try {
-                        listener.insert(t);
-                    }catch (Exception e){
-                        logger.error("ORM Listener insert Error", e);
-                    }
-                }
-
-                for (IChangeListener listener : changeListeners) {
-                    try {
-                        listener.change(null, t);
-                    }catch (Exception e){
-                        logger.error("Change Listener Error", e);
-                    }
-
-                }
+            if(flag && enableListener) {
+                triggerORMListener(t, ORMType.INSERT);
+                triggerChangeListener(null, t, conn);
             }
             return flag;
         } catch (SQLException e) {
@@ -192,8 +228,13 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         } catch (CommonException e) {
             logger.error("SQL : " + helper, e);
             throw e;
+        } catch (Exception e) {
+            logger.error("SQL : " + helper, e);
+            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "SAVE Listener : " + e.getMessage());
         } finally{
             close(null, ps, conn);
+            String change = ChangeHolder.getAndDecrease();
+            logger.debug("close connection :" + conn + ">" + change);
         }
     }
 
@@ -221,18 +262,10 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         SQLHelper helper = null;
         try {
 
-            //if(!updateNull) {
-            for (IDefaultListener listener : defaultListeners) {
-                try {
-                    listener.update(t);
-                }catch (Exception e){
-                    logger.error("Default Listener update Error", e);
-                }
-            }
-            //}
+            triggerDefaultListener(t);
 
             helper = SQLHelperCreator.update(t, dataSourceManager.getDatabaseType(), updateNull);
-            Object original = null;
+            T original = null;
             if(helper.getPair() != null && !changeListeners.isEmpty()) {
                 original = get(helper.getPair().getValue());
             }
@@ -241,25 +274,15 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             }
 
             conn = getConnection();
+            String change = ChangeHolder.getAndIncrease();
+            logger.debug("connection :" + conn + ">" + change);
             ps = conn.prepareStatement(helper.getSql());
             SQLHelperCreator.setParameter(ps, helper.getParameters(), dataSourceManager.getDatabaseType(), conn);
 
             boolean result = ps.executeUpdate() > 0;
             if(result && enableListener) {
-                for (IORMListener listener : listeners) {
-                    try {
-                        listener.update(t);
-                    }catch (Exception e){
-                        logger.error("ORM Listener insert Error", e);
-                    }
-                }
-                for (IChangeListener listener : changeListeners) {
-                    try {
-                        listener.change(original, t);
-                    }catch (Exception e){
-                        logger.error("Change Listener Error", e);
-                    }
-                }
+                triggerORMListener(t, ORMType.UPDATE);
+                triggerChangeListener(original, t, conn);
             }
             return result;
         } catch (CommonException e) {
@@ -268,8 +291,13 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
             throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "UPDATE: " +  e.getMessage());
+        } catch (Exception e) {
+            logger.error("SQL : " + helper, e);
+            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "UPDATE Listener : " + e.getMessage());
         } finally{
             close(null, ps, conn);
+            String change = ChangeHolder.getAndDecrease();
+            logger.debug("close connection :" + conn + ">" + change);
         }
     }
 
@@ -280,11 +308,11 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         Connection conn = null;
         SQLHelper helper = null;
         try {
-            Object now = null;
+            T now = null;
 
             if(thisClass.isInstance(t)){
                 helper = SQLHelperCreator.delete(t);
-                now = t;
+                now = (T)t;
             }else{
                 helper = SQLHelperCreator.delete(thisClass, t);
                 if(helper.getPair() != null && !changeListeners.isEmpty()) {
@@ -296,26 +324,15 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             }
 
             conn = getConnection();
+            String change = ChangeHolder.getAndIncrease();
+            logger.debug("connection :" + conn + ">" + change);
             ps = conn.prepareStatement(helper.getSql());
             SQLHelperCreator.setParameter(ps, helper.getParameters(), dataSourceManager.getDatabaseType(), conn);
 
             boolean result = ps.executeUpdate() > 0;
             if(result) {
-                for (IORMListener listener : listeners) {
-                    try {
-                        listener.delete(t);
-                    }catch (Exception e){
-                        logger.error("ORM Listener delete Error", e);
-                    }
-
-                }
-                for (IChangeListener listener : changeListeners) {
-                    try {
-                        listener.change(now, null);
-                    }catch (Exception e){
-                        logger.error("Change Listener Error", e);
-                    }
-                }
+                triggerORMListener(t, ORMType.DELETE);
+                triggerChangeListener(now, null, conn);
             }
             return result;
         } catch (CommonException e) {
@@ -324,8 +341,13 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
             throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "DELETE : " +  e.getMessage());
-        } finally{
+        } catch (Exception e) {
+            logger.error("SQL : " + helper, e);
+            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "DELETE : " + e.getMessage());
+        }  finally{
             close(null, ps, conn);
+            String change = ChangeHolder.getAndDecrease();
+            logger.debug("close connection :" + conn + ">" + change);
         }
     }
 
@@ -352,29 +374,16 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             }
 
             conn = getConnection();
+            String change = ChangeHolder.getAndIncrease();
+            logger.debug("connection :" + conn + ">" + change);
             ps = conn.prepareStatement(helper.getSql());
             SQLHelperCreator.setParameter(ps, helper.getParameters(), dataSourceManager.getDatabaseType(), conn);
 
             boolean result = ps.executeUpdate() > 0;
-            if(result) {
-                for (IORMListener listener : listeners) {
-                    try {
-                        for(T t : nows) {
-                            listener.delete(t);
-                        }
-                    }catch (Exception e){
-                        logger.error("ORM Listener delete(Express) Error", e);
-                    }
-
-                }
-                for (IChangeListener listener : changeListeners) {
-                    try {
-                        for(T t : nows) {
-                            listener.change(t, null);
-                        }
-                    }catch (Exception e){
-                        logger.error("Change Listener delete(Express) Error", e);
-                    }
+            if(result && nows != null) {
+                for(T t : nows) {
+                    triggerORMListener(t, ORMType.DELETE);
+                    triggerChangeListener(t, null, conn);
                 }
             }
             return result;
@@ -384,8 +393,13 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
             throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "DELETE(Express) : " +  e.getMessage());
-        } finally{
+        } catch (Exception e) {
+            logger.error("SQL : " + helper, e);
+            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "DELETE(Express) : " + e.getMessage());
+        }  finally{
             close(null, ps, conn);
+            String change = ChangeHolder.getAndDecrease();
+            logger.debug("close connection :" + conn + ">" + change);
         }
     }
 
@@ -401,7 +415,6 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             if(ORMUtils.getDebug()) {
                 logger.info("list() : " + helper);
             }
-
             conn = getConnection();
             ps = conn.prepareStatement(helper.getSql());
             rs = ps.executeQuery();
@@ -468,11 +481,9 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         SQLHelper helper = null;
         try {
             helper = SQLHelperCreator.query(thisClass, expresses);
-
             if(ORMUtils.getDebug()) {
                 logger.info("list(expresses) : " + helper);
             }
-
             conn = getConnection();
             ps = conn.prepareStatement(helper.getSql());
            SQLHelperCreator.setParameter(ps, helper.getParameters(), dataSourceManager.getDatabaseType(), conn);
@@ -540,7 +551,6 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
     public boolean exists(Terms terms) {
         PreparedStatement ps = null;
         ResultSet rs = null;
-        List<String> temp = new ArrayList<String>();
 
         Connection conn = null;
         SQLHelper helper = null;
@@ -921,49 +931,6 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         page.setTotal(total);
         return page;
     }
-
-
-
-    /*
-    public List<String> getCurrentTables(){
-
-        List<String> temp = new ArrayList<String>();
-        ResultSet rs = null;
-        PreparedStatement ps = null;
-
-        Connection conn = null;
-        try {
-
-            DatabaseType dt = getDatabaseType();
-
-            String sql = null;
-            switch(dt){
-                case MYSQL:
-                    //sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '"+ConnectiongetDatabaseName()+"'";
-                    break;
-                case ORACLE:
-                    sql = "select table_name from user_tables";
-                    break;
-                case SQLServer:
-                    break;
-            }
-
-            conn = getConnection();
-            ps = conn.prepareStatement(sql);
-            //DBUtil.setParameter(ps, parameters);
-            rs = ps.executeQuery();
-
-            while(rs.next()){
-                String tmp = rs.getString(1);
-                temp.add(tmp);
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        } finally{
-            close(conn, ps, rs);
-        }
-        return temp;
-    }*/
 
     /*
     public int executeBatch(ISQLScript script, Object[] ... parameters){

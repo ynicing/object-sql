@@ -32,38 +32,32 @@ import java.util.*;
  */
 public class ORMUtils {
 
-
-    public static String DEFAUT_DATASOURCE = "dataSource";
-
-    private static boolean debug = true;
-
+    //开启debug模式，
+    private static boolean debug = false;
     private static boolean isTrim = false;
 
     public static boolean isTrim(){
         return isTrim;
     }
 
-    public static void setTrim(boolean trim){
+    public static void enableTrim(boolean trim){
         isTrim = trim;
     }
 
-    public static void setAllDebug(boolean d){
+    public static void enableDebug(boolean d){
         debug = d;
     }
 
-    public static void setDebug(boolean debug){
+    public static void enableCurrentThreadDebug(boolean debug){
         DebugHolder.set(debug + "");
     }
 
     public static boolean getDebug(){//true
-        if(debug) {
-            String _debug = DebugHolder.get();
-            if (_debug != null && "false".equals(_debug)) {
-                return false;
-            }
+        String _debug = DebugHolder.get();
+        if (_debug != null && "true".equals(_debug)) {
             return true;
         }
-        return false;
+        return debug;
     }
 
     private static Map<Class, Map<String, String>> fieldColumnCache = new HashMap<Class, Map<String, String>>();

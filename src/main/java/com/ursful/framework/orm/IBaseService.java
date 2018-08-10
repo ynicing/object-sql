@@ -69,6 +69,7 @@ public interface IBaseService<T> extends ISQLService{
         testService.save(test);
     */
     boolean save(T t);
+    boolean saveWithoutListener(T t);
 
     /*  更新（按主键), 若对象字段为空则不更新
         testService.update(test);

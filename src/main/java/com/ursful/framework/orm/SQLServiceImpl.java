@@ -32,8 +32,6 @@ public class SQLServiceImpl implements ISQLService{
         this.dataSourceManager = dataSourceManager;
     }
 
-
-
     @Override
     public boolean execute(String sql, Object... params) {
         int res = -1;

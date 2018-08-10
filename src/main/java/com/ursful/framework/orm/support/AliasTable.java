@@ -10,6 +10,10 @@ public class AliasTable{
 
     private String alias;
 
+    public Column columns(){
+        return new Column(alias, Expression.EXPRESSION_ALL);
+    }
+
     private Object table;
 
     public Object getTable(){

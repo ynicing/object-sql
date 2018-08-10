@@ -24,6 +24,10 @@ public class DataSourceManager {
     private static Map<DatabaseType, QueryPage> queryPageMap = new HashMap<DatabaseType, QueryPage>();
 
     private DataSource dataSource;
+    public DataSourceManager(){}
+    public DataSourceManager(DataSource dataSource){
+        this.dataSource = dataSource;
+    }
 
     private List<QueryPage> queryPageList;
     public void setQueryPageList(List<QueryPage> queryPageList){
