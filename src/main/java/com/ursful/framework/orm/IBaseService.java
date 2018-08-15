@@ -17,6 +17,7 @@ package com.ursful.framework.orm;
 
 
 import com.ursful.framework.orm.listener.IChangeListener;
+import com.ursful.framework.orm.listener.IChangedListener;
 import com.ursful.framework.orm.listener.IDefaultListener;
 import com.ursful.framework.orm.listener.IORMListener;
 import com.ursful.framework.orm.support.*;
@@ -26,6 +27,8 @@ import javax.sql.DataSource;
 import java.util.List;
 
 public interface IBaseService<T> extends ISQLService{
+
+    void changed(T original, T current);
 
     void setDataSourceManager(DataSourceManager dataSourceManager);
 

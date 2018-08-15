@@ -16,15 +16,16 @@
 package com.ursful.framework.orm;
 
 
-import com.ursful.framework.core.exception.CommonException;
-import com.ursful.framework.orm.error.ORMErrorCode;
-import com.ursful.framework.orm.helper.SQLHelper;
-import com.ursful.framework.orm.helper.SQLHelperCreator;
 import com.ursful.framework.orm.listener.IChangeListener;
+import com.ursful.framework.orm.listener.IChangedListener;
 import com.ursful.framework.orm.listener.IDefaultListener;
-import com.ursful.framework.orm.listener.IORMListener;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
+import com.ursful.framework.orm.error.ORMErrorCode;
+import com.ursful.framework.orm.helper.SQLHelperCreator;
+import com.ursful.framework.orm.listener.IORMListener;
+import com.ursful.framework.orm.helper.SQLHelper;
+import com.ursful.framework.core.exception.CommonException;
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
@@ -57,6 +58,8 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
     private List<IChangeListener> changeListeners = new ArrayList<IChangeListener>();
 
+    private List<IChangedListener> changedListeners = new ArrayList<IChangedListener>();
+
     public void addDefaultListener(IDefaultListener listener){
         if(!defaultListeners.contains(listener)) {
             defaultListeners.add(listener);
@@ -80,6 +83,19 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             changeListeners.remove(listener);
         }
     }
+
+    public void addChangedListener(IChangedListener listener){
+        if(!changedListeners.contains(listener)){
+            changedListeners.add(listener);
+        }
+    }
+
+    public void removeChangedListener(IChangedListener listener){
+        if(changedListeners.contains(listener)){
+            changedListeners.remove(listener);
+        }
+    }
+
 
     public void addORMListener(IORMListener listener){
         if(!listeners.contains(listener)){
@@ -113,6 +129,13 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         for(IChangeListener listener : changes.values()){
             if(ORMUtils.isTheSameClass(thisClass, listener.getClass())){
                 changeListeners.add(listener);
+            }
+        }
+
+        Map<String, IChangedListener> changeds = BeanFactoryUtils.beansOfTypeIncludingAncestors((ListableBeanFactory)beanFactory, IChangedListener.class);
+        for(IChangedListener listener : changeds.values()){
+            if(ORMUtils.isTheSameClass(thisClass, listener.getClass())){
+                changedListeners.add(listener);
             }
         }
     }
@@ -152,16 +175,42 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         }
     }
 
+    @Override
+    public void changed(T original, T current) {
+        for (final IChangedListener listener : changedListeners) {
+            try {
+                listener.changed(original, current);
+            }catch (Exception e){//变更异常不影响其他监听器。
+                logger.error("Changed Listener Error", e);
+            }
+        }
+    }
+
     private void triggerChangeListener(final T original, final T t, Connection connection){
-        final String changeHolder = ChangeHolder.get();
+        boolean autoCommit = true;
+        try{
+            autoCommit = connection.getAutoCommit();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
         for (final IChangeListener listener : changeListeners) {
             try {
                 listener.change(original, t);
             }catch (Exception e){
                 logger.error("Change Listener Error", e);
-                throw e;
+                if(!autoCommit) {//事务，变更影响其他监听器
+                    throw e;
+                }
             }
         }
+        if(autoCommit){
+            changed(original, t);
+            return;
+        }
+        if(!changedListeners.isEmpty()){
+            ChangeHolder.cache(new PreChangeCache(this, original, t));
+        }
+
     }
 
     public boolean save(T t) {
@@ -183,8 +232,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                 logger.info("SAVE : " + helper);
             }
             conn = getConnection();
-            String change = ChangeHolder.getAndIncrease();
-            logger.debug("connection :" + conn + ">" + change);
+            logger.debug("connection :" + conn);
             if(helper.getIdField() != null) {
                 ps = conn.prepareStatement(helper.getSql(), Statement.RETURN_GENERATED_KEYS);
             }else{
@@ -222,8 +270,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "SAVE Listener : " + e.getMessage());
         } finally{
             close(null, ps, conn);
-            String change = ChangeHolder.getAndDecrease();
-            logger.debug("close connection :" + conn + ">" + change);
+            logger.debug("close connection :" + conn);
         }
     }
 
@@ -263,8 +310,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             }
 
             conn = getConnection();
-            String change = ChangeHolder.getAndIncrease();
-            logger.debug("connection :" + conn + ">" + change);
+            logger.debug("connection :" + conn);
             ps = conn.prepareStatement(helper.getSql());
             SQLHelperCreator.setParameter(ps, helper.getParameters(), dataSourceManager.getDatabaseType(), conn);
 
@@ -285,8 +331,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "UPDATE Listener : " + e.getMessage());
         } finally{
             close(null, ps, conn);
-            String change = ChangeHolder.getAndDecrease();
-            logger.debug("close connection :" + conn + ">" + change);
+            logger.debug("close connection :" + conn);
         }
     }
 
@@ -313,8 +358,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             }
 
             conn = getConnection();
-            String change = ChangeHolder.getAndIncrease();
-            logger.debug("connection :" + conn + ">" + change);
+            logger.debug("connection :" + conn);
             ps = conn.prepareStatement(helper.getSql());
             SQLHelperCreator.setParameter(ps, helper.getParameters(), dataSourceManager.getDatabaseType(), conn);
 
@@ -335,16 +379,15 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "DELETE : " + e.getMessage());
         }  finally{
             close(null, ps, conn);
-            String change = ChangeHolder.getAndDecrease();
-            logger.debug("close connection :" + conn + ">" + change);
+            logger.debug("close connection :" + conn);
         }
     }
 
 
-    public boolean deletes(Express... expresses) {
+    public boolean deletes(Express ... expresses) {
 
         if(expresses == null || expresses.length == 0){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_DELETE_WITHOUT_EXPRESS, "DELETE(Express) : " + thisClass);
+            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE,ORMErrorCode.TABLE_DELETE_WITHOUT_EXPRESS, "DELETE(Express) : " + thisClass);
         }
 
         PreparedStatement ps = null;
@@ -363,8 +406,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             }
 
             conn = getConnection();
-            String change = ChangeHolder.getAndIncrease();
-            logger.debug("connection :" + conn + ">" + change);
+            logger.debug("connection :" + conn);
             ps = conn.prepareStatement(helper.getSql());
             SQLHelperCreator.setParameter(ps, helper.getParameters(), dataSourceManager.getDatabaseType(), conn);
 
@@ -387,8 +429,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "DELETE(Express) : " + e.getMessage());
         }  finally{
             close(null, ps, conn);
-            String change = ChangeHolder.getAndDecrease();
-            logger.debug("close connection :" + conn + ">" + change);
+            logger.debug("close connection :" + conn);
         }
     }
 
@@ -461,7 +502,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         return temp;
     }
 
-    public List<T> list(Express... expresses) {
+    public List<T> list(Express ... expresses) {
         PreparedStatement ps = null;
         ResultSet rs = null;
         List<T> temp = new ArrayList<T>();
@@ -570,7 +611,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         return false;
     }
 
-    public boolean exists(Express... expresses) {
+    public boolean exists(Express ... expresses) {
         PreparedStatement ps = null;
         ResultSet rs = null;
 
@@ -603,7 +644,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         return false;
     }
 
-    public int count(Express... expresses){
+    public int count(Express ... expresses){
 
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -769,11 +810,11 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
     }
 
 
-    public <S> List<S> query(IQuery q) throws CommonException {
+    public <S> List<S> query(IQuery q) throws CommonException{
         return query(q, null);
     }
 
-    public <S> List<S> query(IQuery q, int size) throws CommonException {
+    public <S> List<S> query(IQuery q, int size) throws CommonException{
 
         Page page = new Page();
         page.setPage(1);
@@ -821,7 +862,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         return temp;
     }
 
-    private <S> List<S> query(IQuery q, Page page) throws CommonException {
+    private <S> List<S> query(IQuery q, Page page) throws CommonException{
 
         Connection conn = getConnection();
         //setClob通用
@@ -866,7 +907,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
     }
 
 
-    public int queryCount(IQuery q) throws CommonException {
+    public int queryCount(IQuery q) throws CommonException{
         //setClob通用
 
         Connection conn = null;
@@ -910,7 +951,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
     }
 
 
-    public <S> Page queryPage(IQuery query, Page page) throws CommonException {
+    public <S> Page queryPage(IQuery query, Page page) throws CommonException{
         if(page == null){
             page = new Page();
         }

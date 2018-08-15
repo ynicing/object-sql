@@ -15,22 +15,41 @@
  */
 package com.ursful.framework.orm.support;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public abstract class ChangeHolder {
 
-	private static Map<String, Integer> counts = new HashMap<String, Integer>();
+	private static final ThreadLocal<String> threadLocal = new ThreadLocal<String>();
 
-	public static Integer getCount(String key){
-		return counts.get(key);
+	private static Map<String, List<PreChangeCache>> changeCacheMap = new HashMap<String, List<PreChangeCache>>();
+
+	public static void cache(PreChangeCache cache){
+		String key = get();
+		List<PreChangeCache> caches = changeCacheMap.get(key);
+		if(caches == null){
+			caches = new ArrayList<PreChangeCache>();
+		}
+		caches.add(cache);
+		changeCacheMap.put(key, caches);
 	}
 
-	private static final ThreadLocal<String> threadLocal = new ThreadLocal<String>();
+	public static void change(){
+		String key = get();
+		List<PreChangeCache> changeCaches = changeCacheMap.get(key);
+		if(changeCaches != null){
+			for(PreChangeCache changeCache : changeCaches) {
+				changeCache.changed();
+			}
+		}
+		changeCacheMap.remove(key);
+		remove();
+	}
 
 	public static void remove() {
 		String temp = threadLocal.get();
-		counts.remove(temp);
         threadLocal.remove();
 	}
 
@@ -40,28 +59,6 @@ public abstract class ChangeHolder {
 		}else {
             threadLocal.set(change);
 		}
-	}
-
-	public static String getAndDecrease() {
-		String temp = get();
-		if(temp != null){
-			Integer count = counts.get(temp);
-			if(count != null){
-				counts.put(temp, count-1);
-			}
-		}
-		return temp;
-	}
-
-	public static String getAndIncrease() {
-		String temp = get();
-		if(temp != null){
-			Integer count = counts.get(temp);
-			if(count != null){
-				counts.put(temp, count+1);
-			}
-		}
-		return temp;
 	}
 
 	public static String get() {
