@@ -16,7 +16,7 @@ import java.util.*;
 
 public class SQLServiceImpl implements ISQLService{
 
-    @Autowired
+    @Autowired(required = false)
     protected DataSourceManager dataSourceManager;
 
     public DataSourceManager getDataSourceManager() {

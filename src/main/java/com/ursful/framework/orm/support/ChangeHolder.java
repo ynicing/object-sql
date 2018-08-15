@@ -44,12 +44,12 @@ public abstract class ChangeHolder {
 				changeCache.changed();
 			}
 		}
-		changeCacheMap.remove(key);
 		remove();
 	}
 
 	public static void remove() {
-		String temp = threadLocal.get();
+		String key = threadLocal.get();
+		changeCacheMap.remove(key);
         threadLocal.remove();
 	}
 
