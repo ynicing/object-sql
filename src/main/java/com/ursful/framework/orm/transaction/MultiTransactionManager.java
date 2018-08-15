@@ -16,23 +16,28 @@ import java.util.UUID;
  */
 public class MultiTransactionManager extends JtaTransactionManager {
 
+    public MultiTransactionManager() {
+        super();
+    }
+
     @Override
     protected void doBegin(Object transaction, TransactionDefinition definition) {
-        logger.debug("jta begin....");
-        ChangeHolder.set("jta-transaction-" + UUID.randomUUID().toString());
+        String key = "jta-transaction-" + UUID.randomUUID().toString();
+        logger.debug("jta begin...." + key);
+        ChangeHolder.set(key);
         super.doBegin(transaction, definition);
     }
 
     @Override
     protected void doCommit(DefaultTransactionStatus status) {
-        logger.debug("jta commit....");
+        logger.debug("jta commit...." + ChangeHolder.get());
         super.doCommit(status);
         ChangeHolder.change();
     }
 
     @Override
     protected void doRollback(DefaultTransactionStatus status) {
-        logger.debug("jta rollback....");
+        logger.debug("jta rollback...." + ChangeHolder.get());
         ChangeHolder.remove();
         super.doRollback(status);
 

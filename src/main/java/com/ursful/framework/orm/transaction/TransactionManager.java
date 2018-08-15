@@ -32,21 +32,21 @@ public class TransactionManager extends DataSourceTransactionManager {
     @Override
     protected void doBegin(Object transaction, TransactionDefinition definition) {
         String key = "transaction-" + UUID.randomUUID().toString();
-        logger.warn("begin...." + key);
+        logger.debug("begin...." + key);
         ChangeHolder.set(key);
         super.doBegin(transaction, definition);
     }
 
     @Override
     protected void doCommit(DefaultTransactionStatus status) {
-        logger.warn("commit...." + ChangeHolder.get());
+        logger.debug("commit...." + ChangeHolder.get());
         super.doCommit(status);
         ChangeHolder.change();
     }
 
     @Override
     protected void doRollback(DefaultTransactionStatus status) {
-        logger.warn("rollback...." + ChangeHolder.get());
+        logger.debug("rollback...." + ChangeHolder.get());
         ChangeHolder.remove();
         super.doRollback(status);
 
