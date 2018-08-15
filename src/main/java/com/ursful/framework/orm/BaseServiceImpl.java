@@ -108,36 +108,30 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         }
     }
 
+    private <S> void sortAddListeners(List<S> result, Class<S> clazz){
+        Map<String, S> listenerMap = BeanFactoryUtils.beansOfTypeIncludingAncestors(factory, clazz);
+        for(S listener : listenerMap.values()){
+            if(listener == this){
+                continue;
+            }
+            if(ORMUtils.isTheSameClass(thisClass, listener.getClass())){
+                result.add(listener);
+            }
+        }
+    }
+
+
+    private ListableBeanFactory factory;
+
     @Override
     public void setBeanFactory(BeanFactory beanFactory) throws BeansException {
 
-        Map<String, IORMListener> listenerMap = BeanFactoryUtils.beansOfTypeIncludingAncestors((ListableBeanFactory)beanFactory, IORMListener.class);
-        for(IORMListener listener : listenerMap.values()){
-            if(ORMUtils.isTheSameClass(thisClass, listener.getClass())){
-                listeners.add(listener);
-            }
-        }
+        this.factory = (ListableBeanFactory)beanFactory;
 
-        Map<String, IDefaultListener> map = BeanFactoryUtils.beansOfTypeIncludingAncestors((ListableBeanFactory)beanFactory, IDefaultListener.class);
-        for(IDefaultListener listener : map.values()){
-            if(ORMUtils.isTheSameClass(thisClass, listener.getClass())) {
-                defaultListeners.add(listener);
-            }
-        }
-
-        Map<String, IChangeListener> changes = BeanFactoryUtils.beansOfTypeIncludingAncestors((ListableBeanFactory)beanFactory, IChangeListener.class);
-        for(IChangeListener listener : changes.values()){
-            if(ORMUtils.isTheSameClass(thisClass, listener.getClass())){
-                changeListeners.add(listener);
-            }
-        }
-
-        Map<String, IChangedListener> changeds = BeanFactoryUtils.beansOfTypeIncludingAncestors((ListableBeanFactory)beanFactory, IChangedListener.class);
-        for(IChangedListener listener : changeds.values()){
-            if(ORMUtils.isTheSameClass(thisClass, listener.getClass())){
-                changedListeners.add(listener);
-            }
-        }
+        sortAddListeners(listeners, IORMListener.class);
+        sortAddListeners(defaultListeners, IDefaultListener.class);
+        sortAddListeners(changeListeners, IChangeListener.class);
+        sortAddListeners(changedListeners, IChangedListener.class);
     }
 
 

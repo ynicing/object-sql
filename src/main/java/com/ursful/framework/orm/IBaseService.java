@@ -26,9 +26,7 @@ import com.ursful.framework.orm.support.Terms;
 import javax.sql.DataSource;
 import java.util.List;
 
-public interface IBaseService<T> extends ISQLService{
-
-    void changed(T original, T current);
+public interface IBaseService<T> extends IChangedListener<T>, ISQLService{
 
     void setDataSourceManager(DataSourceManager dataSourceManager);
 

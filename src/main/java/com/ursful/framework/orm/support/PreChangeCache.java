@@ -1,6 +1,6 @@
 package com.ursful.framework.orm.support;
 
-import com.ursful.framework.orm.IBaseService;
+import com.ursful.framework.orm.listener.IChangedListener;
 
 /**
  * 类名：PreChangeCache
@@ -11,26 +11,26 @@ import com.ursful.framework.orm.IBaseService;
  */
 public class PreChangeCache {
 
-    private IBaseService baseService;
+    private IChangedListener changedListener;
     private Object original;
     private Object current;
 
     public void changed(){
-        baseService.changed(original, current);
+        changedListener.changed(original, current);
     }
 
-    public PreChangeCache(IBaseService service, Object original, Object current){
-        this.baseService = service;
+    public PreChangeCache(IChangedListener listener, Object original, Object current){
+        this.changedListener = listener;
         this.original = original;
         this.current = current;
     }
 
-    public IBaseService getBaseService() {
-        return baseService;
+    public IChangedListener getChangedListener() {
+        return changedListener;
     }
 
-    public void setBaseService(IBaseService baseService) {
-        this.baseService = baseService;
+    public void setChangedListener(IChangedListener changedListener) {
+        this.changedListener = changedListener;
     }
 
     public Object getOriginal() {

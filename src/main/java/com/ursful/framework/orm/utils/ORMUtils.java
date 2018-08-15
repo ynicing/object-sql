@@ -171,17 +171,34 @@ public class ORMUtils {
         return false;
     }
 
+    public static Type[] getTypes(Type type){
+        Type [] types = null;
+        if(type instanceof ParameterizedType){
+            types = ((ParameterizedType) type).getActualTypeArguments();
+        }else{
+            Type[] temp = ((Class)type).getGenericInterfaces();
+            if(temp.length > 0) {
+                types = getTypes(temp[0]);
+            }
+        }
+        return types;
+    }
+
     public static boolean isTheSameClass(Class<?> thisClass, Class<?> clazz){
         Type[] ts = clazz.getGenericInterfaces();
         if(ts.length > 0) {
-            Type [] types = ((ParameterizedType) ts[0]).getActualTypeArguments();
-            if(types.length > 0){
-                Class<?> tp = (Class<?>) types[0];
-                if(thisClass.isAssignableFrom(tp)){
-                    return true;
-                }else if(Object.class.getName().equals(tp.getName())){
-                    return true;
+            try {
+                Type [] types = getTypes(ts[0]);
+                if (types.length > 0) {
+                    Class<?> tp = (Class<?>) types[0];
+                    if (thisClass.isAssignableFrom(tp)) {
+                        return true;
+                    } else if (Object.class.getName().equals(tp.getName())) {
+                        return true;
+                    }
                 }
+            }catch (Exception e){
+                return false;
             }
 
         }
