@@ -350,7 +350,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                 now = (T)t;
             }else{
                 helper = SQLHelperCreator.delete(thisClass, t);
-                if(helper.getPair() != null && !changeListeners.isEmpty()) {
+                if(enableListener && (helper.getPair() != null) && !changeListeners.isEmpty()) {
                     now = get(helper.getPair().getValue());
                 }
             }
