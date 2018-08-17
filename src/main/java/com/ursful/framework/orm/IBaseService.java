@@ -91,8 +91,10 @@ public interface IBaseService<T> extends IChangedListener<T>, ISQLService{
        baseDao.delete(1, Test.class);
     */
     boolean delete(Object object);
+    boolean deleteWithoutListener(Object object);
 
     boolean deletes(Express... expresses);
+    boolean deletesWithoutListener(Express... expresses);
 
     //查询该表总数据
     int count(Express ... expresses);

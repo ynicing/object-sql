@@ -329,8 +329,15 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         }
     }
 
-
     public boolean delete(Object t) {
+        return delete(t, true);
+    }
+
+    public boolean deleteWithoutListener(Object object){
+        return delete(object, false);
+    }
+
+    private boolean delete(Object t, boolean enableListener) {
         PreparedStatement ps = null;
 
         Connection conn = null;
@@ -357,7 +364,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             SQLHelperCreator.setParameter(ps, helper.getParameters(), dataSourceManager.getDatabaseType(), conn);
 
             boolean result = ps.executeUpdate() > 0;
-            if(result) {
+            if(result && enableListener) {
                 triggerORMListener(t, ORMType.DELETE);
                 triggerChangeListener(now, null, conn);
             }
@@ -377,8 +384,15 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         }
     }
 
-
     public boolean deletes(Express ... expresses) {
+        return deletes(true, expresses);
+    }
+
+    public boolean deletesWithoutListener(Express ... expresses) {
+        return deletes(false, expresses);
+    }
+
+    private boolean deletes(boolean enableListener, Express ... expresses) {
 
         if(expresses == null || expresses.length == 0){
             throw new CommonException(ORMErrorCode.EXCEPTION_TYPE,ORMErrorCode.TABLE_DELETE_WITHOUT_EXPRESS, "DELETE(Express) : " + thisClass);
@@ -392,7 +406,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             List<T> nows = null;
 
             helper = SQLHelperCreator.deleteBy(thisClass, expresses);
-            if(!changeListeners.isEmpty()) {
+            if(enableListener && !changeListeners.isEmpty()) {
                 nows = list(expresses);
             }
             if(ORMUtils.getDebug()) {
