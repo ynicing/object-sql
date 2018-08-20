@@ -22,4 +22,5 @@ import java.lang.annotation.*;
 public @interface RdTable {
 	String name();//user/create  user
 	String schema() default "";
+	String title() default "";
 }
