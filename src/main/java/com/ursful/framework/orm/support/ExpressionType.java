@@ -16,6 +16,7 @@
 
 package com.ursful.framework.orm.support;
 public enum ExpressionType {
+    CDT_None, //
     CDT_Equal, //=
     CDT_NotEqual,//<> !=
     CDT_Like,// like %x% 不建议使用
@@ -29,5 +30,14 @@ public enum ExpressionType {
     CDT_NotIn,
     CDT_NotLike,// _a ...
     CDT_IS_NULL,
-    CDT_IS_NOT_NULL
+    CDT_IS_NOT_NULL;
+
+    public static ExpressionType getType(String name){
+        if(name != null && !"".equals(name)){
+            try {
+                return ExpressionType.valueOf(name.trim());
+            }catch (Exception e){}
+        }
+        return CDT_None;
+    }
 }
