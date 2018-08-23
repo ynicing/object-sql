@@ -22,7 +22,7 @@ import com.ursful.framework.orm.support.Terms;
 
 import java.util.List;
 
-public interface IBaseQuery extends IQuery{
+public interface IBaseQuery extends IQuery {
 
     //IBaseQuery createDistinctQuery(Class<?> clazz, Column... columns) throws QueryException;
     //IBaseQuery createQuery(Class<?> clazz, Column... columns) throws QueryException;//select a.id, a.name from
@@ -36,16 +36,18 @@ public interface IBaseQuery extends IQuery{
 	IBaseQuery table(Class<?> clazz);
     IBaseQuery where(String name, ExpressionType type);
 
-	IBaseQuery whereEqual(String name, String value);
-	IBaseQuery whereNotEqual(String name, String value);
+	IBaseQuery whereEqual(String name, Object value);
+	IBaseQuery whereNotEqual(String name, Object value);
+
 	IBaseQuery whereLike(String name, String value);
 	IBaseQuery whereNotLike(String name, String value);
 	IBaseQuery whereStartWith(String name, String value);
 	IBaseQuery whereEndWith(String name, String value);
-	IBaseQuery whereLess(String name, String value);
-	IBaseQuery whereLessEqual(String name, String value);
-	IBaseQuery whereMore(String name, String value);
-	IBaseQuery whereMoreEqual(String name, String value);
+
+	IBaseQuery whereLess(String name, Object value);
+	IBaseQuery whereLessEqual(String name, Object value);
+	IBaseQuery whereMore(String name, Object value);
+	IBaseQuery whereMoreEqual(String name, Object value);
 
 	IBaseQuery whereIsNull(String name);
     IBaseQuery whereIsNotNull(String name);

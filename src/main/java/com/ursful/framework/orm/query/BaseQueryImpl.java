@@ -64,12 +64,12 @@ public class BaseQueryImpl implements IBaseQuery {
     }
 
     @Override
-    public IBaseQuery whereEqual(String name, String value) {
+    public IBaseQuery whereEqual(String name, Object value) {
         return where(name, value, ExpressionType.CDT_Equal);
     }
 
     @Override
-    public IBaseQuery whereNotEqual(String name, String value) {
+    public IBaseQuery whereNotEqual(String name, Object value) {
         return where(name, value, ExpressionType.CDT_NotEqual);
     }
 
@@ -94,22 +94,22 @@ public class BaseQueryImpl implements IBaseQuery {
     }
 
     @Override
-    public IBaseQuery whereLess(String name, String value) {
+    public IBaseQuery whereLess(String name, Object value) {
         return where(name, value, ExpressionType.CDT_Less);
     }
 
     @Override
-    public IBaseQuery whereLessEqual(String name, String value) {
+    public IBaseQuery whereLessEqual(String name, Object value) {
         return where(name, value, ExpressionType.CDT_LessEqual);
     }
 
     @Override
-    public IBaseQuery whereMore(String name, String value) {
+    public IBaseQuery whereMore(String name, Object value) {
         return where(name, value, ExpressionType.CDT_More);
     }
 
     @Override
-    public IBaseQuery whereMoreEqual(String name, String value) {
+    public IBaseQuery whereMoreEqual(String name, Object value) {
         return where(name, value, ExpressionType.CDT_MoreEqual);
     }
 
