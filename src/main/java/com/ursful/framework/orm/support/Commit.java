@@ -34,12 +34,16 @@ public class Commit {
     private PlatformTransactionManager transactionManager;
     private TransactionStatus status;
     private boolean executeSuccess = false;
+    private Runnable failure;
 
     public Commit(Object manager){
         this.transactionManager = (PlatformTransactionManager)manager;
     }
 
     public void execute(Runnable runnable){
+        execute(runnable, null);
+    }
+    public void execute(Runnable runnable, Runnable failure){
         if(runnable == null){
             return;
         }
@@ -48,6 +52,9 @@ public class Commit {
             runnable.run();
             commit();
         }catch (Exception e){
+            if(failure != null){
+                failure.run();
+            }
             throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.BATCH_EXECUTE_ERROR, " batch execute : " +  e.getMessage());
         }finally {
             if(!executeSuccess) {
