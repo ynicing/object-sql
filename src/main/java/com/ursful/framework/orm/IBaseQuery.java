@@ -22,7 +22,7 @@ import com.ursful.framework.orm.support.Terms;
 
 import java.util.List;
 
-public interface IBaseQuery extends IQuery {
+public interface IBaseQuery extends IQuery{
 
     //IBaseQuery createDistinctQuery(Class<?> clazz, Column... columns) throws QueryException;
     //IBaseQuery createQuery(Class<?> clazz, Column... columns) throws QueryException;//select a.id, a.name from

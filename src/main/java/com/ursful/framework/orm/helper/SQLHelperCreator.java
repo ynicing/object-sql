@@ -187,14 +187,44 @@ public class SQLHelperCreator {
 
     }
 
+    public static Field getPrimaryField(Object object){
+        if(object != null) {
+            Field[] fields = object.getClass().getDeclaredFields();
+            for (Field field : fields){
+               if(field.isAnnotationPresent(RdId.class)){
+                   return field;
+               }
+            }
+        }
+        return null;
+    }
+
+    public static void setPrimaryValue(Object original, Object current){
+        if(original == null || current == null){
+            return;
+        }
+        if(!original.getClass().getName().equals(current.getClass().getName())){
+            return;
+        }
+        Field field = getPrimaryField(original);
+        field.setAccessible(true);
+        try {
+            Object value = field.get(original);
+            field.set(current, value);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
     /**
      * 更新 只能使用id，否则初学者不填id 全部更新了。
      * @param obj
      * @param updateNull
+     * @param expresses
      * @return SQLHelper
      * @throws CommonException
      */
-	public static SQLHelper update(Object obj, DatabaseType databaseType, boolean updateNull) throws CommonException{
+	public static SQLHelper update(Object obj, DatabaseType databaseType, Express [] expresses, boolean updateNull) throws CommonException{
 
 		Class clazz = obj.getClass();
 
@@ -254,13 +284,30 @@ public class SQLHelperCreator {
 			}
 		}
         if(primaryKey != null && primaryKey.getValue() != null) {
+            if(expresses != null && expresses.length > 0){
+                throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_UPDATES_WITH_ID, "Class(" + clazz.getName() +
+                        "), value(" + obj + ")");
+            }
             sql.append(ps.toString().substring(1, ps.toString().length() - 1));
             sql.append(" WHERE ");
             sql.append(primaryKey.getColumn() + " = ? ");
             parameters.add(primaryKey);
         }else{
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_UPDATE_WITHOUT_ID, "Class(" + clazz.getName() +
-                    "), value(" + obj + ")");
+            if(expresses == null || expresses.length == 0) {
+                throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_UPDATE_WITHOUT_ID, "Class(" + clazz.getName() +
+                        "), value(" + obj + ")");
+            }else{
+                sql.append(ps.toString().substring(1, ps.toString().length() - 1));
+                sql.append(" WHERE ");
+                List<String> terms = new ArrayList<String>();
+                for(Express express : expresses){
+                    SQLPair pair = QueryUtils.parseExpression(express.getExpression());
+//                    sql.append(pair.getSql());
+                    terms.add(pair.getSql());
+                    parameters.addAll(pair.getPairs());
+                }
+                sql.append(ORMUtils.join(terms, " AND "));
+            }
         }
 		SQLHelper helper = new SQLHelper();
         helper.setPair(primaryKey);

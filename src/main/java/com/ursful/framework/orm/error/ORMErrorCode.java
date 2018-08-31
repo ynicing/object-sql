@@ -31,6 +31,7 @@ public enum ORMErrorCode implements ErrorCode{
     TABLE_SET_PARAMETER_ILLEGAL_ACCESS(1009, "table.set.parameter.illegal.access"),
     TABLE_QUERY_NAMES_AS_NOT_EQUAL(1010, "table.create.query.names.as.not.equal"),
     TABLE_DELETE_WITHOUT_EXPRESS(1011, "table.delete.without.express"),
+    TABLE_UPDATES_WITH_ID(1012, "table.updates.with.id"),
     QUERY_SQL_ERROR(1020, "query.sql.error"),
     QUERY_SQL_COLUMN_IS_NULL(1020, "query.sql.column.is.null"),
     QUERY_SQL_CLASS_HAS_NOT_TABLE(1020, "query.sql.class.has.not.table"),
@@ -41,6 +42,7 @@ public enum ORMErrorCode implements ErrorCode{
     QUERY_SQL_ILLEGAL_ARGUMENT(1024, "query.sql.illegal.access"),
     QUERY_SQL_ILLEGAL_ACCESS(1025, "query.sql.illegal.access"),
     BATCH_EXECUTE_ERROR(1030, "batch.execute.error"),
+
 
     ;
 

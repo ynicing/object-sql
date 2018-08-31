@@ -33,6 +33,7 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.ListableBeanFactory;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.sql.*;
@@ -294,7 +295,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
             triggerDefaultListener(t, true);
 
-            helper = SQLHelperCreator.update(t, dataSourceManager.getDatabaseType(), updateNull);
+            helper = SQLHelperCreator.update(t, dataSourceManager.getDatabaseType(), null, updateNull);
             T original = null;
             if(helper.getPair() != null && !changeListeners.isEmpty()) {
                 original = get(helper.getPair().getValue());
@@ -312,6 +313,67 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             if(result && enableListener) {
                 triggerORMListener(t, ORMType.UPDATE);
                 triggerChangeListener(original, t, conn);
+            }
+            return result;
+        } catch (CommonException e) {
+            logger.error("SQL : " + helper, e);
+            throw e;
+        } catch (SQLException e) {
+            logger.error("SQL : " + helper, e);
+            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "UPDATE: " +  e.getMessage());
+        } catch (Exception e) {
+            logger.error("SQL : " + helper, e);
+            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "UPDATE Listener : " + e.getMessage());
+        } finally{
+            close(null, ps, conn);
+            logger.debug("close connection :" + conn);
+        }
+    }
+
+
+    public boolean updates(T t, Express ... expresses){
+        return updates(t, expresses, false, true);
+    }
+    public  boolean updatesNull(T t, Express ... expresses){
+        return updates(t, expresses, true, true);
+    }
+    public boolean updatesWithoutListener(T t, Express ... expresses){
+        return updates(t, expresses, true, false);
+    }
+    public boolean updatesNullWithoutListener(T t, Express ... expresses){
+        return updates(t, expresses, false, false);
+    }
+
+    private boolean updates(T t, Express [] expresses, boolean updateNull, boolean enableListener) {
+        PreparedStatement ps = null;
+
+        Connection conn = null;
+        SQLHelper helper = null;
+        try {
+
+            //triggerDefaultListener(t, true);
+
+            helper = SQLHelperCreator.update(t, dataSourceManager.getDatabaseType(), expresses, updateNull);
+            List<T> originals = null;
+            if(expresses != null && (expresses.length > 0) && !changeListeners.isEmpty()) {
+                originals = list(expresses);
+            }
+            if(ORMUtils.getDebug()) {
+                logger.info("UPDATE : " + helper);
+            }
+
+            conn = getConnection();
+            logger.debug("connection :" + conn);
+            ps = conn.prepareStatement(helper.getSql());
+            SQLHelperCreator.setParameter(ps, helper.getParameters(), dataSourceManager.getDatabaseType(), conn);
+
+            boolean result = ps.executeUpdate() > 0;
+            if(result && enableListener &&  (originals != null)) {
+                for(T original : originals) {
+                    SQLHelperCreator.setPrimaryValue(original, t);
+                    triggerORMListener(t, ORMType.UPDATE);
+                    triggerChangeListener(original, t, conn);
+                }
             }
             return result;
         } catch (CommonException e) {
