@@ -112,7 +112,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
     private <S> void sortAddListeners(List<S> result, Class<S> clazz){
         Map<String, S> listenerMap = BeanFactoryUtils.beansOfTypeIncludingAncestors(factory, clazz);
         for(S listener : listenerMap.values()){
-            if(listener == this){
+            if(IBaseService.class.isAssignableFrom(listener.getClass())){
                 continue;
             }
             if(ORMUtils.isTheSameClass(thisClass, listener.getClass())){

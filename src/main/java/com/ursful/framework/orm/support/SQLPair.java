@@ -34,6 +34,7 @@ public class SQLPair {
 
     public SQLPair(String sql){
         this.sql = sql;
+        this.pairs = new ArrayList<Pair>();
     }
 
     public SQLPair(String sql, Pair pair){
