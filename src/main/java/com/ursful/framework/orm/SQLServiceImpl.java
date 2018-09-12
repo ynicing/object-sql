@@ -28,6 +28,11 @@ public class SQLServiceImpl implements ISQLService{
         return dataSourceManager.getDatabaseType().name();
     }
 
+    @Override
+    public void changeDataSource(String alias) {
+        DynamicDataSource.setDataSource(alias);
+    }
+
     public void setDataSourceManager(DataSourceManager dataSourceManager) {
         this.dataSourceManager = dataSourceManager;
     }
