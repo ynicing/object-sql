@@ -17,16 +17,15 @@ package com.ursful.framework.orm;
 
 
 import com.ursful.framework.orm.listener.IChangeListener;
-import com.ursful.framework.orm.listener.IChangedListener;
 import com.ursful.framework.orm.listener.IDefaultListener;
 import com.ursful.framework.orm.listener.IORMListener;
+import com.ursful.framework.orm.listener.IServiceChangedListener;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.support.Terms;
 
-import javax.sql.DataSource;
 import java.util.List;
 
-public interface IBaseService<T> extends IChangedListener<T>, ISQLService{
+public interface IBaseService<T> extends IServiceChangedListener<T>, ISQLService{
 
     void setDataSourceManager(DataSourceManager dataSourceManager);
 

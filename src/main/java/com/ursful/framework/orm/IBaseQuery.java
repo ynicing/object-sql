@@ -15,10 +15,7 @@
  */
 package com.ursful.framework.orm;
 
-import com.ursful.framework.orm.support.Column;
-import com.ursful.framework.orm.support.ExpressionType;
-import com.ursful.framework.orm.support.Order;
-import com.ursful.framework.orm.support.Terms;
+import com.ursful.framework.orm.support.*;
 
 import java.util.List;
 
@@ -53,6 +50,10 @@ public interface IBaseQuery extends IQuery{
     IBaseQuery whereIsNotNull(String name);
 	IBaseQuery where(String name, Object value, ExpressionType type);
 	IBaseQuery where(Terms terms);//select * from test where (a = ? or b = ? ...)
+
+	IBaseQuery where(Express ... expresses);
+	IBaseQuery where(Expression ... expressions);
+
 	IBaseQuery group(String name);
 	IBaseQuery having(String name, Object value, ExpressionType type);
 	IBaseQuery having(Terms terms);//group by  having (a = ? or b = ? ...)
@@ -63,6 +64,8 @@ public interface IBaseQuery extends IQuery{
     IBaseQuery createQuery(Class<?> clazz, String... names);
     IBaseQuery createQuery(Class<?> clazz, Column... columns);
     IBaseQuery distinct();
+
+
 
 
 }

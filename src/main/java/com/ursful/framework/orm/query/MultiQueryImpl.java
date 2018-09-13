@@ -481,6 +481,12 @@ public class MultiQueryImpl implements IMultiQuery {
         return this;
     }
 
+    @Override
+    public IMultiQuery where(Expression... expressions) {
+        conditions.add(new Condition().and(expressions));
+        return this;
+    }
+
 
     public IMultiQuery group(Column ... columns) {
         if(columns != null) {

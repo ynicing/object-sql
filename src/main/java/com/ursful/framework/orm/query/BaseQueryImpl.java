@@ -131,8 +131,23 @@ public class BaseQueryImpl implements IBaseQuery {
 		return this;
 	}
 
+    @Override
+    public IBaseQuery where(Express... expresses) {
+        if(expresses != null){
+            for(Express express : expresses) {
+                conditions.add(new Condition().and(express.getExpression()));
+            }
+        }
+        return this;
+    }
 
-	public IBaseQuery group(String name) {
+    @Override
+    public IBaseQuery where(Expression... expressions) {
+        conditions.add(new Condition().and(expressions));
+        return this;
+    }
+
+    public IBaseQuery group(String name) {
 		groups.add(new Column(name));
 		return this;
 	}
@@ -219,6 +234,7 @@ public class BaseQueryImpl implements IBaseQuery {
         this.distinct = true;
         return this;
     }
+
 
     public IBaseQuery table(Class<?> clazz){
         if(clazz != null) {
