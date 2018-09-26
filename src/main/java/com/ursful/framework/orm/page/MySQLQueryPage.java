@@ -1,9 +1,7 @@
 package com.ursful.framework.orm.page;
 
-import com.ursful.framework.core.exception.CommonException;
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.annotation.RdTable;
-import com.ursful.framework.orm.error.ORMErrorCode;
 import com.ursful.framework.orm.helper.SQLHelper;
 import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.support.*;
@@ -57,7 +55,7 @@ public class MySQLQueryPage extends AbstractQueryPage{
     }
 
     @Override
-    public QueryInfo doQuery(IQuery query, Page page) {
+    public QueryInfo doQuery(IQuery query, Pageable page) {
         QueryInfo qinfo = new QueryInfo();
 
         List<Pair> values = new ArrayList<Pair>();
@@ -108,7 +106,7 @@ public class MySQLQueryPage extends AbstractQueryPage{
     public SQLHelper doQuery(Class<?> clazz, String[] names, Terms terms, MultiOrder multiOrder, Integer start, Integer size) {
         RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
         if(table == null){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_NOT_FOUND, "Class(" + clazz.getName() + ")");
+            throw new RuntimeException("TABLE_NOT_FOUND Class(" + clazz.getName() + ")");
         }
         String tableName = table.name();
 

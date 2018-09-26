@@ -16,18 +16,11 @@
 package com.ursful.framework.orm.query;
 
 
-import com.ursful.framework.orm.DataSourceManager;
-import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.utils.ORMUtils;
-import com.ursful.framework.orm.error.ORMErrorCode;
 import com.ursful.framework.orm.helper.SQLHelper;
 import com.ursful.framework.orm.ISQLScript;
-import com.ursful.framework.orm.annotation.RdColumn;
-import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.support.*;
-import com.ursful.framework.core.exception.CommonException;
 
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -118,7 +111,7 @@ public class QueryUtils {
 
 
 
-	public static String getOrders(List<Order> orders) throws CommonException{
+	public static String getOrders(List<Order> orders){
         List<String> temp = new ArrayList<String>();
         if(orders == null){
             return null;
@@ -133,7 +126,7 @@ public class QueryUtils {
 	}
 
 
-	public static String getGroups(List<Column> columns) throws CommonException{
+	public static String getGroups(List<Column> columns){
 		List<String> temp = new ArrayList<String>();
 		for(Column column : columns){
 			temp.add(parseColumn(column));
@@ -147,13 +140,13 @@ public class QueryUtils {
 
 
 
-	public static String parseColumn(Column column) throws CommonException{
+	public static String parseColumn(Column column){
 
         if(column == null){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_COLUMN_IS_NULL, "this column is null");
+            throw new RuntimeException("QUERY_SQL_COLUMN_IS_NULL this column is null");
         }
         if(column.getName() == null){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_NAME_IS_NULL, "this column name is null.");
+            throw new RuntimeException("QUERY_SQL_NAME_IS_NULL this column name is null.");
         }
 
 		StringBuffer sb = new StringBuffer();
@@ -215,7 +208,7 @@ public class QueryUtils {
 
     //同一张表怎么半？ select * from test t1, test t2
 
-    public static String getConditions(List<Condition> cds, List<Pair> values) throws CommonException{
+    public static String getConditions(List<Condition> cds, List<Pair> values){
         if(cds == null){
             return null;
         }
@@ -295,7 +288,7 @@ public class QueryUtils {
         return null;
     }
 
-    public static String getConditions(Express [] expresses, List<Pair> values) throws CommonException{
+    public static String getConditions(Express [] expresses, List<Pair> values){
         if(expresses == null){
             return null;
         }

@@ -11,6 +11,8 @@ public interface ISQLService {
 
     String currentDatabaseType();
 
+    DataSourceManager getDataSourceManager();
+
     void changeDataSource(String alias);
 
     void setDataSourceManager(DataSourceManager dataSourceManager);

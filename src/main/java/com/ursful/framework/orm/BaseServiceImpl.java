@@ -21,11 +21,9 @@ import com.ursful.framework.orm.listener.IChangedListener;
 import com.ursful.framework.orm.listener.IDefaultListener;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
-import com.ursful.framework.orm.error.ORMErrorCode;
 import com.ursful.framework.orm.helper.SQLHelperCreator;
 import com.ursful.framework.orm.listener.IORMListener;
 import com.ursful.framework.orm.helper.SQLHelper;
-import com.ursful.framework.core.exception.CommonException;
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
@@ -33,7 +31,6 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.ListableBeanFactory;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.sql.*;
@@ -256,13 +253,10 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             return flag;
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "SAVE: " + e.getMessage());
-        } catch (CommonException e) {
-            logger.error("SQL : " + helper, e);
-            throw e;
+            throw new RuntimeException("QUERY_SQL_ERROR, SAVE: " + e.getMessage());
         } catch (Exception e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "SAVE Listener : " + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, SAVE Listener : " + e.getMessage());
         } finally{
             close(null, ps, conn);
             logger.debug("close connection :" + conn);
@@ -315,15 +309,12 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                 triggerChangeListener(original, t, conn);
             }
             return result;
-        } catch (CommonException e) {
-            logger.error("SQL : " + helper, e);
-            throw e;
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "UPDATE: " +  e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, UPDATE: " +  e.getMessage());
         } catch (Exception e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "UPDATE Listener : " + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, UPDATE Listener : " + e.getMessage());
         } finally{
             close(null, ps, conn);
             logger.debug("close connection :" + conn);
@@ -376,15 +367,12 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                 }
             }
             return result;
-        } catch (CommonException e) {
-            logger.error("SQL : " + helper, e);
-            throw e;
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "UPDATE: " +  e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, UPDATE: " +  e.getMessage());
         } catch (Exception e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "UPDATE Listener : " + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, UPDATE Listener : " + e.getMessage());
         } finally{
             close(null, ps, conn);
             logger.debug("close connection :" + conn);
@@ -431,15 +419,12 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                 triggerChangeListener(now, null, conn);
             }
             return result;
-        } catch (CommonException e) {
-            logger.error("SQL : " + helper, e);
-            throw e;
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "DELETE : " +  e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, DELETE : " +  e.getMessage());
         } catch (Exception e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "DELETE : " + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, DELETE : " + e.getMessage());
         }  finally{
             close(null, ps, conn);
             logger.debug("close connection :" + conn);
@@ -457,7 +442,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
     private boolean deletes(boolean enableListener, Express ... expresses) {
 
         if(expresses == null || expresses.length == 0){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE,ORMErrorCode.TABLE_DELETE_WITHOUT_EXPRESS, "DELETE(Express) : " + thisClass);
+            throw new RuntimeException("TABLE_DELETE_WITHOUT_EXPRESS, DELETE(Express) : " + thisClass);
         }
 
         PreparedStatement ps = null;
@@ -488,15 +473,12 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                 }
             }
             return result;
-        } catch (CommonException e) {
-            logger.error("SQL : " + helper, e);
-            throw e;
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "DELETE(Express) : " +  e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, DELETE(Express) : " +  e.getMessage());
         } catch (Exception e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "DELETE(Express) : " + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, DELETE(Express) : " + e.getMessage());
         }  finally{
             close(null, ps, conn);
             logger.debug("close connection :" + conn);
@@ -522,15 +504,12 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                 T tmp = SQLHelperCreator.newClass(thisClass, rs);
                 temp.add(tmp);
             }
-        } catch (CommonException e) {
-            logger.error("SQL : " + helper, e);
-            throw e;
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "LIST: " +  e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, LIST: " +  e.getMessage());
         } catch (IllegalAccessException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ILLEGAL_ACCESS, "LIST: " +  e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ILLEGAL_ACCESS, LIST: " +  e.getMessage());
         } finally{
             close(rs, ps, conn);
         }
@@ -557,15 +536,12 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                 T tmp = SQLHelperCreator.newClass(thisClass, rs);
                 temp.add(tmp);
             }
-        } catch (CommonException e) {
-            logger.error("SQL : " + helper, e);
-            throw e;
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "LIST(Start,Size): " + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, LIST(Start,Size): " + e.getMessage());
         } catch (IllegalAccessException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ILLEGAL_ACCESS, "List(Start,Size): " +  e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ILLEGAL_ACCESS, List(Start,Size): " +  e.getMessage());
         } finally{
             close(rs, ps, conn);
         }
@@ -592,15 +568,12 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                 T tmp = SQLHelperCreator.newClass(thisClass, rs);
                 temp.add(tmp);
             }
-        } catch (CommonException e) {
-            logger.error("SQL : " + helper, e);
-            throw e;
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "ListExpress: " + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, ListExpress: " + e.getMessage());
         } catch (IllegalAccessException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ILLEGAL_ACCESS, "ListExpress: " + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ILLEGAL_ACCESS, ListExpress: " + e.getMessage());
         } finally{
             close(rs, ps, conn);
         }
@@ -632,15 +605,12 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                 T tmp = SQLHelperCreator.newClass(thisClass, rs);
                 temp.add(tmp);
             }
-        } catch (CommonException e) {
-            logger.error("SQL : " + helper, e);
-            throw e;
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "ListTerm: " +  e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, ListTerm: " +  e.getMessage());
         } catch (IllegalAccessException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ILLEGAL_ACCESS,"ListTerm: " +  e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ILLEGAL_ACCESS, ListTerm: " +  e.getMessage());
         } finally{
             close(rs, ps, conn);
         }
@@ -669,12 +639,9 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                     return Integer.parseInt(tmp.toString()) > 0;
                 }
             }
-        } catch (CommonException e) {
-            logger.error("SQL : " + helper, e);
-            throw e;
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR,"Exists: " +  e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, Exists: " +  e.getMessage());
         } finally{
             close(rs, ps, conn);
         }
@@ -702,12 +669,9 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                     return Integer.parseInt(tmp.toString()) > 0;
                 }
             }
-        } catch (CommonException e) {
-            logger.error("SQL : " + helper, e);
-            throw e;
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR,"Exists: " +  e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, Exists: " +  e.getMessage());
         } finally{
             close(rs, ps, conn);
         }
@@ -735,12 +699,9 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                     return Integer.parseInt(tmp.toString());
                 }
             }
-        } catch (CommonException e) {
-            logger.error("SQL : " + helper, e);
-            throw e;
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "COUNT : " + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, COUNT : " + e.getMessage());
         } finally{
             close(rs, ps, conn);
         }
@@ -781,7 +742,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 //        } catch (SQLException e) {
 //            e.printStackTrace();
 //            logger.info("SQL : " + helper);
-//            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "LIST: " + e.getMessage());
+//            throw new RuntimeException("QUERY_SQL_ERROR, LIST: " + e.getMessage());
 //        } finally{
 //            close(rs, ps, conn);
 //        }
@@ -790,7 +751,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
 
 
-    private <S> S getQuery(IQuery query) throws CommonException {
+    private <S> S getQuery(IQuery query){
         S s = null;
 
         Connection conn = getConnection();
@@ -815,16 +776,16 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         } catch (SQLException e) {
             e.printStackTrace();
             logger.error("SQL : " + qinfo, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, SQL[" + qinfo.getSql() + "]" + e.getMessage());
         } catch (SecurityException e) {
             logger.error("SQL : " + qinfo, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_SECURITY, "SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_SECURITY, SQL[" + qinfo.getSql() + "]" + e.getMessage());
         } catch (IllegalAccessException e) {
             logger.error("SQL : " + qinfo, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ILLEGAL_ACCESS, "SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ILLEGAL_ACCESS, SQL[" + qinfo.getSql() + "]" + e.getMessage());
         } catch (IllegalArgumentException e) {
             logger.error("SQL : " + qinfo, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ILLEGAL_ARGUMENT, "SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ILLEGAL_ARGUMENT, SQL[" + qinfo.getSql() + "]" + e.getMessage());
         } finally{
             close(rs, ps, conn);
         }
@@ -864,15 +825,12 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             if (rs.next()) {
                 temp = SQLHelperCreator.newClass(thisClass, rs);
             }
-        } catch (CommonException e) {
-            logger.error("SQL : " + helper, e);
-            throw e;
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "GET: " + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, GET: " + e.getMessage());
         } catch (IllegalAccessException e) {
             logger.error("SQL : " + helper, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ILLEGAL_ACCESS, "GET: " +  e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ILLEGAL_ACCESS, GET: " +  e.getMessage());
         } finally{
             close(rs, ps, conn);
         }
@@ -880,13 +838,13 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
     }
 
 
-    public <S> List<S> query(IQuery q) throws CommonException{
+    public <S> List<S> query(IQuery q){
         return query(q, null);
     }
 
-    public <S> List<S> query(IQuery q, int size) throws CommonException{
+    public <S> List<S> query(IQuery q, int size){
 
-        Page page = new Page();
+        Pageable page = new Pageable();
         page.setPage(1);
         page.setSize(size);
 
@@ -916,23 +874,23 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         } catch (SQLException e) {
             e.printStackTrace();
             logger.error("SQL : " + qinfo, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, SQL[" + qinfo.getSql() + "]" + e.getMessage());
         } catch (SecurityException e) {
             logger.error("SQL : " + qinfo, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_SECURITY, "SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_SECURITY, SQL[" + qinfo.getSql() + "]" + e.getMessage());
         } catch (IllegalAccessException e) {
             logger.error("SQL : " + qinfo, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ILLEGAL_ACCESS, "SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ILLEGAL_ACCESS, SQL[" + qinfo.getSql() + "]" + e.getMessage());
         } catch (IllegalArgumentException e) {
             logger.error("SQL : " + qinfo, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ILLEGAL_ARGUMENT, "SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ILLEGAL_ARGUMENT, SQL[" + qinfo.getSql() + "]" + e.getMessage());
         } finally{
             close(rs, ps, conn);
         }
         return temp;
     }
 
-    private <S> List<S> query(IQuery q, Page page) throws CommonException{
+    private <S> List<S> query(IQuery q, Pageable page){
 
         Connection conn = getConnection();
         //setClob通用
@@ -960,16 +918,16 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             }
         } catch (SQLException e) {
             logger.error("SQL : " + qinfo, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, SQL[" + qinfo.getSql() + "]" + e.getMessage());
         } catch (SecurityException e) {
             logger.error("SQL : " + qinfo, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_SECURITY, "SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_SECURITY, SQL[" + qinfo.getSql() + "]" + e.getMessage());
         } catch (IllegalAccessException e) {
             logger.error("SQL : " + qinfo, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ILLEGAL_ACCESS, "SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ILLEGAL_ACCESS, SQL[" + qinfo.getSql() + "]" + e.getMessage());
         } catch (IllegalArgumentException e) {
             logger.error("SQL : " + qinfo, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ILLEGAL_ARGUMENT, "SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ILLEGAL_ARGUMENT, SQL[" + qinfo.getSql() + "]" + e.getMessage());
         } finally{
             close(rs, ps, conn);
         }
@@ -977,7 +935,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
     }
 
 
-    public int queryCount(IQuery q) throws CommonException{
+    public int queryCount(IQuery q){
         //setClob通用
 
         Connection conn = null;
@@ -1007,13 +965,13 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
         } catch (SQLException e) {
             logger.error("SQL : " + qinfo, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, SQL[" + qinfo.getSql() + "]" + e.getMessage());
         } catch (SecurityException e) {
             logger.error("SQL : " + qinfo, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_SECURITY, "SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_SECURITY, SQL[" + qinfo.getSql() + "]" + e.getMessage());
         } catch (IllegalArgumentException e) {
             logger.error("SQL : " + qinfo, e);
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ILLEGAL_ARGUMENT, "SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ILLEGAL_ARGUMENT, SQL[" + qinfo.getSql() + "]" + e.getMessage());
         } finally{
             close(rs, ps, conn);
         }
@@ -1021,9 +979,9 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
     }
 
 
-    public <S> Page queryPage(IQuery query, Page page) throws CommonException{
+    public <S> Pageable<S> queryPage(IQuery query, Pageable page){
         if(page == null){
-            page = new Page();
+            page = new Pageable();
         }
         List<S> list = query(query, page);
         int total = queryCount(query);
@@ -1073,7 +1031,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             res = ps.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, "Execute: " + e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, Execute: " + e.getMessage());
         } finally{
             close(null, ps, conn);
         }
@@ -1106,7 +1064,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             e.printStackTrace();
             //LogUtil.warn("Not any version : " + e.getMessage(), BaseSQLImpl.class);
             temp = null;
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.QUERY_SQL_ERROR, e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, e.getMessage());
         } finally{
             close(rs, ps, conn);
         }

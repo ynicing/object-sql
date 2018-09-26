@@ -9,6 +9,6 @@ import com.ursful.framework.orm.helper.SQLHelper;
 public interface QueryPage {
     DatabaseType databaseType();
     QueryInfo doQueryCount(IQuery query);
-    QueryInfo doQuery(IQuery query, Page page);
+    QueryInfo doQuery(IQuery query, Pageable page);
     SQLHelper doQuery(Class<?> clazz, String [] names, Terms terms, MultiOrder multiOrder, Integer start, Integer size);
 }

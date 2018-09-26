@@ -16,13 +16,11 @@
 package com.ursful.framework.orm.helper;
 
 import com.ursful.framework.orm.annotation.RdId;
-import com.ursful.framework.orm.error.ORMErrorCode;
 import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.annotation.RdColumn;
 import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
-import com.ursful.framework.core.exception.CommonException;
 import org.springframework.validation.DataBinder;
 
 import javax.sql.rowset.serial.SerialClob;
@@ -31,7 +29,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.sql.*;
-import java.text.DecimalFormat;
 import java.util.*;
 import java.util.Date;
 
@@ -48,9 +45,8 @@ public class SQLHelperCreator {
      * 按对象的id删除
      * @param obj
      * @return SQLHelper
-     * @throws CommonException
      */
-    public static SQLHelper delete(Object obj) throws CommonException{
+    public static SQLHelper delete(Object obj){
 
         Class clazz = obj.getClass();
 
@@ -59,7 +55,7 @@ public class SQLHelperCreator {
 
         RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
         if(table == null){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_NOT_FOUND, "Class(" + clazz.getName() + ")");
+            throw new RuntimeException("TABLE_NOT_FOUND Class(" + clazz.getName() + ")");
         }
         String tableName = table.name();
 
@@ -83,10 +79,10 @@ public class SQLHelperCreator {
                         break;
                     }
                 } catch (IllegalArgumentException e) {
-                    throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT, "Column(" + column.name() +
+                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT,  Column(" + column.name() +
                             "), field(" + field.getName() + "), value(" + fo + ")");
                 } catch (IllegalAccessException e) {
-                    throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_SET_PARAMETER_ILLEGAL_ACCESS, "Column(" + column.name() +
+                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ACCESS,  Column(" + column.name() +
                             "), field(" + field.getName() + "), value(" + fo + ")");
                 }
             }
@@ -97,7 +93,7 @@ public class SQLHelperCreator {
             parameters.clear();
             parameters.add(primaryKey);
         }else{
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_DELETE_WITHOUT_ID, "Class(" + clazz.getName() +
+            throw new RuntimeException("TABLE_DELETE_WITHOUT_ID, Class(" + clazz.getName() +
                     "), value(" + obj + ")");
         }
         SQLHelper helper = new SQLHelper();
@@ -114,13 +110,12 @@ public class SQLHelperCreator {
      * @param clazz
      * @param idObject id
      * @return SQLHelper
-     * @throws CommonException
      */
-    public static SQLHelper delete(Class clazz, Object idObject) throws CommonException{
+    public static SQLHelper delete(Class clazz, Object idObject){
 
         RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
         if(table == null){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_NOT_FOUND, "Class(" + clazz.getName() + ")");
+            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
         }
         String tableName = table.name();
 
@@ -141,7 +136,7 @@ public class SQLHelperCreator {
                     primaryKey = new Pair(field.getName(), column.name(), field.getType().getSimpleName(), idObject, null);
                     primaryKey.setColumnType(column.type());
                 } catch (IllegalArgumentException e) {
-                    throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT, "Column(" + column.name() +
+                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT,  Column(" + column.name() +
                             "), field(" + field.getName() + "), value(" + idObject + ")");
                 }
                 break;
@@ -152,7 +147,7 @@ public class SQLHelperCreator {
             sql.append(primaryKey.getColumn() + " = ? ");
             parameters.add(primaryKey);
         }else{
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_DELETE_WITHOUT_ID, "Class(" + clazz.getName() +
+            throw new RuntimeException("TABLE_DELETE_WITHOUT_ID, Class(" + clazz.getName() +
                     "), value(" + idObject + ")");
         }
 
@@ -165,11 +160,11 @@ public class SQLHelperCreator {
 
     }
 
-    public static SQLHelper deleteBy(Class clazz, Express[] expresses) throws CommonException{
+    public static SQLHelper deleteBy(Class clazz, Express[] expresses){
 
         RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
         if(table == null){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_NOT_FOUND, "Class(" + clazz.getName() + ")");
+            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
         }
         String tableName = table.name();
 
@@ -222,15 +217,14 @@ public class SQLHelperCreator {
      * @param updateNull
      * @param expresses
      * @return SQLHelper
-     * @throws CommonException
      */
-    public static SQLHelper update(Object obj, DatabaseType databaseType, Express [] expresses, boolean updateNull) throws CommonException{
+    public static SQLHelper update(Object obj, DatabaseType databaseType, Express [] expresses, boolean updateNull){
 
         Class clazz = obj.getClass();
 
         RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
         if(table == null){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_NOT_FOUND, "Class(" + clazz.getName() + ")");
+            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
         }
         String tableName = table.name();
 
@@ -256,7 +250,7 @@ public class SQLHelperCreator {
                         RdId id = (RdId) field.getAnnotation(RdId.class);
                         if(id != null){
                             if(fo == null){
-                                throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_UPDATE_WITHOUT_ID, "Class(" + clazz.getName() +
+                                throw new RuntimeException("TABLE_UPDATE_WITHOUT_ID, Class(" + clazz.getName() +
                                         "), value(" + obj + ")");
                             }
                             primaryKey = new Pair(field.getName(), column.name(), type, fo, null);
@@ -275,17 +269,17 @@ public class SQLHelperCreator {
                         }
                     }
                 } catch (IllegalArgumentException e) {
-                    throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT, "Column(" + column.name() +
+                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT,  Column(" + column.name() +
                             "), field(" + field.getName() + "), value(" + fo + ")");
                 } catch (IllegalAccessException e) {
-                    throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_SET_PARAMETER_ILLEGAL_ACCESS, "Column(" + column.name() +
+                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ACCESS,  Column(" + column.name() +
                             "), field(" + field.getName() + "), value(" + fo + ")");
                 }
             }
         }
         if(primaryKey != null && primaryKey.getValue() != null) {
             if(expresses != null && expresses.length > 0){
-                throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_UPDATES_WITH_ID, "Class(" + clazz.getName() +
+                throw new RuntimeException("TABLE_UPDATES_WITH_ID, Class(" + clazz.getName() +
                         "), value(" + obj + ")");
             }
             sql.append(ps.toString().substring(1, ps.toString().length() - 1));
@@ -294,7 +288,7 @@ public class SQLHelperCreator {
             parameters.add(primaryKey);
         }else{
             if(expresses == null || expresses.length == 0) {
-                throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_UPDATE_WITHOUT_ID, "Class(" + clazz.getName() +
+                throw new RuntimeException("TABLE_UPDATE_WITHOUT_ID, Class(" + clazz.getName() +
                         "), value(" + obj + ")");
             }else{
                 sql.append(ps.toString().substring(1, ps.toString().length() - 1));
@@ -319,13 +313,13 @@ public class SQLHelperCreator {
 
     }
 
-    public static SQLHelper save(Object obj, DatabaseType databaseType) throws CommonException{
+    public static SQLHelper save(Object obj, DatabaseType databaseType){
 
         Class clazz = obj.getClass();
 
         RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
         if(table == null){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_NOT_FOUND, "Class(" + clazz.getName() + ")");
+            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
         }
         String tableName = table.name();
 
@@ -370,17 +364,17 @@ public class SQLHelperCreator {
                         }
                     }
                 } catch (IllegalArgumentException e) {
-                    throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT, "Column(" + column.name() +
+                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT,  Column(" + column.name() +
                             "), field(" + field.getName() + "), value(" + fo + ")");
                 } catch (IllegalAccessException e) {
-                    throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_SET_PARAMETER_ILLEGAL_ACCESS, "Column(" + column.name() +
+                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ACCESS,  Column(" + column.name() +
                             "), field(" + field.getName() + "), value(" + fo + ")");
                 }
             }
         }
 
         if(ps.size() == 0){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_SAVE_WITHOUT_VALUE, "Class(" + clazz.getName() +
+            throw new RuntimeException("TABLE_SAVE_WITHOUT_VALUE, Class(" + clazz.getName() +
                     "), value(" + obj + ")");
         }
         sql.append(ORMUtils.join(ps, ","));
@@ -402,15 +396,14 @@ public class SQLHelperCreator {
      * 有id根据id获取，其他根据列 等值获取
      * @param obj
      * @return SQLHelper
-     * @throws CommonException
      */
-    public static SQLHelper get(Object obj) throws CommonException{
+    public static SQLHelper get(Object obj){
 
         Class clazz = obj.getClass();
 
         RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
         if(table == null){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_NOT_FOUND, "Class(" + clazz.getName() + ")");
+            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
         }
         String tableName = table.name();
 
@@ -444,10 +437,10 @@ public class SQLHelperCreator {
                         }
                     }
                 } catch (IllegalArgumentException e) {
-                    throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT, "Column(" + column.name() +
+                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT,  Column(" + column.name() +
                             "), field(" + field.getName() + "), value(" + fo + ")");
                 } catch (IllegalAccessException e) {
-                    throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_SET_PARAMETER_ILLEGAL_ACCESS, "Column(" + column.name() +
+                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ACCESS,  Column(" + column.name() +
                             "), field(" + field.getName() + "), value(" + fo + ")");
                 }
             }
@@ -471,11 +464,11 @@ public class SQLHelperCreator {
 
     }
 
-    public static SQLHelper query(Class<?> clazz, Express [] expresses) throws CommonException{
+    public static SQLHelper query(Class<?> clazz, Express [] expresses){
 
         RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
         if(table == null){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_NOT_FOUND, "Class(" + clazz.getName() + ")");
+            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
         }
         String tableName = table.name();
 
@@ -498,11 +491,11 @@ public class SQLHelperCreator {
 
 
 
-    public static SQLHelper queryCountExpress(Class<?> clazz, Express ... expresses) throws CommonException{
+    public static SQLHelper queryCountExpress(Class<?> clazz, Express ... expresses){
 
         RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
         if(table == null){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_NOT_FOUND, "Class(" + clazz.getName() + ")");
+            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
         }
         String tableName = table.name();
 
@@ -523,11 +516,11 @@ public class SQLHelperCreator {
 
     }
 
-    public static SQLHelper queryCount(Class<?> clazz, Terms terms) throws CommonException{
+    public static SQLHelper queryCount(Class<?> clazz, Terms terms){
 
         RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
         if(table == null){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_NOT_FOUND, "Class(" + clazz.getName() + ")");
+            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
         }
         String tableName = table.name();
 
@@ -554,13 +547,12 @@ public class SQLHelperCreator {
      * @param obj
      * @param clazz
      * @return SQLHelperCreator
-     * @throws CommonException
      */
-    public static SQLHelper get(Object obj, Class clazz) throws CommonException{
+    public static SQLHelper get(Object obj, Class clazz){
 
         RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
         if(table == null){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_NOT_FOUND, "Class(" + clazz.getName() + ")");
+            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
         }
         String tableName = table.name();
 
@@ -582,7 +574,7 @@ public class SQLHelperCreator {
             }
         }
         if(primaryKey == null){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_GET_WITHOUT_ID, "Class(" + clazz.getName() +
+            throw new RuntimeException("TABLE_GET_WITHOUT_ID, Class(" + clazz.getName() +
                     "), value(" + obj + ")");
         }
 
@@ -597,13 +589,13 @@ public class SQLHelperCreator {
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    public static SQLHelper query(Object obj) throws CommonException{
+    public static SQLHelper query(Object obj){
 
         Class clazz = obj.getClass();
 
         RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
         if(table == null){
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_NOT_FOUND, "Class(" + clazz.getName() + ")");
+            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
         }
         String tableName = table.name();
 
@@ -631,10 +623,10 @@ public class SQLHelperCreator {
                         parameters.add(pair);
                     }
                 } catch (IllegalArgumentException e) {
-                    throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT, "Column(" + column.name() +
+                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT,  Column(" + column.name() +
                             "), field(" + field.getName() + "), value(" + fo + ")");
                 } catch (IllegalAccessException e) {
-                    throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_SET_PARAMETER_ILLEGAL_ACCESS, "Column(" + column.name() +
+                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ACCESS,  Column(" + column.name() +
                             "), field(" + field.getName() + "), value(" + fo + ")");
                 }
             }

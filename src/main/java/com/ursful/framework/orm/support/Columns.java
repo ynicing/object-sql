@@ -16,9 +16,6 @@
 
 package com.ursful.framework.orm.support;
 
-import com.ursful.framework.orm.error.ORMErrorCode;
-import com.ursful.framework.core.exception.CommonException;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -67,7 +64,7 @@ public class Columns {
                         columnList.add(new Column(alias, names[i], asNames[i]));
                     }
                 }else{
-                    throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.TABLE_QUERY_NAMES_AS_NOT_EQUAL, "names length: " +
+                    throw new RuntimeException("TABLE_QUERY_NAMES_AS_NOT_EQUAL, names length: " +
                             names.length + ", asNames length : " + asNames.length);
                 }
             }

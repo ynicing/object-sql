@@ -1,6 +1,5 @@
 package com.ursful.framework.orm;
 
-import com.ursful.framework.core.datasource.DynamicDataSource;
 import com.ursful.framework.orm.ISQLService;
 import com.ursful.framework.orm.helper.SQLHelperCreator;
 import com.ursful.framework.orm.query.QueryUtils;

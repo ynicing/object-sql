@@ -1,6 +1,5 @@
 package com.ursful.framework.orm;
 
-import com.ursful.framework.core.datasource.DynamicDataSource;
 import com.ursful.framework.orm.page.H2QueryPage;
 import com.ursful.framework.orm.page.MySQLQueryPage;
 import com.ursful.framework.orm.page.OracleQueryPage;

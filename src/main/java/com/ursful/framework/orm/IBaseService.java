@@ -117,7 +117,7 @@ public interface IBaseService<T> extends IServiceChangedListener<T>, ISQLService
     <S> List<S> query(IQuery query);//queryDistinctString
     <S> List<S> query(IQuery q, int size);
     int queryCount(IQuery query);
-    <S> Page queryPage(IQuery query, Page page);
+    <S> Pageable<S> queryPage(IQuery query, Pageable page);
 
 
 }

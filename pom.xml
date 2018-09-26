@@ -6,7 +6,7 @@
 
   <groupId>com.ursful.framework</groupId>
   <artifactId>ursful-orm</artifactId>
-  <version>1.3.3</version>
+  <version>1.4</version>
   <description>Lightweight ursful Object Relational Mapping (ORM)</description>
 
   <name>ursful-orm</name>

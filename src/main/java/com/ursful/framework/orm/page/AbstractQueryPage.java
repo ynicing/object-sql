@@ -1,6 +1,5 @@
 package com.ursful.framework.orm.page;
 
-import com.ursful.framework.core.exception.CommonException;
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.query.QueryUtils;
@@ -14,7 +13,7 @@ import java.util.Map;
 public abstract class AbstractQueryPage implements QueryPage{
 
 
-    public String getWordAfterFrom(IQuery query, List<Pair> values, boolean count, String baseName) throws CommonException{
+    public String getWordAfterFrom(IQuery query, List<Pair> values, boolean count, String baseName){
         StringBuffer sb = new StringBuffer();
         sb.append(" FROM ");
 
@@ -78,7 +77,7 @@ public abstract class AbstractQueryPage implements QueryPage{
 
     }
 
-    public String join(List<Join> joins, List<Pair> values) throws CommonException {
+    public String join(List<Join> joins, List<Pair> values){
         StringBuffer sb = new StringBuffer();
         if(joins == null){
             return  sb.toString();

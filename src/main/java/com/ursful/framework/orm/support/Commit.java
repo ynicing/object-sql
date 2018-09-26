@@ -15,8 +15,6 @@
  */
 package com.ursful.framework.orm.support;
 
-import com.ursful.framework.orm.error.ORMErrorCode;
-import com.ursful.framework.core.exception.CommonException;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
@@ -55,7 +53,7 @@ public class Commit {
             if(failure != null){
                 failure.run();
             }
-            throw new CommonException(ORMErrorCode.EXCEPTION_TYPE, ORMErrorCode.BATCH_EXECUTE_ERROR, " batch execute : " +  e.getMessage());
+            throw new RuntimeException("BATCH_EXECUTE_ERROR batch execute : " +  e.getMessage());
         }finally {
             if(!executeSuccess) {
                 rollback();
