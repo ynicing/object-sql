@@ -72,7 +72,7 @@ public class SQLServiceImpl implements ISQLService{
             conn = getConnection();
             ps = conn.prepareStatement(sql);
             conn.setAutoCommit(false);
-            if(params != null && params.length > 0){
+            if(params != null){
                 for(int i = 0; i < params.length; i++) {
                     setParams(ps, params[i], conn);
                     ps.addBatch();

@@ -15,6 +15,7 @@
  */
 package com.ursful.framework.orm.utils;
 
+import com.ursful.framework.orm.support.ColumnType;
 import com.ursful.framework.orm.support.DebugHolder;
 import com.ursful.framework.orm.annotation.RdColumn;
 
@@ -60,10 +61,37 @@ public class ORMUtils {
         return debug;
     }
 
+    private static Map<Class, Map<String, ColumnType>> columnTypeCache = new HashMap<Class, Map<String, ColumnType>>();
+
     private static Map<Class, Map<String, String>> fieldColumnCache = new HashMap<Class, Map<String, String>>();
     private static Map<Class, Map<String, String>> columnFieldCache = new HashMap<Class, Map<String, String>>();
     private static Map<Class, List<String>> fieldCache = new HashMap<Class, List<String>>();
     private static Map<Class, List<String>> columnCache = new HashMap<Class, List<String>>();
+
+    public static Map<String, ColumnType> getColumnType(Class<?> clazz){
+        if(clazz == null){
+            return new HashMap<String, ColumnType>();
+        }
+        if(columnTypeCache.containsKey(clazz)){
+            return columnTypeCache.get(clazz);
+        }
+
+        Map<String, ColumnType> temp = new HashMap<String, ColumnType>();
+        Field [] fields = clazz.getDeclaredFields();
+        for(Field field : fields){
+            RdColumn column = field.getAnnotation(RdColumn.class);
+            if(column != null){
+                temp.put(column.name(), column.type());
+            }
+        }
+        Class<?> tmp = clazz.getSuperclass();
+        while (tmp != null){
+            temp.putAll(getColumnType(tmp));
+            tmp = tmp.getSuperclass();
+        }
+        columnTypeCache.put(clazz, temp);
+        return temp;
+    }
 
     public static Map<String, String> getFieldColumn(Class<?> clazz){
         if(fieldColumnCache.containsKey(clazz)){

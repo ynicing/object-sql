@@ -72,6 +72,14 @@ public class Pair implements Serializable{
         }
     }
 
+    public Pair(Object value, ColumnType columnType){
+        this.value = value;
+        if(value != null){
+            this.type = value.getClass().getSimpleName();
+        }
+        this.columnType = columnType;
+    }
+
 	public String getName() {
 		return name;
 	}

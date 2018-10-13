@@ -16,6 +16,7 @@
 package com.ursful.framework.orm.query;
 
 
+import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.utils.ORMUtils;
 import com.ursful.framework.orm.helper.SQLHelper;
 import com.ursful.framework.orm.ISQLScript;
@@ -208,7 +209,9 @@ public class QueryUtils {
 
     //同一张表怎么半？ select * from test t1, test t2
 
-    public static String getConditions(List<Condition> cds, List<Pair> values){
+
+
+    public static String getConditions(Object queryOrClass, List<Condition> cds, List<Pair> values){
         if(cds == null){
             return null;
         }
@@ -219,7 +222,7 @@ public class QueryUtils {
             List<Expression> orExpressions = condition.getOrExpressions();
             for(int i = 0; i < orExpressions.size(); i++){
                 Expression expression = orExpressions.get(i);
-                SQLPair sqlPair = parseExpression(expression);
+                SQLPair sqlPair = parseExpression(queryOrClass, expression);
                 if(sqlPair != null){
                     ors.add(sqlPair.getSql());
                     if(sqlPair.getPairs() != null) {//column = column
@@ -234,7 +237,7 @@ public class QueryUtils {
                 List<String> temp = new ArrayList<String>();
                 for(int j = 0; j < oras.size(); j++){
                     Expression expression = oras.get(j);
-                    SQLPair sqlPair = parseExpression(expression);
+                    SQLPair sqlPair = parseExpression(queryOrClass, expression);
                     if(sqlPair != null){
                         temp.add(sqlPair.getSql());
                         if(sqlPair.getPairs() != null) {
@@ -253,7 +256,7 @@ public class QueryUtils {
             List<Expression> andExpressions = condition.getAndExpressions();
             for(int i = 0; i < andExpressions.size(); i++){
                 Expression expression = andExpressions.get(i);
-                SQLPair sqlPair = parseExpression(expression);
+                SQLPair sqlPair = parseExpression(queryOrClass, expression);
                 if(sqlPair != null){
                     ands.add(sqlPair.getSql());
                     if(sqlPair.getPairs() != null) {
@@ -288,14 +291,15 @@ public class QueryUtils {
         return null;
     }
 
-    public static String getConditions(Express [] expresses, List<Pair> values){
+
+    public static String getConditions(Class clazz, Express [] expresses, List<Pair> values){
         if(expresses == null){
             return null;
         }
         List<String> ands = new ArrayList<String>();
         for(int i = 0; i < expresses.length; i++){
             Expression expression = expresses[i].getExpression();
-            SQLPair sqlPair = parseExpression(expression);
+            SQLPair sqlPair = parseExpression(clazz, expression);
             if(sqlPair != null){
                 ands.add(sqlPair.getSql());
                 if(sqlPair.getPairs() != null) {
@@ -311,11 +315,39 @@ public class QueryUtils {
         return ORMUtils.join(ands, " AND ");
     }
 
-    public static SQLPair parseExpression(Expression expression){
+    public static SQLPair parseExpression(Object clazz, Expression expression){
+        if(clazz instanceof Class){
+            return parseExpression((Class)clazz, null, expression);
+        }else if(clazz instanceof IQuery){
+         IQuery query = (IQuery)clazz;
+            return parseExpression(query.getTable(), query.getAliasTable(), expression);
+        }else{
+            return parseExpression(null, null, expression);
+        }
+
+    }
+
+
+
+    public static SQLPair parseExpression(Class clazz, Map<String,Class<?>> clazzes, Expression expression){
+
+//    public static SQLPair parseExpression(Expression expression){
         SQLPair sqlPair = null;
         if(expression == null || expression.getLeft() == null){
             return sqlPair;
         }
+        Column column = expression.getLeft();
+        ColumnType columnType = null;
+        if(ORMUtils.isEmpty(column.getAlias())){
+            Map<String, ColumnType> pairMap = ORMUtils.getColumnType(clazz);
+            columnType = pairMap.get(column.getName());
+        }else{
+            if(clazzes != null && clazzes.containsKey(column.getAlias())){
+                Map<String, ColumnType> pairMap = ORMUtils.getColumnType(clazzes.get(column.getAlias()));
+                columnType = pairMap.get(column.getName());
+            }
+        }
+
         String conditionName = parseColumn(expression.getLeft());
         Object conditionValue = expression.getValue();
 
@@ -367,22 +399,22 @@ public class QueryUtils {
         }else{
             switch (expression.getType()) {
                 case CDT_Equal:
-                    sqlPair = new SQLPair(" " + conditionName + " = ?", new Pair(conditionValue));
+                    sqlPair = new SQLPair(" " + conditionName + " = ?", new Pair(conditionValue,columnType));
                     break;
                 case CDT_NotEqual:
-                    sqlPair = new SQLPair(" " + conditionName + " != ?", new Pair(conditionValue));
+                    sqlPair = new SQLPair(" " + conditionName + " != ?", new Pair(conditionValue,columnType));
                     break;
                 case CDT_More:
-                    sqlPair = new SQLPair(" "+ conditionName + " > ?", new Pair(conditionValue));
+                    sqlPair = new SQLPair(" "+ conditionName + " > ?", new Pair(conditionValue,columnType));
                     break;
                 case CDT_MoreEqual:
-                    sqlPair = new SQLPair(" "+ conditionName + " >= ?", new Pair(conditionValue));
+                    sqlPair = new SQLPair(" "+ conditionName + " >= ?", new Pair(conditionValue,columnType));
                     break;
                 case CDT_Less:
-                    sqlPair = new SQLPair(" "+ conditionName + " < ?", new Pair(conditionValue));
+                    sqlPair = new SQLPair(" "+ conditionName + " < ?", new Pair(conditionValue,columnType));
                     break;
                 case CDT_LessEqual:
-                    sqlPair = new SQLPair(" "+ conditionName + " <= ?", new Pair(conditionValue));
+                    sqlPair = new SQLPair(" "+ conditionName + " <= ?", new Pair(conditionValue,columnType));
                     break;
                 case CDT_Like:
                     sqlPair = new SQLPair(" "+ conditionName + " LIKE ?", new Pair("%" +conditionValue + "%"));
@@ -408,11 +440,11 @@ public class QueryUtils {
                                 String obj2 = ((String) obj).trim();
                                 if(!"".equals(obj2)) {
                                     names.add("?");
-                                    values.add(new Pair(obj));
+                                    values.add(new Pair(obj, columnType));
                                 }
                             }else{
                                 names.add("?");
-                                values.add(new Pair(obj));
+                                values.add(new Pair(obj, columnType));
                             }
 
                         }

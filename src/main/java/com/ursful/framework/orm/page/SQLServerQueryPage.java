@@ -157,7 +157,7 @@ public class SQLServerQueryPage extends AbstractQueryPage{
         sql.append(" FROM " + tableName);
         List<Pair> values = new ArrayList<Pair>();
         if(terms != null) {
-            String conditions = QueryUtils.getConditions(ORMUtils.newList(terms.getCondition()), values);
+            String conditions = QueryUtils.getConditions(clazz, ORMUtils.newList(terms.getCondition()), values);
             if (conditions != null && !"".equals(conditions)) {
                 sql.append(" WHERE " + conditions);
             }
@@ -214,12 +214,12 @@ public class SQLServerQueryPage extends AbstractQueryPage{
             sb.append(ORMUtils.join(words, ","));
         }
 
-        String join = join(query.getJoins(), values);
+        String join = join(query, query.getJoins(), values);
         if(join != null && !"".equals(join)){
             sb.append(join);
         }
 
-        String whereCondition = QueryUtils.getConditions(query.getConditions(), values);
+        String whereCondition = QueryUtils.getConditions(query, query.getConditions(), values);
         if(whereCondition != null && !"".equals(whereCondition)){
             sb.append(" WHERE " + whereCondition);
         }
@@ -233,7 +233,7 @@ public class SQLServerQueryPage extends AbstractQueryPage{
                 sb.append(groupString);
             }
 
-            String havingString = QueryUtils.getConditions(query.getHavings(), values);
+            String havingString = QueryUtils.getConditions(query, query.getHavings(), values);
             if(havingString != null && !"".equals(havingString)){
                 sb.append(" HAVING ");
                 sb.append(havingString);

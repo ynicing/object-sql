@@ -146,7 +146,7 @@ public class OracleQueryPage extends AbstractQueryPage{
         sql.append(" FROM " + tableName + " x ");
         List<Pair> values = new ArrayList<Pair>();
         if(terms != null) {
-            String conditions = QueryUtils.getConditions(ORMUtils.newList(terms.getCondition()), values);
+            String conditions = QueryUtils.getConditions(clazz, ORMUtils.newList(terms.getCondition()), values);
             if (conditions != null && !"".equals(conditions)) {
                 sql.append(" WHERE " + conditions);
             }

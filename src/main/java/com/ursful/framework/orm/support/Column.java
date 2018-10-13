@@ -16,8 +16,6 @@
 
 package com.ursful.framework.orm.support;
 
-import com.ursful.framework.orm.query.QueryUtils;
-
 public class Column {
 
 	private String name;//数据库表列字段名称

@@ -171,7 +171,7 @@ public class SQLHelperCreator {
         StringBuffer sql = new StringBuffer("DELETE FROM " + tableName + " WHERE ");
         List<Pair> pairs = new ArrayList<Pair>();
         for(Express express : expresses){
-            SQLPair pair = QueryUtils.parseExpression(express.getExpression());
+            SQLPair pair = QueryUtils.parseExpression(clazz, express.getExpression());
             sql.append(pair.getSql());
             pairs.addAll(pair.getPairs());
         }
@@ -295,7 +295,7 @@ public class SQLHelperCreator {
                 sql.append(" WHERE ");
                 List<String> terms = new ArrayList<String>();
                 for(Express express : expresses){
-                    SQLPair pair = QueryUtils.parseExpression(express.getExpression());
+                    SQLPair pair = QueryUtils.parseExpression(clazz, express.getExpression());
                     terms.add(pair.getSql());
                     parameters.addAll(pair.getPairs());
                 }
@@ -475,7 +475,7 @@ public class SQLHelperCreator {
         StringBuffer sql = new StringBuffer("SELECT * FROM " + tableName);
         List<Pair> values = new ArrayList<Pair>();
         if(expresses != null) {
-            String conditions = QueryUtils.getConditions(expresses, values);
+            String conditions = QueryUtils.getConditions(clazz, expresses, values);
             if (conditions != null && !"".equals(conditions)) {
                 sql.append(" WHERE " + conditions);
             }
@@ -502,7 +502,7 @@ public class SQLHelperCreator {
         StringBuffer sql = new StringBuffer("SELECT COUNT(*) FROM " + tableName);
         List<Pair> values = new ArrayList<Pair>();
         if(expresses != null) {
-            String conditions = QueryUtils.getConditions(expresses, values);
+            String conditions = QueryUtils.getConditions(clazz, expresses, values);
             if (conditions != null && !"".equals(conditions)) {
                 sql.append(" WHERE " + conditions);
             }
@@ -527,7 +527,7 @@ public class SQLHelperCreator {
         StringBuffer sql = new StringBuffer("SELECT COUNT(*) FROM " + tableName);
         List<Pair> values = new ArrayList<Pair>();
         if(terms != null) {
-            String conditions = QueryUtils.getConditions(ORMUtils.newList(terms.getCondition()), values);
+            String conditions = QueryUtils.getConditions(clazz, ORMUtils.newList(terms.getCondition()), values);
             if (conditions != null && !"".equals(conditions)) {
                 sql.append(" WHERE " + conditions);
             }

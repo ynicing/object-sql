@@ -42,12 +42,12 @@ public abstract class AbstractQueryPage implements QueryPage{
             sb.append(ORMUtils.join(words, ","));
         }
 
-        String join = join(query.getJoins(), values);
+        String join = join(query, query.getJoins(), values);
         if(join != null && !"".equals(join)){
             sb.append(join);
         }
 
-        String whereCondition = QueryUtils.getConditions(query.getConditions(), values);
+        String whereCondition = QueryUtils.getConditions(query, query.getConditions(), values);
         if(whereCondition != null && !"".equals(whereCondition)){
             sb.append(" WHERE " + whereCondition);
         }
@@ -59,7 +59,7 @@ public abstract class AbstractQueryPage implements QueryPage{
             sb.append(groupString);
         }
 
-        String havingString = QueryUtils.getConditions(query.getHavings(), values);
+        String havingString = QueryUtils.getConditions(query, query.getHavings(), values);
         if(havingString != null && !"".equals(havingString)){
             sb.append(" HAVING ");
             sb.append(havingString);
@@ -77,7 +77,7 @@ public abstract class AbstractQueryPage implements QueryPage{
 
     }
 
-    public String join(List<Join> joins, List<Pair> values){
+    public String join(Object obj, List<Join> joins, List<Pair> values){
         StringBuffer sb = new StringBuffer();
         if(joins == null){
             return  sb.toString();
@@ -118,7 +118,7 @@ public abstract class AbstractQueryPage implements QueryPage{
 
             List<Condition> temp = join.getConditions();
 
-            String cdt = QueryUtils.getConditions(temp, values);
+            String cdt = QueryUtils.getConditions(obj, temp, values);
             if(cdt != null && !"".equals(cdt)) {
                 sb.append(" ON ");
                 sb.append(cdt);
