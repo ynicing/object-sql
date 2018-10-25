@@ -102,6 +102,8 @@ public class DataSourceManager {
                     queryPage = new H2QueryPage();
                     break;
                 default:
+                    queryPage = new MySQLQueryPage();
+                    break;
             }
             queryPageMap.put(databaseType, queryPage);
         }

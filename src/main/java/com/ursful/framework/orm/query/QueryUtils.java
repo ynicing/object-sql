@@ -191,12 +191,35 @@ public class QueryUtils {
 
 
         }else{
-            if(column.getAlias() != null && !"".equals(column.getAlias())){
-                sb.append(column.getAlias() + ".");
-            }
-            sb.append(column.getName());
-            if(column.getType() != null && column.getValue() != null){
-                sb.append(column.getType().getOperator() + column.getValue().toString());
+            if(column.getValue() instanceof Column){
+                sb.append("(");
+                if(column.getAlias() != null && !"".equals(column.getAlias())){
+                    sb.append(column.getAlias() + ".");
+                }
+                sb.append(column.getName());
+
+                sb.append(column.getType().getOperator());
+
+                sb.append(parseColumn((Column)column.getValue()));
+
+                sb.append(")");
+
+            }else{
+                if(column.getType() != null && column.getValue() != null){
+                    sb.append(" (");
+                    if(column.getAlias() != null && !"".equals(column.getAlias())){
+                        sb.append(column.getAlias() + ".");
+                    }
+                    sb.append(column.getName());
+                    sb.append(column.getType().getOperator() + column.getValue().toString());
+                    sb.append(") ");
+                }else{
+                    if(column.getAlias() != null && !"".equals(column.getAlias())){
+                        sb.append(column.getAlias() + ".");
+                    }
+                    sb.append(column.getName());
+                }
+
             }
         }
         if(column.getAsName() != null){
@@ -427,6 +450,12 @@ public class QueryUtils {
                     break;
                 case CDT_StartWith:
                     sqlPair = new SQLPair(" "+ conditionName + " LIKE ?", new Pair(conditionValue + "%"));
+                    break;
+                case CDT_NotEndWith:
+                    sqlPair = new SQLPair(" "+ conditionName + " NOT LIKE ?", new Pair("%" +conditionValue));
+                    break;
+                case CDT_NotStartWith:
+                    sqlPair = new SQLPair(" "+ conditionName + " NOT LIKE ?", new Pair(conditionValue + "%"));
                     break;
                 case CDT_In:
                 case CDT_NotIn:
