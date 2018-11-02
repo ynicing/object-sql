@@ -291,7 +291,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
             helper = SQLHelperCreator.update(t, dataSourceManager.getDatabaseType(), null, updateNull);
             T original = null;
-            if(helper.getPair() != null && !changeListeners.isEmpty()) {
+            if(helper.getPair() != null && (!changeListeners.isEmpty()||!changedListeners.isEmpty())) {
                 original = get(helper.getPair().getValue());
             }
             if(ORMUtils.getDebug()) {
@@ -346,7 +346,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
             helper = SQLHelperCreator.update(t, dataSourceManager.getDatabaseType(), expresses, updateNull);
             List<T> originals = null;
-            if(expresses != null && (expresses.length > 0) && !changeListeners.isEmpty()) {
+            if(expresses != null && (expresses.length > 0) && (!changeListeners.isEmpty()||!changedListeners.isEmpty())) {
                 originals = list(expresses);
             }
             if(ORMUtils.getDebug()) {
@@ -400,7 +400,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                 now = (T)t;
             }else{
                 helper = SQLHelperCreator.delete(thisClass, t);
-                if(enableListener && (helper.getPair() != null) && !changeListeners.isEmpty()) {
+                if(enableListener && (helper.getPair() != null) && (!changeListeners.isEmpty()||!changedListeners.isEmpty())) {
                     now = get(helper.getPair().getValue());
                 }
             }
@@ -453,7 +453,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             List<T> nows = null;
 
             helper = SQLHelperCreator.deleteBy(thisClass, expresses);
-            if(enableListener && !changeListeners.isEmpty()) {
+            if(enableListener && (!changeListeners.isEmpty()||!changedListeners.isEmpty())) {
                 nows = list(expresses);
             }
             if(ORMUtils.getDebug()) {
