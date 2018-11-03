@@ -69,7 +69,12 @@
   }<br/>
 <br/>
 --------------------listener 监听器------------------------------<br/>
- IDefaultListener/IORMListener/IChangeListener<br/>
+ IDefaultListener：当insert或update之前，会调用该监听器<br/>
+ IORMListener：监听insert或update或delete<br/>
+ IChangeListener：当对象发生改变时触发该事件，该方法内部方法参与事务<br/>
+ IChangedListener：当对象发生改变(成功，无回滚)时触发该事件，该方法内部方法不参与事务，<br/>
+ 需要使用com.ursful.framework.orm.transaction.TransactionManager,<br/>
+ jta需要使用MultiTransactionManager
  <br/>
  <br/>
  ---------------------Entity----------------------------------------<br/>
