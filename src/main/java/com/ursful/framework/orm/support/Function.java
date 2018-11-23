@@ -1,5 +1,7 @@
 package com.ursful.framework.orm.support;
 
+import java.io.Serializable;
+
 /**
  * 类名：Function
  * 创建者：huangyonghua
@@ -7,6 +9,6 @@ package com.ursful.framework.orm.support;
  * 版权：ursful.com Copyright(c) 2017
  * 说明：[类说明必填内容，请修改]
  */
-public class Function {
+public class Function implements Serializable {
 
 }

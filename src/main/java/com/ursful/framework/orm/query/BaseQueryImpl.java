@@ -19,6 +19,7 @@ import com.ursful.framework.orm.IBaseQuery;
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.support.*;
+import org.springframework.core.annotation.AnnotationUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,10 +27,6 @@ import java.util.Map;
 
 public class BaseQueryImpl implements IBaseQuery {
 	
-	//private static IBaseDao<SysUser> baseDao = new BaseDaoImpl<SysUser>();
-	
-	//private QueryInfo info;
-	//private TableInfo table;
     private Class<?> table;
     private Class<?> returnClass;
     private List<Column> returnColumns = new ArrayList<Column>();
@@ -238,7 +235,7 @@ public class BaseQueryImpl implements IBaseQuery {
 
     public IBaseQuery table(Class<?> clazz){
         if(clazz != null) {
-            RdTable rdTable = (RdTable)clazz.getAnnotation(RdTable.class);
+            RdTable rdTable = AnnotationUtils.findAnnotation(clazz, RdTable.class);
             if(rdTable != null) {
                 this.table = clazz;
                 this.returnClass = clazz;

@@ -16,7 +16,9 @@
 
 package com.ursful.framework.orm.support;
 
-public class Column {
+import java.io.Serializable;
+
+public class Column implements Serializable {
 
 	private String name;//数据库表列字段名称
 	private String function;//函数
@@ -25,6 +27,16 @@ public class Column {
 
     private Object value;
     private OperatorType type;
+
+    private Boolean operatorInFunction = true;
+
+    public Boolean getOperatorInFunction() {
+        return operatorInFunction;
+    }
+
+    public void setOperatorInFunction(Boolean operatorInFunction) {
+        this.operatorInFunction = operatorInFunction;
+    }
 
     public Object getValue() {
         return value;

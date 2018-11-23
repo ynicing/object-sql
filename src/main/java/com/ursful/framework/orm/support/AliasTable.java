@@ -4,9 +4,10 @@ import com.ursful.framework.orm.IMultiQuery;
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.query.BaseQueryImpl;
 
+import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class AliasTable{
+public class AliasTable implements Serializable {
 
     private String alias;
 

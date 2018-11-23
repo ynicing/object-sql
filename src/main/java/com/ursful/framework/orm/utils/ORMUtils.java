@@ -15,9 +15,15 @@
  */
 package com.ursful.framework.orm.utils;
 
+import com.ursful.framework.orm.annotation.RdId;
+import com.ursful.framework.orm.annotation.RdTable;
+import com.ursful.framework.orm.support.Column;
+import com.ursful.framework.orm.support.ColumnInfo;
 import com.ursful.framework.orm.support.ColumnType;
 import com.ursful.framework.orm.support.DebugHolder;
 import com.ursful.framework.orm.annotation.RdColumn;
+import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.util.ConcurrentReferenceHashMap;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
@@ -61,127 +67,101 @@ public class ORMUtils {
         return debug;
     }
 
-    private static Map<Class, Map<String, ColumnType>> columnTypeCache = new HashMap<Class, Map<String, ColumnType>>();
+    private static Map<Class, List<ColumnInfo>> columnInfoCache = new ConcurrentReferenceHashMap<Class, List<ColumnInfo>>();
 
-    private static Map<Class, Map<String, String>> fieldColumnCache = new HashMap<Class, Map<String, String>>();
-    private static Map<Class, Map<String, String>> columnFieldCache = new HashMap<Class, Map<String, String>>();
-    private static Map<Class, List<String>> fieldCache = new HashMap<Class, List<String>>();
-    private static Map<Class, List<String>> columnCache = new HashMap<Class, List<String>>();
+    private static Map<Class, String> tableNameCache = new ConcurrentReferenceHashMap<Class, String>();
 
-    public static Map<String, ColumnType> getColumnType(Class<?> clazz){
-        if(clazz == null){
-            return new HashMap<String, ColumnType>();
+    public static String getTableName(Class clazz){
+        if(tableNameCache.containsKey(clazz)){
+            return tableNameCache.get(clazz);
         }
-        if(columnTypeCache.containsKey(clazz)){
-            return columnTypeCache.get(clazz);
+        RdTable table = AnnotationUtils.findAnnotation(clazz, RdTable.class);
+        if(table == null){
+            throw new RuntimeException("Table not found Class(" + clazz.getName() + ")");
         }
+        String tableName = table.name();
+        tableNameCache.put(clazz, tableName);
+        return tableName;
+    }
 
-        Map<String, ColumnType> temp = new HashMap<String, ColumnType>();
-        Field [] fields = clazz.getDeclaredFields();
+    public static void setFieldValue(Object object, ColumnInfo info, Object value){
+        if(object == null || value == null){
+            return;
+        }
+        try {
+            Field field = info.getField();
+            field.setAccessible(true);
+            field.set(object, value);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Set value to [" + object + "] error, value[" + value + "]");
+        }
+    }
+
+    public static void setFieldValue(Object object, Field field, Object value){
+        if(object == null || value == null){
+            return;
+        }
+        try {
+            field.setAccessible(true);
+            field.set(object, value);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Set value to [" + object + "] error, value[" + value + "]");
+        }
+    }
+
+    public static Object getFieldValue(Object object, Field field){
+        Object result = null;
+        try {
+            field.setAccessible(true);
+            result = field.get(object);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Get value from [" + object + "] error!");
+        }
+        return result;
+    }
+
+
+    public static Object getFieldValue(Object object, ColumnInfo info){
+        Object result = null;
+        try {
+            Field field = info.getField();
+            field.setAccessible(true);
+            result = field.get(object);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Get value from [" + object + "] error!");
+        }
+        return result;
+    }
+
+    private static void analyze(Class<?> clazz){
+        List<ColumnInfo> infoList = new ArrayList<ColumnInfo>();
+        List<Field> fields = getDeclaredFields(clazz);
         for(Field field : fields){
             RdColumn column = field.getAnnotation(RdColumn.class);
             if(column != null){
-                temp.put(column.name(), column.type());
+                ColumnInfo info = new ColumnInfo();
+                info.setField(field);
+                info.setName(field.getName());
+                info.setColumnName(column.name());
+                info.setColumnType(column.type());
+                info.setType(field.getType().getSimpleName());
+                RdId id = field.getAnnotation(RdId.class);
+                if(id != null){
+                    info.setPrimaryKey(true);
+                    infoList.add(0, info);
+                }else{
+                    infoList.add(info);
+                }
             }
         }
-        Class<?> tmp = clazz.getSuperclass();
-        while (tmp != null){
-            temp.putAll(getColumnType(tmp));
-            tmp = tmp.getSuperclass();
-        }
-        columnTypeCache.put(clazz, temp);
-        return temp;
+        columnInfoCache.put(clazz, infoList);
     }
 
-    public static Map<String, String> getFieldColumn(Class<?> clazz){
-        if(fieldColumnCache.containsKey(clazz)){
-            return fieldColumnCache.get(clazz);
-        }
-
-        Map<String, String> temp = new HashMap<String, String>();
-        Field [] fields = clazz.getDeclaredFields();
-        for(Field field : fields){
-            RdColumn column = field.getAnnotation(RdColumn.class);
-            if(column != null){
-                temp.put(field.getName(), column.name());
-            }
-        }
-        Class<?> tmp = clazz.getSuperclass();
-        while (tmp != null){
-            temp.putAll(getFieldColumn(tmp));
-            tmp = tmp.getSuperclass();
-        }
-        fieldColumnCache.put(clazz, temp);
-        return temp;
-    }
-
-    public static Map<String, String> getColumnField(Class<?> clazz){
-        if(columnFieldCache.containsKey(clazz)){
-            return columnFieldCache.get(clazz);
-        }
-        Map<String, String> temp = new HashMap<String, String>();
-        Field [] fields = clazz.getDeclaredFields();
-        for(Field field : fields){
-            RdColumn column = field.getAnnotation(RdColumn.class);
-            if(column != null){
-                temp.put(column.name(), field.getName());
-            }
-        }
-        Class<?> tmp = clazz.getSuperclass();
-        while (tmp != null){
-            temp.putAll(getColumnField(tmp));
-            tmp = tmp.getSuperclass();
-        }
-        columnFieldCache.put(clazz, temp);
-        return temp;
-    }
-
-    public static List<String> getFields(Class<?> clazz){
-        if(fieldCache.containsKey(clazz)){
-            return fieldCache.get(clazz);
-        }
-        List<String> temp = new ArrayList<String>();
-        Field [] fields = clazz.getDeclaredFields();
-        for(Field field : fields){
-            RdColumn column = field.getAnnotation(RdColumn.class);
-            if(column != null){
-                temp.add(field.getName());
-            }
-        }
-        Class<?> tmp = clazz.getSuperclass();
-        while (tmp != null){
-            temp.addAll(getFields(tmp));
-            tmp = tmp.getSuperclass();
-        }
-        fieldCache.put(clazz, temp);
-        return temp;
-    }
-
-    public static List<String> getColumns(Class<?> clazz){
-        if(columnCache.containsKey(clazz)){
-            return columnCache.get(clazz);
-        }
-        List<String> temp = new ArrayList<String>();
-        Field [] fields = clazz.getDeclaredFields();
-        for(Field field : fields){
-            RdColumn column = field.getAnnotation(RdColumn.class);
-            if(column != null){
-                temp.add(column.name());
-            }
-        }
-        Class<?> tmp = clazz.getSuperclass();
-        while (tmp != null){
-            temp.addAll(getColumns(tmp));
-            tmp = tmp.getSuperclass();
-        }
-        columnCache.put(clazz, temp);
-        return temp;
-    }
 
     public static <T> List<T> newList(T ... ts){
         List<T> temp = new ArrayList<T>();
         if(ts == null){
-            return null;
+            return temp;
         }
         for(T t : ts){
             temp.add(t);
@@ -189,17 +169,7 @@ public class ORMUtils {
         return temp;
     }
 
-    public static boolean isEmpty(String value){
-        if(value == null){
-            return true;
-        }
-        if("".equals(value)){
-            return true;
-        }
-        return false;
-    }
-
-    public static Type[] getTypes(Type type){
+    private static Type[] getTypes(Type type){
         Type [] types = null;
         if(type instanceof ParameterizedType){
             types = ((ParameterizedType) type).getActualTypeArguments();
@@ -228,12 +198,11 @@ public class ORMUtils {
             }catch (Exception e){
                 return false;
             }
-
         }
         return false;
     }
 
-    public static boolean isEmptyObject(Object object){
+    public static boolean isEmpty(Object object){
         if(object == null){
             return true;
         }
@@ -245,13 +214,36 @@ public class ORMUtils {
         }
         return false;
     }
+
+    public static String join(String [] words, String key){
+        StringBuffer sb = new StringBuffer();
+        if(words != null) {
+            for (String word : words) {
+                if (isEmpty(word)) {
+                    continue;
+                }
+                if (sb.length() == 0) {
+                    sb.append(word);
+                } else {
+                    sb.append(key + word);
+                }
+            }
+        }
+        return sb.toString();
+    }
+
     public static String join(List<String> words, String key){
         StringBuffer sb = new StringBuffer();
-        for(String word : words){
-            if(sb.length() == 0){
-                sb.append(word);
-            }else{
-                sb.append(key + word);
+        if(words != null) {
+            for (String word : words) {
+                if (isEmpty(word)) {
+                    continue;
+                }
+                if (sb.length() == 0) {
+                    sb.append(word);
+                } else {
+                    sb.append(key + word);
+                }
             }
         }
         return sb.toString();
@@ -261,4 +253,105 @@ public class ORMUtils {
         System.out.println(getColumns(ORMUtils.class));
     }
 
+    public static Map<String, ColumnType> getColumnType(Class<?> clazz){
+        Map<String, ColumnType> temp = new HashMap<String, ColumnType>();
+        List<ColumnInfo> infoList = columnInfoCache.get(clazz);
+        if(infoList == null){
+            analyze(clazz);
+            infoList = columnInfoCache.get(clazz);
+        }
+        if(infoList != null){
+            for(ColumnInfo info: infoList){
+                temp.put(info.getName(), info.getColumnType());
+            }
+        }
+        return temp;
+    }
+
+    public static Map<String, String> getFieldColumn(Class<?> clazz){
+        Map<String, String> temp = new HashMap<String, String>();
+        List<ColumnInfo> infoList = columnInfoCache.get(clazz);
+        if(infoList == null){
+            analyze(clazz);
+            infoList = columnInfoCache.get(clazz);
+        }
+        if(infoList != null){
+            for(ColumnInfo info: infoList){
+                temp.put(info.getName(), info.getColumnName());
+            }
+        }
+        return temp;
+    }
+
+    public static Map<String, String> getColumnField(Class<?> clazz){
+        Map<String, String> temp = new HashMap<String, String>();
+        List<ColumnInfo> infoList = columnInfoCache.get(clazz);
+        if(infoList == null){
+            analyze(clazz);
+            infoList = columnInfoCache.get(clazz);
+        }
+        if(infoList != null){
+            for(ColumnInfo info: infoList){
+                temp.put(info.getColumnName(), info.getName());
+            }
+        }
+        return temp;
+    }
+
+
+    public static List<String> getFields(Class<?> clazz){
+        List<String> temp = new ArrayList<String>();
+        List<ColumnInfo> infoList = columnInfoCache.get(clazz);
+        if(infoList == null){
+            analyze(clazz);
+            infoList = columnInfoCache.get(clazz);
+        }
+        if(infoList != null){
+            for(ColumnInfo info: infoList){
+                temp.add(info.getName());
+            }
+        }
+        return temp;
+    }
+
+    public static List<ColumnInfo> getColumnInfo(Class<?> clazz){
+        List<ColumnInfo> infoList = columnInfoCache.get(clazz);
+        if(infoList == null){
+            analyze(clazz);
+            infoList = columnInfoCache.get(clazz);
+        }
+        return infoList;
+    }
+
+    public static List<String> getColumns(Class<?> clazz){
+        List<String> temp = new ArrayList<String>();
+        List<ColumnInfo> infoList = columnInfoCache.get(clazz);
+        if(infoList == null){
+            analyze(clazz);
+            infoList = columnInfoCache.get(clazz);
+        }
+        if(infoList != null){
+            for(ColumnInfo info: infoList){
+                temp.add(info.getColumnName());
+            }
+        }
+        return temp;
+    }
+
+    public static List<Field> getDeclaredFields(Class<?> clazz){
+        List<Field> temp = new ArrayList<Field>();
+        if(clazz == null){
+            return temp;
+        }
+        Field [] fields = clazz.getDeclaredFields();
+        for(Field field : fields){
+            RdColumn column = field.getAnnotation(RdColumn.class);
+            if(column != null){
+                temp.add(field);
+            }
+        }
+        Class<?> tmp = clazz.getSuperclass();
+        temp.addAll(getDeclaredFields(tmp));
+        return temp;
+    }
 }

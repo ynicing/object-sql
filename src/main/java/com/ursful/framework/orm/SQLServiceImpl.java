@@ -24,7 +24,11 @@ public class SQLServiceImpl implements ISQLService{
 
     @Override
     public String currentDatabaseType() {
-        return dataSourceManager.getDatabaseType().name();
+        DatabaseType type = dataSourceManager.getDatabaseType();
+        if(type != null){
+            return type.name();
+        }
+        return null;
     }
 
     @Override
@@ -49,7 +53,7 @@ public class SQLServiceImpl implements ISQLService{
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } finally{
-            close(null, ps, conn);
+            dataSourceManager.close(null, ps, conn);
         }
     }
 
@@ -59,7 +63,7 @@ public class SQLServiceImpl implements ISQLService{
             for(Object object : params){
                 pairList.add(new Pair(object));
             }
-            SQLHelperCreator.setParameter(ps, pairList, dataSourceManager.getDatabaseType(), connection);
+            SQLHelperCreator.setParameter(ps, pairList, connection);
         }
     }
 
@@ -93,7 +97,7 @@ public class SQLServiceImpl implements ISQLService{
                 } catch (SQLException e) {
                 }
             }
-            close(rs, ps, conn);
+            dataSourceManager.close(rs, ps, conn);
 
         }
         return true;
@@ -130,7 +134,7 @@ public class SQLServiceImpl implements ISQLService{
         } catch (SQLException e) {
             e.printStackTrace();
         } finally{
-            close(rs, ps, conn);
+            dataSourceManager.close(rs, ps, conn);
         }
         return tempMap;
     }
@@ -167,7 +171,7 @@ public class SQLServiceImpl implements ISQLService{
         } catch (SQLException e) {
             e.printStackTrace();
         } finally{
-            close(rs, ps, conn);
+            dataSourceManager.close(rs, ps, conn);
         }
         return temp;
     }
@@ -189,7 +193,7 @@ public class SQLServiceImpl implements ISQLService{
         } catch (SQLException e) {
             e.printStackTrace();
         } finally{
-            close(rs, ps, conn);
+            dataSourceManager.close(rs, ps, conn);
         }
         return temp;
     }
@@ -210,69 +214,15 @@ public class SQLServiceImpl implements ISQLService{
         } catch (SQLException e) {
             e.printStackTrace();
         } finally{
-            close(rs, ps, conn);
+            dataSourceManager.close(rs, ps, conn);
         }
         return temp;
     }
 
-    /*
     @Override
-    public Map<String, Object> queryMap(String hql, Map<String, Object> params) {
-        HQLParser parser = new HQLParser(hql, params);
-        int size = parser.getParameters().size();
-        return queryMap(parser.getSql(), parser.getParameters().toArray(new Object[size]));
+    public Connection getConnection() {
+        return dataSourceManager.getConnection();
     }
-
-    @Override
-    public List<Map<String, Object>> queryMapList(String hql, Map<String, Object> params) {
-        HQLParser parser = new HQLParser(hql, params);
-        int size = parser.getParameters().size();
-        return queryMapList(parser.getSql(), parser.getParameters().toArray(new Object[size]));
-    }
-
-    @Override
-    public int queryCount(String hql, Map<String, Object> params) {
-        HQLParser parser = new HQLParser(hql, params);
-        int size = parser.getParameters().size();
-        return queryCount(parser.getSql(), parser.getParameters().toArray(new Object[size]));
-    }
-
-    @Override
-    public Object queryResult(String hql, Map<String, Object> params) {
-        HQLParser parser = new HQLParser(hql, params);
-        int size = parser.getParameters().size();
-        return queryResult(parser.getSql(), parser.getParameters().toArray(new Object[size]));
-    }
-    */
-
-    public Connection getConnection(){
-        DataSource source = dataSourceManager.getDataSource();
-        if(source instanceof DynamicDataSource){
-            DynamicDataSource dynamicDataSource = (DynamicDataSource)source;
-            if(DynamicDataSource.getDataSource() != null){
-                source = dynamicDataSource.currentDataSource();
-            }
-        }
-        Connection conn = DataSourceUtils.getConnection(source);
-        return conn;
-    }
-
-    protected void close(ResultSet rs, Statement statement, Connection connection){
-        DataSource source = dataSourceManager.getDataSource();
-        if(source instanceof DynamicDataSource){
-            DynamicDataSource dynamicDataSource = (DynamicDataSource)source;
-            if(DynamicDataSource.getDataSource() != null){
-                source = dynamicDataSource.currentDataSource();
-            }
-        }
-        dataSourceManager.close(rs, statement, connection, source);
-    }
-
-
-    public static void main(String[] args) {//:xx)><= *|&!^+-x/
-        String sql = "select * from a where id=:xx and ";
-    }
-
 
 
 }

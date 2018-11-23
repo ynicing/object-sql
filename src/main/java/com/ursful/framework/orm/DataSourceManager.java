@@ -5,6 +5,7 @@ import com.ursful.framework.orm.page.MySQLQueryPage;
 import com.ursful.framework.orm.page.OracleQueryPage;
 import com.ursful.framework.orm.page.SQLServerQueryPage;
 import com.ursful.framework.orm.support.DatabaseType;
+import com.ursful.framework.orm.support.DatabaseTypeHolder;
 import com.ursful.framework.orm.support.QueryPage;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 
@@ -36,22 +37,28 @@ public class DataSourceManager {
         }
     }
 
-    public DatabaseType getDatabaseType(){
-        if(dataSource == null){
-            return DatabaseType.NONE;
-        }
+    public DataSource getRawDataSource(){
         DataSource current = dataSource;
         if(dataSource instanceof DynamicDataSource){
             DynamicDataSource dynamicDataSource = (DynamicDataSource) dataSource;
             current = dynamicDataSource.currentDataSource();
         }
-        DatabaseType type = databaseTypeMap.get(current);
+        return current;
+    }
+
+    public DatabaseType getDatabaseType(){
+        if(dataSource == null){
+            return DatabaseType.NONE;
+        }
+        DataSource raw = getRawDataSource();
+
+        DatabaseType type = databaseTypeMap.get(raw);
         if(type != null){
             return type;
         }
         Connection connection = null;
         try {
-            connection = current.getConnection();
+            connection = raw.getConnection();
             String productName = connection.getMetaData().getDatabaseProductName().toUpperCase();
             DatabaseType databaseType = null;
             if(productName.contains("MYSQL")){
@@ -66,12 +73,12 @@ public class DataSourceManager {
                 databaseType = DatabaseType.NONE;
                 //throw new RuntimeException("Not support : " +productName);
             }
-            databaseTypeMap.put(current, databaseType);
+            databaseTypeMap.put(raw, databaseType);
             return databaseType;
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
-            close(connection, current);
+            close(connection);
         }
         return DatabaseType.NONE;
     }
@@ -102,7 +109,6 @@ public class DataSourceManager {
                     queryPage = new H2QueryPage();
                     break;
                 default:
-                    queryPage = new MySQLQueryPage();
                     break;
             }
             queryPageMap.put(databaseType, queryPage);
@@ -114,7 +120,18 @@ public class DataSourceManager {
         queryPageMap.put(queryPage.databaseType(), queryPage);
     }
 
-    public synchronized void close(ResultSet rs, Statement stmt, Connection conn, DataSource ds){
+
+    public Connection getConnection(){
+        DataSource source = getRawDataSource();
+        DatabaseTypeHolder.set(getDatabaseType());
+        if(source != null){
+            return DataSourceUtils.getConnection(source);
+        }
+        return null;
+    }
+
+    public synchronized void close(ResultSet rs, Statement stmt, Connection conn){
+        DataSource source = getRawDataSource();
         try {
             if(rs != null){
                 rs.close();
@@ -123,18 +140,19 @@ public class DataSourceManager {
                 stmt.close();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         } finally {
-            DataSourceUtils.releaseConnection(conn, ds);
+            DataSourceUtils.releaseConnection(conn, source);
+            DatabaseTypeHolder.remove();
         }
     }
 
-    public synchronized void close(Statement stmt, Connection conn, DataSource ds){
-        close(null, stmt, conn, ds);
+    public synchronized void close(Statement stmt, Connection conn){
+        close(null, stmt, conn);
     }
 
-    public synchronized void close(Connection conn, DataSource ds){
-        close(null, null, conn, ds);
+    public synchronized void close(Connection conn){
+        close(null, null, conn);
     }
 
 }

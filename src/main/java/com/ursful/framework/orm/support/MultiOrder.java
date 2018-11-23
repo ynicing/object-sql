@@ -15,10 +15,11 @@
  */
 package com.ursful.framework.orm.support;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MultiOrder {
+public class MultiOrder implements Serializable {
 
     private List<Order> orders = new ArrayList<Order>();
 

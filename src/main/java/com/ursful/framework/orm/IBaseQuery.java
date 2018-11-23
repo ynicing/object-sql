@@ -21,14 +21,6 @@ import java.util.List;
 
 public interface IBaseQuery extends IQuery{
 
-    //IBaseQuery createDistinctQuery(Class<?> clazz, Column... columns) throws QueryException;
-    //IBaseQuery createQuery(Class<?> clazz, Column... columns) throws QueryException;//select a.id, a.name from
-    //IBaseQuery createCount() throws QueryException;;//select count(*) from.
-    //IBaseQuery createCount(Column column) throws QueryException;//select count(a.id) from...
-    //IBaseQuery createDistinctString(Column column) throws QueryException;
-    //IBaseQuery createPage(Page page) throws QueryException;// page...
-    //QueryInfo getQueryInfo();
-
 	//从class中获取字段，该字段可有可无
 	IBaseQuery table(Class<?> clazz);
     IBaseQuery where(String name, ExpressionType type);

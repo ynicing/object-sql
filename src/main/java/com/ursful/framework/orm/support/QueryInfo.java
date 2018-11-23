@@ -17,10 +17,11 @@ package com.ursful.framework.orm.support;
 
 
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 
-public class QueryInfo {
+public class QueryInfo implements Serializable {
 
 	private String sql;
 	private Class<?> clazz;//bean? String?

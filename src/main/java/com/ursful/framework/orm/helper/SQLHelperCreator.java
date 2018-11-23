@@ -21,6 +21,10 @@ import com.ursful.framework.orm.annotation.RdColumn;
 import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
+import org.springframework.beans.BeanUtils;
+import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.util.ConcurrentReferenceHashMap;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.DataBinder;
 
 import javax.sql.rowset.serial.SerialClob;
@@ -39,7 +43,6 @@ import java.util.Date;
  */
 public class SQLHelperCreator {
 
-
     //不允许删除多条记录，只能根据id删除
     /**
      * 按对象的id删除
@@ -51,50 +54,37 @@ public class SQLHelperCreator {
         Class clazz = obj.getClass();
 
 
-        List<Pair> parameters = new ArrayList<Pair>();
 
-        RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
-        if(table == null){
-            throw new RuntimeException("TABLE_NOT_FOUND Class(" + clazz.getName() + ")");
-        }
-        String tableName = table.name();
+        String tableName = ORMUtils.getTableName(clazz);
 
         StringBuffer sql = new StringBuffer("DELETE FROM ");
 
-        sql.append(tableName + " ");
+        sql.append(tableName);
 
-        List<String> ps = new ArrayList<String>();
         Pair primaryKey = null;
-        for(Field field : clazz.getDeclaredFields()){
-            RdId rid = (RdId)field.getAnnotation(RdId.class);
-            RdColumn column = (RdColumn) field.getAnnotation(RdColumn.class);
-            if(column != null && rid != null){
+        List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
+        for(ColumnInfo info : infoList){
+            if(info.getPrimaryKey()){
                 Object fo = null;
                 try {
+                    Field field = info.getField();
                     field.setAccessible(true);
                     fo = field.get(obj);
-                    if(fo != null){
-                        primaryKey = new Pair(field.getName(), column.name(), field.getType().getSimpleName(), fo, null);
-                        primaryKey.setColumnType(column.type());
-                        break;
-                    }
-                } catch (IllegalArgumentException e) {
-                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT,  Column(" + column.name() +
-                            "), field(" + field.getName() + "), value(" + fo + ")");
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ACCESS,  Column(" + column.name() +
-                            "), field(" + field.getName() + "), value(" + fo + ")");
+                    primaryKey = new Pair(info, fo);
+                    break;
+                } catch (Exception e) {
+                    throw new RuntimeException("Delete table when get value error, Column[" + info.getColumnName() +
+                            "], field[" + info.getName() + "]");
                 }
             }
         }
+        List<Pair> parameters = new ArrayList<Pair>();
         if(primaryKey != null && primaryKey.getValue() != null){
             sql.append(" WHERE ");
             sql.append(primaryKey.getColumn() + " = ? ");
-            parameters.clear();
             parameters.add(primaryKey);
         }else{
-            throw new RuntimeException("TABLE_DELETE_WITHOUT_ID, Class(" + clazz.getName() +
-                    "), value(" + obj + ")");
+            throw new RuntimeException("Delete table without primary key, Class[" + clazz.getName() + "], value[" + obj + "]");
         }
         SQLHelper helper = new SQLHelper();
         helper.setSql(sql.toString());
@@ -102,8 +92,6 @@ public class SQLHelperCreator {
         helper.setPair(primaryKey);
         return helper;
     }
-
-
 
     /**
      *
@@ -113,61 +101,43 @@ public class SQLHelperCreator {
      */
     public static SQLHelper delete(Class clazz, Object idObject){
 
-        RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
-        if(table == null){
-            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
-        }
-        String tableName = table.name();
+        String tableName = ORMUtils.getTableName(clazz);
 
         StringBuffer sql = new StringBuffer("DELETE FROM ");
 
-        sql.append(tableName + " ");
+        sql.append(tableName);
 
-        List<Pair> parameters = new ArrayList<Pair>();
-        List<String> ps = new ArrayList<String>();
         Pair primaryKey = null;
+        List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
 
-
-        for(Field field : clazz.getDeclaredFields()){
-            RdColumn column = (RdColumn) field.getAnnotation(RdColumn.class);
-            RdId id = (RdId) field.getAnnotation(RdId.class);
-            if(column != null && id != null){
-                try {
-                    primaryKey = new Pair(field.getName(), column.name(), field.getType().getSimpleName(), idObject, null);
-                    primaryKey.setColumnType(column.type());
-                } catch (IllegalArgumentException e) {
-                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT,  Column(" + column.name() +
-                            "), field(" + field.getName() + "), value(" + idObject + ")");
-                }
+        for(ColumnInfo info : infoList){
+            if(info.getPrimaryKey()){
+                primaryKey = new Pair(info, idObject);
                 break;
             }
         }
-        if(primaryKey != null && primaryKey.getValue() != null){
+        List<Pair> parameters = new ArrayList<Pair>();
+        if(primaryKey != null && idObject != null){
             sql.append(" WHERE ");
             sql.append(primaryKey.getColumn() + " = ? ");
             parameters.add(primaryKey);
         }else{
-            throw new RuntimeException("TABLE_DELETE_WITHOUT_ID, Class(" + clazz.getName() +
-                    "), value(" + idObject + ")");
+            throw new RuntimeException("Delete table without primary key, Class[" + clazz.getName() + "], value[" + idObject + "]");
         }
-
         SQLHelper helper = new SQLHelper();
         helper.setPair(primaryKey);
         helper.setSql(sql.toString());
         helper.setParameters(parameters);
-
         return helper;
 
     }
 
     public static SQLHelper deleteBy(Class clazz, Express[] expresses){
 
-        RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
-        if(table == null){
-            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
+        String tableName = ORMUtils.getTableName(clazz);
+        if(expresses == null || expresses.length == 0){
+            throw new RuntimeException("Delete table without expresses, Class[" + clazz.getName() + "]");
         }
-        String tableName = table.name();
-
         StringBuffer sql = new StringBuffer("DELETE FROM " + tableName + " WHERE ");
         List<Pair> pairs = new ArrayList<Pair>();
         for(Express express : expresses){
@@ -179,36 +149,6 @@ public class SQLHelperCreator {
         helper.setSql(sql.toString());
         helper.setParameters(pairs);
         return helper;
-
-    }
-
-    public static Field getPrimaryField(Object object){
-        if(object != null) {
-            Field[] fields = object.getClass().getDeclaredFields();
-            for (Field field : fields){
-                if(field.isAnnotationPresent(RdId.class)){
-                    return field;
-                }
-            }
-        }
-        return null;
-    }
-
-    public static void setPrimaryValue(Object original, Object current){
-        if(original == null || current == null){
-            return;
-        }
-        if(!original.getClass().getName().equals(current.getClass().getName())){
-            return;
-        }
-        Field field = getPrimaryField(original);
-        field.setAccessible(true);
-        try {
-            Object value = field.get(original);
-            field.set(current, value);
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        }
     }
 
     /**
@@ -218,81 +158,58 @@ public class SQLHelperCreator {
      * @param expresses
      * @return SQLHelper
      */
-    public static SQLHelper update(Object obj, DatabaseType databaseType, Express [] expresses, boolean updateNull){
+    public static SQLHelper update(Object obj, Express [] expresses, boolean updateNull){
 
         Class clazz = obj.getClass();
 
-        RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
-        if(table == null){
-            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
-        }
-        String tableName = table.name();
+        String tableName = ORMUtils.getTableName(clazz);
 
         StringBuffer sql = new StringBuffer("UPDATE ");
-
         sql.append(tableName);
         sql.append(" SET ");
-
         List<Pair> parameters = new ArrayList<Pair>();
-        List<String> ps = new ArrayList<String>();
+        List<String> sets = new ArrayList<String>();
         Pair primaryKey = null;
-        for(Field field : clazz.getDeclaredFields()){
-            RdColumn column = (RdColumn) field.getAnnotation(RdColumn.class);
+        List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
 
-
-            if(column != null){
-                Object fo = null;
-                try {
-                    field.setAccessible(true);
-                    String type = field.getType().getSimpleName();
-                    fo = field.get(obj);
-                    if(fo != null || updateNull){
-                        RdId id = (RdId) field.getAnnotation(RdId.class);
-                        if(id != null){
-                            if(fo == null){
-                                throw new RuntimeException("TABLE_UPDATE_WITHOUT_ID, Class(" + clazz.getName() +
-                                        "), value(" + obj + ")");
-                            }
-                            primaryKey = new Pair(field.getName(), column.name(), type, fo, null);
-                        }else{
-                            if(databaseType == DatabaseType.SQLServer && column.type() == ColumnType.TIMESTAMP){
-                                continue;
-                            }
-                            if(fo == null && updateNull){
-                                ps.add(column.name() + " = NULL ");
-                            }else {
-                                ps.add(column.name() + " = ? ");
-                                Pair pair = new Pair(field.getName(), column.name(), type, fo, null);
-                                pair.setColumnType(column.type());
-                                parameters.add(pair);
-                            }
+        DatabaseType databaseType = DatabaseTypeHolder.get();
+        SQLHelper helper = new SQLHelper();
+        for(ColumnInfo info : infoList){
+            Object fo = ORMUtils.getFieldValue(obj, info);
+            if(info.getPrimaryKey()){// many updates when them had no ids
+                helper.setIdField(info.getField());
+            }
+            if(fo != null || updateNull){
+                if(info.getPrimaryKey()){
+                    primaryKey = new Pair(info, fo);
+                }else{
+                    if(databaseType == DatabaseType.SQLServer && info.getColumnType() == ColumnType.TIMESTAMP){
+                        continue;
+                    }
+                    if(fo != null){
+                        sets.add(info.getColumnName() + " = ? ");
+                        Pair pair = new Pair(info, fo);
+                        parameters.add(pair);
+                    }else{
+                        if(updateNull){
+                            sets.add(info.getColumnName() + " = NULL ");
                         }
                     }
-                } catch (IllegalArgumentException e) {
-                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT,  Column(" + column.name() +
-                            "), field(" + field.getName() + "), value(" + fo + ")");
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ACCESS,  Column(" + column.name() +
-                            "), field(" + field.getName() + "), value(" + fo + ")");
                 }
             }
         }
+        sql.append(ORMUtils.join(sets, ", "));
+        sql.append(" WHERE ");
         if(primaryKey != null && primaryKey.getValue() != null) {
             if(expresses != null && expresses.length > 0){
-                throw new RuntimeException("TABLE_UPDATES_WITH_ID, Class(" + clazz.getName() +
-                        "), value(" + obj + ")");
+                throw new RuntimeException("Update table with primary key, shout not add expresses, Class[" + clazz.getName() + "], value[" + obj + "]");
             }
-            sql.append(ps.toString().substring(1, ps.toString().length() - 1));
-            sql.append(" WHERE ");
             sql.append(primaryKey.getColumn() + " = ? ");
             parameters.add(primaryKey);
         }else{
             if(expresses == null || expresses.length == 0) {
-                throw new RuntimeException("TABLE_UPDATE_WITHOUT_ID, Class(" + clazz.getName() +
-                        "), value(" + obj + ")");
+                throw new RuntimeException("Update table without primary key, but expresses is empty, Class[" + clazz.getName() + "], value[" + obj + "]");
             }else{
-                sql.append(ps.toString().substring(1, ps.toString().length() - 1));
-                sql.append(" WHERE ");
                 List<String> terms = new ArrayList<String>();
                 for(Express express : expresses){
                     SQLPair pair = QueryUtils.parseExpression(clazz, express.getExpression());
@@ -302,94 +219,62 @@ public class SQLHelperCreator {
                 sql.append(ORMUtils.join(terms, " AND "));
             }
         }
-        SQLHelper helper = new SQLHelper();
+
         helper.setPair(primaryKey);
         helper.setSql(sql.toString());
         helper.setParameters(parameters);
-
-        //LogUtil.info("SQL:" + sql, SQLHelperCreator.class);
-
         return helper;
-
     }
 
-    public static SQLHelper save(Object obj, DatabaseType databaseType){
+    public static SQLHelper insert(Object obj){
 
         Class clazz = obj.getClass();
-
-        RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
-        if(table == null){
-            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
-        }
-        String tableName = table.name();
-
+        String tableName = ORMUtils.getTableName(clazz);
         StringBuffer sql = new StringBuffer("INSERT INTO ");
-
         sql.append(tableName);
         sql.append("(");
-
         List<Pair> parameters = new ArrayList<Pair>();
         List<String> ps = new ArrayList<String>();
         List<String> vs = new ArrayList<String>();
-
         SQLHelper helper = new SQLHelper();
-
-        for(Field field : clazz.getDeclaredFields()){
-            RdColumn column = (RdColumn) field.getAnnotation(RdColumn.class);
-            RdId id = (RdId)field.getAnnotation(RdId.class);
-            if(column != null){
-                Object fo = null;
-                try {
-                    field.setAccessible(true);
-                    String type = field.getType().getSimpleName();
-                    fo = field.get(obj);
-                    if(databaseType == DatabaseType.SQLServer && column.type() == ColumnType.TIMESTAMP){
-                        continue;
+        List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
+        DatabaseType databaseType = DatabaseTypeHolder.get();
+        for(ColumnInfo info : infoList){
+            Object fo = ORMUtils.getFieldValue(obj, info);
+            if(databaseType == DatabaseType.SQLServer && info.getColumnType() == ColumnType.TIMESTAMP){
+                continue;
+            }
+            if(info.getPrimaryKey()){
+                if(StringUtils.isEmpty(fo)){
+                    if(String.class.getSimpleName().equals(info.getType())){
+                        fo = UUID.randomUUID().toString();
+                        ORMUtils.setFieldValue(obj, info, fo);
+                    }else {
+                        helper.setIdField(info.getField());//值为空的时候，但是无id，需要自取了
                     }
-                    if(fo != null || (id != null && "String".equals(type))){
-                        if((fo == null || "".equals(fo.toString().trim())) && id != null){
-                            fo = UUID.randomUUID().toString();
-                            field.setAccessible(true);
-                            field.set(obj, fo);
-                        }
-                        ps.add(column.name());
-                        //parameters.add(fo);
-                        vs.add("?");
-                        Pair pair = new Pair(field.getName(), column.name(), type, fo, null);
-                        pair.setColumnType(column.type());
-                        parameters.add(pair);
-                    }else{//值为空的时候，但是无id，需要自取了
-                        if(id  != null){
-                            helper.setIdField(field);
-                        }
-                    }
-                } catch (IllegalArgumentException e) {
-                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT,  Column(" + column.name() +
-                            "), field(" + field.getName() + "), value(" + fo + ")");
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ACCESS,  Column(" + column.name() +
-                            "), field(" + field.getName() + "), value(" + fo + ")");
                 }
             }
+            if(fo != null) {
+                ps.add(info.getColumnName());
+                vs.add("?");
+                Pair pair = new Pair(info, fo);
+                parameters.add(pair);
+            }
         }
-
         if(ps.size() == 0){
-            throw new RuntimeException("TABLE_SAVE_WITHOUT_VALUE, Class(" + clazz.getName() +
-                    "), value(" + obj + ")");
+            throw new RuntimeException("Insert into table without values, Class[" + clazz.getName() + "], value[" + obj + "]");
         }
         sql.append(ORMUtils.join(ps, ","));
         sql.append(") VALUES (");
         sql.append(ORMUtils.join(vs, ","));
         sql.append(")");
 
-
         helper.setSql(sql.toString());
         helper.setParameters(parameters);
 
         return helper;
 
     }
-
 
     /**
      * 允许获取 id，匹配，唯一等值
@@ -397,56 +282,41 @@ public class SQLHelperCreator {
      * @param obj
      * @return SQLHelper
      */
-    public static SQLHelper get(Object obj){
+    public static SQLHelper get(Object obj, String ... names){
 
         Class clazz = obj.getClass();
 
-        RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
-        if(table == null){
-            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
-        }
-        String tableName = table.name();
+        String tableName = ORMUtils.getTableName(clazz);
 
-        StringBuffer sql = new StringBuffer("SELECT * FROM ");
+        StringBuffer sql = new StringBuffer("SELECT ");
+        String nameStr = ORMUtils.join(names, ",");
+        if(StringUtils.isEmpty(nameStr)){
+            sql.append("*");
+        }else{
+            sql.append(nameStr);
+        }
+        sql.append(" FROM ");
         sql.append(tableName);
 
         List<Pair> parameters = new ArrayList<Pair>();
-        Map<String, DataType> types = new HashMap<String, DataType>();
         List<String> ps = new ArrayList<String>();
         Pair primaryKey = null;
 
-        for(Field field : clazz.getDeclaredFields()){
-            RdColumn column = (RdColumn) field.getAnnotation(RdColumn.class);
-            if(column != null){
-                Object fo = null;
-                try {
-                    field.setAccessible(true);
-                    String type = field.getType().getSimpleName();
-                    fo = field.get(obj);
-                    if(fo != null){
-                        RdId id = (RdId) field.getAnnotation(RdId.class);
-                        if(id != null){
-                            primaryKey = new Pair(field.getName(), column.name(), type, fo, null);
-                            primaryKey.setColumnType(column.type());
-                            break;
-                        }else{
-                            ps.add(column.name() + " = ? ");
-                            Pair temp = new Pair(field.getName(), column.name(), type, fo, null);
-                            temp.setColumnType(column.type());
-                            parameters.add(temp);
-                        }
-                    }
-                } catch (IllegalArgumentException e) {
-                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT,  Column(" + column.name() +
-                            "), field(" + field.getName() + "), value(" + fo + ")");
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ACCESS,  Column(" + column.name() +
-                            "), field(" + field.getName() + "), value(" + fo + ")");
+        List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
+        for(ColumnInfo info : infoList) {
+            Object fo = ORMUtils.getFieldValue(obj, info);
+            if (fo != null) {
+                if (info.getPrimaryKey()) {
+                    primaryKey = new Pair(info, fo);
+                    break;
+                } else {
+                    ps.add(info.getColumnName() + " = ? ");
+                    Pair temp = new Pair(info, fo);
+                    parameters.add(temp);
                 }
             }
         }
-
-        if(primaryKey != null && primaryKey.getValue() != null) {
+        if(primaryKey != null) {
             sql.append(" WHERE ");
             sql.append(primaryKey.getColumn() + " = ? ");
             parameters.clear();
@@ -456,7 +326,6 @@ public class SQLHelperCreator {
                 sql.append(" WHERE " + ORMUtils.join(ps, " AND "));
             }
         }
-
         SQLHelper helper = new SQLHelper();
         helper.setSql(sql.toString());
         helper.setParameters(parameters);
@@ -465,191 +334,81 @@ public class SQLHelperCreator {
     }
 
     public static SQLHelper query(Class<?> clazz, Express [] expresses){
-
-        RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
-        if(table == null){
-            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
-        }
-        String tableName = table.name();
-
+        String tableName = ORMUtils.getTableName(clazz);
         StringBuffer sql = new StringBuffer("SELECT * FROM " + tableName);
         List<Pair> values = new ArrayList<Pair>();
-        if(expresses != null) {
-            String conditions = QueryUtils.getConditions(clazz, expresses, values);
-            if (conditions != null && !"".equals(conditions)) {
-                sql.append(" WHERE " + conditions);
-            }
+        String conditions = QueryUtils.getConditions(clazz, expresses, values);
+        if (!StringUtils.isEmpty(conditions)) {
+            sql.append(" WHERE " + conditions);
         }
-
         SQLHelper helper = new SQLHelper();
         helper.setSql(sql.toString());
         helper.setParameters(values);
-
         return helper;
-
     }
 
 
 
     public static SQLHelper queryCountExpress(Class<?> clazz, Express ... expresses){
-
-        RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
-        if(table == null){
-            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
-        }
-        String tableName = table.name();
-
+        String tableName = ORMUtils.getTableName(clazz);
         StringBuffer sql = new StringBuffer("SELECT COUNT(*) FROM " + tableName);
         List<Pair> values = new ArrayList<Pair>();
-        if(expresses != null) {
-            String conditions = QueryUtils.getConditions(clazz, expresses, values);
-            if (conditions != null && !"".equals(conditions)) {
-                sql.append(" WHERE " + conditions);
-            }
+        String conditions = QueryUtils.getConditions(clazz, expresses, values);
+        if (!StringUtils.isEmpty(conditions)) {
+            sql.append(" WHERE " + conditions);
         }
-
         SQLHelper helper = new SQLHelper();
         helper.setSql(sql.toString());
         helper.setParameters(values);
-
         return helper;
-
     }
 
     public static SQLHelper queryCount(Class<?> clazz, Terms terms){
-
-        RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
-        if(table == null){
-            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
-        }
-        String tableName = table.name();
-
+        String tableName = ORMUtils.getTableName(clazz);
         StringBuffer sql = new StringBuffer("SELECT COUNT(*) FROM " + tableName);
         List<Pair> values = new ArrayList<Pair>();
-        if(terms != null) {
-            String conditions = QueryUtils.getConditions(clazz, ORMUtils.newList(terms.getCondition()), values);
-            if (conditions != null && !"".equals(conditions)) {
-                sql.append(" WHERE " + conditions);
-            }
+        String conditions = QueryUtils.getConditions(clazz, ORMUtils.newList(terms.getCondition()), values);
+        if (!StringUtils.isEmpty(conditions)) {
+            sql.append(" WHERE " + conditions);
         }
-
-
         SQLHelper helper = new SQLHelper();
         helper.setSql(sql.toString());
         helper.setParameters(values);
-
         return helper;
-
     }
 
     /**
      * 只允许ID
-     * @param obj
+     * @param id
      * @param clazz
      * @return SQLHelperCreator
      */
-    public static SQLHelper get(Object obj, Class clazz){
+    public static SQLHelper get(Class clazz, Object id){
 
-        RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
-        if(table == null){
-            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
-        }
-        String tableName = table.name();
+        String tableName = ORMUtils.getTableName(clazz);
 
         StringBuffer sql = new StringBuffer("SELECT * ");
         sql.append("FROM ");
         sql.append(tableName);
         sql.append(" WHERE ");
-        List<Pair> parameters = new ArrayList<Pair>();
         Pair primaryKey = null;
-        for(Field field : clazz.getDeclaredFields()){
-            RdColumn column = (RdColumn) field.getAnnotation(RdColumn.class);
-            RdId id = (RdId) field.getAnnotation(RdId.class);
-            if(column != null && id != null && obj != null){
-                // DataType dt =  DataType.getDataType(field.getType().getSimpleName());
-                //types.put(field.getName(), dt);
-                primaryKey = new Pair(field.getName(),column.name(), field.getType().getSimpleName(), obj, null);
-                primaryKey.setColumnType(column.type());
+        List<Pair> parameters = new ArrayList<Pair>();
+        List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
+        for(ColumnInfo info : infoList){
+            if(info.getPrimaryKey() && id != null){
+                primaryKey = new Pair(info, id);
                 break;
             }
         }
         if(primaryKey == null){
-            throw new RuntimeException("TABLE_GET_WITHOUT_ID, Class(" + clazz.getName() +
-                    "), value(" + obj + ")");
+            throw new RuntimeException("Select table without primary key, Class[" + clazz.getName() + "], value[" + id + "]");
         }
-
         sql.append(primaryKey.getColumn() + " = ? ");
         parameters.add(primaryKey);
-
         SQLHelper helper = new SQLHelper();
         helper.setSql(sql.toString());
         helper.setParameters(parameters);
         return helper;
-
-    }
-
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    public static SQLHelper query(Object obj){
-
-        Class clazz = obj.getClass();
-
-        RdTable table = (RdTable)clazz.getAnnotation(RdTable.class);
-        if(table == null){
-            throw new RuntimeException("TABLE_NOT_FOUND, Class(" + clazz.getName() + ")");
-        }
-        String tableName = table.name();
-
-        StringBuffer sql = new StringBuffer("SELECT * FROM ");
-
-        sql.append(tableName + " t ");
-        sql.append(" WHERE 1 = 1 ");
-
-        List<Pair> parameters = new ArrayList<Pair>();
-        Map<String, DataType> types = new HashMap<String, DataType>();
-        for(Field field : clazz.getDeclaredFields()){
-            RdColumn column = (RdColumn) field.getAnnotation(RdColumn.class);
-            if(column != null){
-                Object fo = null;
-                try {
-                    DataType dt =  DataType.getDataType(field.getType().getSimpleName());
-                    types.put(field.getName(), dt);
-                    field.setAccessible(true);
-                    String type = field.getType().getSimpleName();
-                    fo = field.get(obj);
-                    if(fo != null){
-                        sql.append(" AND " + column.name() + " = ? ");
-                        Pair pair = new Pair(field.getName(), column.name(), type, fo, null);
-                        //查询不需要这个了。RdLargeString
-                        parameters.add(pair);
-                    }
-                } catch (IllegalArgumentException e) {
-                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ARGUMENT,  Column(" + column.name() +
-                            "), field(" + field.getName() + "), value(" + fo + ")");
-                } catch (IllegalAccessException e) {
-                    throw new RuntimeException("TABLE_SET_PARAMETER_ILLEGAL_ACCESS,  Column(" + column.name() +
-                            "), field(" + field.getName() + "), value(" + fo + ")");
-                }
-            }
-        }
-
-        SQLHelper helper = new SQLHelper();
-        helper.setSql(sql.toString());
-        helper.setParameters(parameters);
-        return helper;
-
-    }
-
-
-
-    private static List<Field> getFieldList(Class<?> clazz){
-        List<Field> list = new ArrayList<Field>();
-        while(clazz != null){
-            for(Field f : clazz.getDeclaredFields()){
-                list.add(f);
-            }
-            clazz = clazz.getSuperclass();
-        }
-        return list;
     }
 
     public static <T> T newClass(Class clazz, ResultSet rs)
@@ -657,7 +416,6 @@ public class SQLHelperCreator {
 
         T t = null;
         DataType type = DataType.getDataType(clazz.getSimpleName());
-
         //String, Map, Bean
         switch (type){
             case STRING:
@@ -666,20 +424,6 @@ public class SQLHelperCreator {
                     t = (T) object.toString();
                 }
                 break;
-//
-//            case BOOLEAN:
-//                Object tmp = rs.getObject(1);
-//                if(tmp == null){
-//                    t = (T)Boolean.valueOf(false);
-//                }else {
-//                    t = (T) Boolean.valueOf(
-//                        "true".equalsIgnoreCase(tmp.toString())
-//                        || "1".equalsIgnoreCase(tmp.toString())
-//                        || "yes".equalsIgnoreCase(tmp.toString())
-//                        || "on".equalsIgnoreCase(tmp.toString())
-//                    );
-//                }
-//                break;
             case MAP :
                 ResultSetMetaData metaMap = rs.getMetaData();
                 Map<String, Object> tempMap = new HashMap<String, Object>();
@@ -690,8 +434,12 @@ public class SQLHelperCreator {
                             obj = new Date(((Timestamp) obj).getTime());
                         }else if(obj instanceof java.sql.Date){
                             obj = new Date(((java.sql.Date)obj).getTime());
-                        }else if((obj instanceof  Long) && metaMap.getPrecision(i) == 15) {
-                            obj = new Date((Long)obj);
+                        }else if(metaMap.getPrecision(i) == 15) {
+                            if((obj instanceof  Long) ){
+                                obj = new Date((Long)obj);
+                            }else if(obj instanceof BigDecimal){
+                                obj = new Date(((BigDecimal)obj).longValue());
+                            }
                         }if(obj instanceof Clob){
                             StringBuffer sb = new StringBuffer();
                             Clob clob = (Clob) obj;
@@ -751,12 +499,10 @@ public class SQLHelperCreator {
                     String tmp = QueryUtils.displayNameOrAsName(meta.getColumnLabel(i), meta.getColumnName(i));
                     temp.put(tmp, rs.getObject(meta.getColumnLabel(i)));
                 }
-                List<Field> fields = getFieldList(clazz);
-                for(Field field : fields){
-                    if(temp.containsKey(field.getName())){
-                        Object obj = getFieldObject(field, temp.get(field.getName()));
-                        field.setAccessible(true);
-                        field.set(t, obj);;
+                List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
+                for(ColumnInfo info : infoList){
+                    if(temp.containsKey(info.getName())){
+                        setFieldValue(t, info,temp.get(info.getName()));
                     }
                 }
                 break;
@@ -769,18 +515,16 @@ public class SQLHelperCreator {
     }
 
 
-    public static <T> Object getFieldObject(Field field, Object object) throws IllegalAccessException, SQLException {
+    public static void setFieldValue(Object object, ColumnInfo info, Object value) throws IllegalAccessException, SQLException {
         Object obj = null;
-        DataType type = DataType.getDataType(field.getType().getSimpleName());
-
-
-        if(object != null){
+        DataType type = DataType.getDataType(info.getType());
+        if(value != null){
             switch (type) {
                 case BINARY:
-                    if(object instanceof byte[]){
-                        obj = object;
-                    }else if(object instanceof Blob){
-                        Blob blob = (Blob) object;
+                    if(value instanceof byte[]){
+                        obj = value;
+                    }else if(value instanceof Blob){
+                        Blob blob = (Blob) value;
                         InputStream stream = blob.getBinaryStream();
                         byte[] temp = null;
                         try {
@@ -792,13 +536,13 @@ public class SQLHelperCreator {
                         }
                         obj = temp;
                     }else{
-                        obj = object;
+                        obj = value;
                     }
                     break;
                 case STRING:
-                    if(object instanceof Clob){
+                    if(value instanceof Clob){
                         StringBuffer sb = new StringBuffer();
-                        Clob clob = (Clob) object;
+                        Clob clob = (Clob) value;
                         if(clob != null){
                             Reader reader = clob.getCharacterStream();
                             BufferedReader br = new BufferedReader(reader);
@@ -811,8 +555,8 @@ public class SQLHelperCreator {
                             }
                         }
                         obj = sb.toString();
-                    }else if(object instanceof Blob){
-                        Blob blob = (Blob) object;
+                    }else if(value instanceof Blob){
+                        Blob blob = (Blob) value;
                         InputStream stream = blob.getBinaryStream();
                         try {
                             byte[] temp = new byte[(int)blob.length()];
@@ -823,33 +567,33 @@ public class SQLHelperCreator {
                             e.printStackTrace();
                         }
 
-                    }else if(object instanceof byte[]){
+                    }else if(value instanceof byte[]){
                         try {
-                            obj = new String((byte[])object, "utf-8");
+                            obj = new String((byte[])value, "utf-8");
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
 
                     }else{
-                        obj = object;
+                        obj = value;
                     }
                     break;
                 case DATE:
-                    if(object instanceof Long) {
-                        Long ts = (Long) object;
+                    if(value instanceof Long) {
+                        Long ts = (Long) value;
                         if (ts != null && ts.longValue() > 0) {
                             obj = new Date(ts);
                         }
-                    }else if(object instanceof java.sql.Date){
-                        java.sql.Date tmp = (java.sql.Date) object;
+                    }else if(value instanceof java.sql.Date){
+                        java.sql.Date tmp = (java.sql.Date) value;
                         obj = new Date(tmp.getTime());
-                    }else if(object instanceof java.sql.Timestamp){
-                        Timestamp ts =  (Timestamp)object;
+                    }else if(value instanceof java.sql.Timestamp){
+                        Timestamp ts =  (Timestamp)value;
                         if(ts != null) {
                             obj = new Date(ts.getTime());
                         }
-                    }else if(object instanceof BigDecimal){
-                        BigDecimal ts =  (BigDecimal)object;
+                    }else if(value instanceof BigDecimal){
+                        BigDecimal ts =  (BigDecimal)value;
                         if(ts != null) {
                             obj = new Date(ts.longValue());
                         }
@@ -858,21 +602,25 @@ public class SQLHelperCreator {
                     }
                     break;
                 default:
-                    if(object instanceof BigDecimal){
-                        object = ((BigDecimal) object).toPlainString();
-                    }else if(object instanceof Double || object instanceof Long || object instanceof Float){
-                        object = new BigDecimal(object.toString()).toPlainString();
+                    if(value instanceof BigDecimal){
+                        value = ((BigDecimal) value).toPlainString();
+                    }else if(value instanceof Double || value instanceof Long || value instanceof Float){
+                        value = new BigDecimal(value.toString()).toPlainString();
                     }
-                    DataBinder binder = new DataBinder(field, field.getName());
-                    obj = binder.convertIfNecessary(object.toString(), field.getType());
+                    DataBinder binder = new DataBinder(info.getField(), info.getName());
+                    obj = binder.convertIfNecessary(value.toString(), info.getField().getType());
             }
         }
+        if(obj != null){
+            info.getField().setAccessible(true);
+            info.getField().set(object, obj);
+        }
 
-        return obj;
     }
 
-    public static void setParameter(PreparedStatement ps, List<Pair> objects, DatabaseType databaseType, Connection connection) throws SQLException{
+    public static void setParameter(PreparedStatement ps, List<Pair> objects, Connection connection) throws SQLException{
 
+        DatabaseType databaseType = DatabaseTypeHolder.get();
         //ps.setObject(); 是否可以统一使用
         for(int i = 0; i < objects.size(); i++){
             Pair pair = objects.get(i);
@@ -1002,29 +750,5 @@ public class SQLHelperCreator {
         writer.close();
         return lob;
     }
-    /*public static void setParameter(PreparedStatement ps, Object [] objects) throws SQLException{
-
-        if(objects == null){
-            return;
-        }
-
-        for(int i = 0; i < objects.length; i++){
-            Object obj = objects[i];
-            DataType type =  DataType.getDataType(obj.getClass().getSimpleName());
-            switch (type) {
-                case DATE:
-                    ps.setTimestamp(i + 1, new Timestamp(((Date)obj).getTime()));
-					break;
-                default:
-					ps.setObject(i + 1, obj);
-                    break;
-            }
-        }
-    }*/
-
-
-
-
-
 
 }

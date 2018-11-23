@@ -49,12 +49,12 @@ public class Pair implements Serializable{
         this.column = column;
     }
 
-    public Pair(String name, String column, String type, Object value, ColumnType columnType){
-        this.name = name;
-        this.columnType = columnType;
-        this.type = type;
+    public Pair(ColumnInfo info, Object value){
+        this.name = info.getName();
+        this.columnType = info.getColumnType();
+        this.type = info.getType();
         this.value = value;
-        this.column = column;
+        this.column = info.getColumnName();
     }
 
     public Pair(String name, Object value){

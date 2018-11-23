@@ -15,7 +15,9 @@
  */
 package com.ursful.framework.orm.support;
 
-public class Express {
+import java.io.Serializable;
+
+public class Express implements Serializable {
 
     private Column left;
 	private ExpressionType type;

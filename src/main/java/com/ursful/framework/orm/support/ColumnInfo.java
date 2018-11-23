@@ -16,58 +16,64 @@
 
 package com.ursful.framework.orm.support;
 
+import java.io.Serializable;
 import java.lang.reflect.Field;
 
-public class ColumnInfo {
+public class ColumnInfo implements Serializable {
 	
 	private String name;//test.userId
 	private String columnName;//user_id
-	private DataType dataType;//String
-	private Boolean unique;//pk?
-	private String largeString;//clob?
-
+	private ColumnType columnType;//String
     private Field field;
+	private Boolean primaryKey = false;
 
-    public Field getField() {
-        return field;
-    }
+	private String type;//String
 
-    public void setField(Field field) {
-        this.field = field;
-    }
-
-    public String getLargeString() {
-		return largeString;
+	public String getType() {
+		return type;
 	}
-	public void setLargeString(String largeString) {
-		this.largeString = largeString;
+
+	public void setType(String type) {
+		this.type = type;
 	}
+
 	public String getName() {
 		return name;
 	}
+
 	public void setName(String name) {
 		this.name = name;
 	}
+
 	public String getColumnName() {
 		return columnName;
 	}
+
 	public void setColumnName(String columnName) {
 		this.columnName = columnName;
 	}
-	public DataType getDataType() {
-		return dataType;
-	}
-	public void setDataType(DataType dataType) {
-		this.dataType = dataType;
-	}
-	public Boolean getUnique() {
-		return unique;
-	}
-	public void setUnique(Boolean unique) {
-		this.unique = unique;
+
+	public ColumnType getColumnType() {
+		return columnType;
 	}
 
-	public String toString(){
-		return name + "(" + columnName + ",pk:" + unique + ")" + (dataType != null? dataType.name():"null");
+	public void setColumnType(ColumnType columnType) {
+		this.columnType = columnType;
+	}
+
+	public Field getField() {
+		return field;
+	}
+
+	public void setField(Field field) {
+		this.field = field;
+	}
+
+	public Boolean getPrimaryKey() {
+		return primaryKey;
+	}
+
+	public void setPrimaryKey(Boolean primaryKey) {
+		this.primaryKey = primaryKey;
 	}
 }

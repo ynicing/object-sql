@@ -18,16 +18,17 @@ package com.ursful.framework.orm.support;
 import java.math.BigInteger;
 
 public enum OperatorType {
-    AND("&"), // &
-    OR("|"),  // |
-    XOR("^"), // ^
-    NOT("!"), // !
-    LL("<<"),   // <<
-    RR(">>"),   // >>
-    PLUS("+"),
-    MINUS("-"),
-    MULTIPLY("*"),
-    DIVIDE("/")
+    AND("&"), // &        BITAND(x, y)
+    OR("|"),  // |        (x + y) - BITAND(x, y)
+    XOR("^"), // ^        (x + y) - BITAND(x, y)*2   sqlserver (x + y) - (x & y)*2
+    NOT("~"), // !        (x -1 ) - BITAND(x, -1)*2
+    LL("<<"),   // <<     x* power(2,y)               sqlserver x* POWER(2,3)
+    RR(">>"),   // >>     FLOOR(x/ power(2,y))     sqlserver FLOOR
+    PLUS("+"), //+
+    MINUS("-"), //-
+    MULTIPLY("*"),// *
+    DIVIDE("/"),// /
+    MOD("%") // mod(a,2)  sqlserver %
     ;
     private String operator;
 

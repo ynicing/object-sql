@@ -107,6 +107,7 @@ public interface IBaseService<T> extends IServiceChangedListener<T>, ISQLService
     boolean exists(Express ... expresses);
 
     //简单的查询(单表）
+    List<T> listNames(String ...names);
     List<T> list();
     List<T> list(int start, int size);
     List<T> list(Express ... expresses);

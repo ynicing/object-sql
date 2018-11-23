@@ -5,6 +5,8 @@ import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
+import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,16 +14,112 @@ import java.util.Map;
 
 public abstract class AbstractQueryPage implements QueryPage{
 
-
-    public String getWordAfterFrom(IQuery query, List<Pair> values, boolean count, String baseName){
+    @Override
+    public QueryInfo doQueryCount(IQuery query) {
+        QueryInfo info = new QueryInfo();
+        List<Pair> values = new ArrayList<Pair>();
         StringBuffer sb = new StringBuffer();
+        sb.append("SELECT ");
+        if(query.isDistinct()){
+            sb.append(selectColumns(query, null));
+        }else {
+            sb.append(selectCount());
+        }
         sb.append(" FROM ");
+        sb.append(tables(query, values, null));
+        sb.append(joins(query, values));
+        sb.append(wheres(query, values, null));
+        sb.append(groups(query, null));
+        sb.append(havings(query, values, null));
+        info.setClazz(Integer.class);
+        if(query.isDistinct()) {
+            info.setSql("SELECT COUNT(*) FROM (" + sb.toString() + ")  _distinct_table");
+        }else{
+            info.setSql(sb.toString());
+        }
+        info.setValues(values);
+        return info;
+    }
 
+
+    public String selectCount(){
+        return " COUNT(*) ";
+    }
+
+    public String selectColumns(IQuery query, String alias){
+        StringBuffer sb = new StringBuffer();
+        if(query.isDistinct()) {
+            sb.append(" DISTINCT ");
+        }
+        List<Column> returnColumns = query.getReturnColumns();
+        List<String> temp = new ArrayList<String>();
+        List<String> allAlias = new ArrayList<String>();
+        boolean noAlias = false;
+        if(returnColumns.isEmpty()){
+            String all = null;
+            if(StringUtils.isEmpty(alias)){
+                noAlias = true;
+                all = Expression.EXPRESSION_ALL;
+            }else{
+                allAlias.add(alias);
+                all = alias + "." + Expression.EXPRESSION_ALL;
+            }
+            temp.add(all);
+        }else{
+            for(Column column : returnColumns){
+                if(column.getAlias() == null && !StringUtils.isEmpty(alias)){
+                    column.setAlias(alias);
+                }
+                temp.add(QueryUtils.parseColumn(column));
+                if(Expression.EXPRESSION_ALL.equals(column.getName())){
+                    if(!StringUtils.isEmpty(column.getAlias()) && !allAlias.contains(column.getAlias())){
+                        allAlias.add(column.getAlias());
+                    }else{
+                        noAlias = true;
+                    }
+                }
+            }
+        }
+        if(!noAlias) {
+            List<Order> orders = query.getOrders();
+            for (Order order : orders) {
+                Column column = order.getColumn();
+                QueryUtils.setColumnAlias(column, alias);
+                if (!StringUtils.isEmpty(column.getAlias()) && !allAlias.contains(column.getAlias())) {
+                    String orderStr = QueryUtils.parseColumn(column);
+                    temp.add(orderStr);
+                }
+            }
+        }
+        sb.append(ORMUtils.join(temp, ","));
+        if(sb.length() == 0){
+            if(StringUtils.isEmpty(alias)) {
+                sb.append(Expression.EXPRESSION_ALL);
+            }else{
+                sb.append(alias + "." + Expression.EXPRESSION_ALL);
+            }
+        }
+        return sb.toString();
+    }
+
+    public String orders(IQuery query, String alias){
+        String result = "";
+        List<Order> orders = query.getOrders();
+        QueryUtils.setOrdersAlias(orders, alias);
+        String orderString = QueryUtils.getOrders(orders);
+        if (orderString != null && !"".equals(orderString)) {
+            result = " ORDER BY " + orderString;
+        }
+        return result;
+    }
+
+    public String tables(IQuery query, List<Pair> values, String tableAlias){
         if(query.getTable() != null){
-            RdTable table = (RdTable)query.getTable().getAnnotation(RdTable.class);
-            sb.append(table.name());
-            if(baseName != null){
-                sb.append(" " +baseName);
+            String tableName = ORMUtils.getTableName(query.getTable());
+            if(tableAlias  == null) {
+                return tableName;
+            }else{
+                return tableName + " " + tableAlias;
             }
         }else{
             List<String> words = new ArrayList<String>();
@@ -30,8 +128,8 @@ public abstract class AbstractQueryPage implements QueryPage{
             List<String> aliasList = query.getAliasList();
             for(String alias : aliasList) {
                 if(aliasMap.containsKey(alias)) {
-                    RdTable table = (RdTable) aliasMap.get(alias).getAnnotation(RdTable.class);
-                    words.add(table.name() + " " + alias);
+                    String tn = ORMUtils.getTableName(aliasMap.get(alias));
+                    words.add(tn + " " + alias);
                 }else if(aliasQuery.containsKey(alias)){
                     IQuery q = aliasQuery.get(alias);
                     QueryInfo queryInfo = doQuery(q, null);
@@ -39,45 +137,45 @@ public abstract class AbstractQueryPage implements QueryPage{
                     values.addAll(queryInfo.getValues());
                 }
             }
-            sb.append(ORMUtils.join(words, ","));
+            return ORMUtils.join(words, ",");
         }
-
-        String join = join(query, query.getJoins(), values);
-        if(join != null && !"".equals(join)){
-            sb.append(join);
-        }
-
-        String whereCondition = QueryUtils.getConditions(query, query.getConditions(), values);
-        if(whereCondition != null && !"".equals(whereCondition)){
-            sb.append(" WHERE " + whereCondition);
-        }
-
-        String groupString = QueryUtils.getGroups(query.getGroups());
-
-        if(groupString != null && !"".equals(groupString)){
-            sb.append(" GROUP BY ");
-            sb.append(groupString);
-        }
-
-        String havingString = QueryUtils.getConditions(query, query.getHavings(), values);
-        if(havingString != null && !"".equals(havingString)){
-            sb.append(" HAVING ");
-            sb.append(havingString);
-        }
-
-        if(!count) {
-            String orderString = QueryUtils.getOrders(query.getOrders());
-            if (orderString != null && !"".equals(orderString)) {
-                sb.append(" ORDER BY ");
-                sb.append(orderString);
-            }
-        }
-
-        return sb.toString();
-
     }
 
-    public String join(Object obj, List<Join> joins, List<Pair> values){
+    public String wheres(IQuery query, List<Pair> values, String tableAlias){
+        String result = "";
+        List<Condition> conditions = query.getConditions();
+        QueryUtils.setConditionsAlias(conditions, tableAlias);
+        String whereCondition = QueryUtils.getConditions(query, conditions, values);
+        if(whereCondition != null && !"".equals(whereCondition)){
+            result =" WHERE " + whereCondition;
+        }
+        return result;
+    }
+
+    public String groups(IQuery query, String alias){
+        String result = "";
+        List<Column> columns = query.getGroups();
+        QueryUtils.setColumnsAlias(columns, alias);
+        String groupString = QueryUtils.getGroups(columns);
+        if(groupString != null && !"".equals(groupString)){
+            result =" GROUP BY " + groupString;
+        }
+        return result;
+    }
+
+    public String havings(IQuery query, List<Pair> values, String alias){
+        String result = "";
+        List<Condition> conditions = query.getHavings();
+        QueryUtils.setConditionsAlias(conditions, alias);
+        String havingString = QueryUtils.getConditions(query, conditions, values);
+        if(havingString != null && !"".equals(havingString)){
+            result = " HAVING " + havingString;
+        }
+        return result;
+    }
+
+    public String joins(IQuery obj, List<Pair> values){
+        List<Join> joins = obj.getJoins();
         StringBuffer sb = new StringBuffer();
         if(joins == null){
             return  sb.toString();
@@ -87,17 +185,12 @@ public abstract class AbstractQueryPage implements QueryPage{
             String tableName = null;
             Object table = join.getTable();
             if(table instanceof Class) {
-                RdTable rdTable = (RdTable)((Class<?>)table).getAnnotation(RdTable.class);
-                if(rdTable == null){
-                    continue;
-                }
-                tableName = rdTable.name();
+                tableName = ORMUtils.getTableName((Class)table);
             }else if(table instanceof IQuery){
                 QueryInfo info = doQuery((IQuery)table, null);
                 tableName = "(" + info.getSql() + ") ";
                 values.addAll(info.getValues());
             }
-
             switch (join.getType()){
                 case FULL_JOIN:
                     sb.append(" FULL JOIN ");

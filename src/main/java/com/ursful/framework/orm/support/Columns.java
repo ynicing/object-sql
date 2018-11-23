@@ -16,10 +16,11 @@
 
 package com.ursful.framework.orm.support;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Columns {
+public class Columns implements Serializable {
 
     //as
 

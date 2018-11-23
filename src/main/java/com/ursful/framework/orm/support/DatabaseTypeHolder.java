@@ -15,35 +15,26 @@
  */
 package com.ursful.framework.orm.support;
 
-import java.io.Serializable;
+public abstract class DatabaseTypeHolder {
 
-public class Order implements Serializable {
+	private static final ThreadLocal<DatabaseType> threadLocal = new ThreadLocal<DatabaseType>();
 
-    public static final String ASC = "ASC";
-    public static final String DESC = "DESC";
-		
-    private Column column;
-    private String order;
+	public static void remove() {
+        threadLocal.remove();
+	}
 
-    public Order(Column column, String order){
-        this.order = order;
-        this.column = column;
-    }
+	public static void set(DatabaseType type) {
+		if (type == null) {
+			remove();
+		}else {
+            threadLocal.set(type);
+		}
+	}
 
-    public Column getColumn() {
-        return column;
-    }
+	public static DatabaseType get() {
+        return threadLocal.get();
+	}
 
-    public void setColumn(Column column) {
-        this.column = column;
-    }
-
-    public String getOrder() {
-        return order;
-    }
-    public void setOrder(String order) {
-        this.order = order;
-    }
 
 
 }

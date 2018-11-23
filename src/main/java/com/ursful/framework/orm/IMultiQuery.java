@@ -22,17 +22,11 @@ import java.util.List;
 
 public interface IMultiQuery extends IQuery{
 
-    //IMultiQuery createDistinctQuery(Class<?> clazz, Column... columns) throws ORMException;
     IMultiQuery createQuery(Class<?> clazz, Column... columns);//select a.id, a.name from
     IMultiQuery createQuery(Class<?> clazz, Columns... columns);//select a.id, a.name from
 
     IMultiQuery createQuery(Column ... columns);
 
-    //IMultiQuery createCount() throws ORMException;;//select count(*) from.
-    //IMultiQuery createCount(Column column) throws ORMException;//select count(a.id) from...
-    //IMultiQuery createDistinctString(Column column) throws ORMException;
-    //IMultiQuery createPage(Page page) throws ORMException;// page...
-    //QueryInfo getQueryInfo();
     AliasTable table(IQuery query);
     AliasTable table(Class<?> clazz);
 

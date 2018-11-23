@@ -15,7 +15,9 @@
  */
 package com.ursful.framework.orm.support;
 
-public class Expression {
+import java.io.Serializable;
+
+public class Expression implements Serializable {
 
     public static final String EXPRESSION_ALL = "*";
     public static final String EXPRESSION_SUM = "SUM";
@@ -23,9 +25,6 @@ public class Expression {
     public static final String EXPRESSION_MIN = "MIN";
     public static final String EXPRESSION_AVG = "AVG";
     public static final String EXPRESSION_COUNT = "COUNT";
-//    public static final String EXPRESSION_TIMESTAMP_TO_NUMBER = "UNIX_TIMESTAMP";
-// time-1000 < a.b * 2400 public static final String EXPRESSION_TIMESTAMP_TO_NUMBER = "TO_DATE";
-
 
     private Column left;
 	private ExpressionType type;

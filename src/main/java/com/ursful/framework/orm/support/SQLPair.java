@@ -15,6 +15,7 @@
  */
 package com.ursful.framework.orm.support;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,7 +26,7 @@ import java.util.List;
  * 版权：ursful.com Copyright(c) 2017
  * 说明：[类说明必填内容，请修改]
  */
-public class SQLPair {
+public class SQLPair  implements Serializable {
 
     private String sql;
     private List<Pair> pairs;

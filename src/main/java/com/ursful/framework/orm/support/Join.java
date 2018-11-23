@@ -17,6 +17,7 @@ package com.ursful.framework.orm.support;
 
 import com.ursful.framework.orm.IQuery;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +28,7 @@ import java.util.List;
  * 版权：ursful.com Copyright(c) 2017
  * 说明：[类说明必填内容，请修改]
  */
-public class Join{
+public class Join implements Serializable {
 
     private JoinType type;
     private List<Condition> conditions;
