@@ -28,23 +28,66 @@ import java.util.List;
  */
 public class Terms  implements Serializable {
 
-    private List<Expression> orExpressions = new ArrayList<Expression>();
-    private List<Expression> andExpressions = new ArrayList<Expression>();
+    private List<ConditionObject> conditions = new ArrayList<ConditionObject>();
 
     public Condition getCondition(){
         Condition condition = new Condition();
-        condition.setAndExpressions(andExpressions);
-        condition.setOrExpressions(orExpressions);
+        condition.setConditions(conditions);
         return condition;
     }
 
-    public Terms or(Express express){
-        orExpressions.add(express.getExpression());
+    public Terms and(Express ... expresses){
+        if(expresses != null) {
+            for(Express express : expresses) {
+                conditions.add(new ConditionObject(express.getExpression(), ConditionType.AND));
+            }
+        }
         return this;
     }
 
-    public Terms and(Express express){
-        andExpressions.add(express.getExpression());
+    public Terms or(Express ... expresses){
+        if(expresses != null) {
+            for(Express express : expresses) {
+                conditions.add(new ConditionObject(express.getExpression(), ConditionType.OR));
+            }
+        }
         return this;
     }
+
+    public Terms andOr(Express ... expresses){
+        if(expresses != null && expresses.length > 0) {
+            int length = expresses.length;
+            Expression expressions [] = new Expression[length];
+            for(int i = 0; i < length; i++){
+                expressions[i] = expresses[i].getExpression();
+            }
+            conditions.add(new ConditionObject(expressions, ConditionType.AND_OR));
+        }
+        return this;
+    }
+
+    public Terms orOr(Express ... expresses){
+        if(expresses != null && expresses.length > 0) {
+            int length = expresses.length;
+            Expression expressions [] = new Expression[length];
+            for(int i = 0; i < length; i++){
+               expressions[i] = expresses[i].getExpression();
+            }
+            conditions.add(new ConditionObject(expressions, ConditionType.OR_OR));
+        }
+        return this;
+    }
+
+    public Terms orAnd(Express ... expresses){
+        if(expresses != null && expresses.length > 0) {
+            int length = expresses.length;
+            Expression expressions [] = new Expression[length];
+            for(int i = 0; i < length; i++){
+                expressions[i] = expresses[i].getExpression();
+            }
+            conditions.add(new ConditionObject(expressions, ConditionType.OR_AND));
+        }
+        return this;
+    }
+
 }

@@ -225,7 +225,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                 logger.info("SAVE : " + helper);
             }
             logger.debug("connection :" + conn);
-            if(helper.getIdField() != null) {
+            if(helper.getIdValue() == null && helper.getIdField() != null) {
                 ps = conn.prepareStatement(helper.getSql(), Statement.RETURN_GENERATED_KEYS);
             }else{
                 ps = conn.prepareStatement(helper.getSql());
@@ -236,7 +236,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             SQLHelperCreator.setParameter(ps, helper.getParameters(), conn);
             boolean flag =  ps.executeUpdate() > 0;
             try {
-                if(helper.getIdField() != null) {
+                if(helper.getIdValue() == null && helper.getIdField() != null) {
                     ResultSet seqRs = ps.getGeneratedKeys();
                     seqRs.next();
                     Object key = seqRs.getObject(1);
@@ -342,7 +342,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             conn = getConnection();
             helper = SQLHelperCreator.update(t, expresses, updateNull);
             List<T> originals = null;
-            if(expresses != null && (expresses.length > 0) && (!changeListeners.isEmpty()||!changedListeners.isEmpty())) {
+            if(helper.getIdValue() == null && helper.getIdField() != null && expresses != null && (expresses.length > 0) && (!changeListeners.isEmpty()||!changedListeners.isEmpty())) {
                 originals = list(expresses);
             }
             if(ORMUtils.getDebug()) {

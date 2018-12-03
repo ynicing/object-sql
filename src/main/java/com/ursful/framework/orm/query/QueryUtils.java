@@ -48,20 +48,28 @@ public class QueryUtils {
     }
     public static void setConditionAlias(Condition condition, String alias){
         if(condition != null && !StringUtils.isEmpty(alias)){
-            List<Expression> ands = condition.getAndExpressions();
-            setExpressionsAlias(ands, alias);
-
-            List<Expression> ors = condition.getOrExpressions();
-            setExpressionsAlias(ors, alias);
-
-            List<List<Expression>> orAnds = condition.getOrAnds();
-            for(List<Expression> exps : orAnds){
-                setExpressionsAlias(exps, alias);
+            List<ConditionObject> exts = condition.getConditions();
+            for(ConditionObject ext : exts){
+                Object extObject = ext.getObject();
+                switch (ext.getType()){
+                    case AND:
+                    case OR:
+                        if(extObject instanceof Expression) {
+                            setExpressionAlias((Expression)extObject, alias);
+                        }
+                        break;
+                    case AND_OR:
+                    case OR_OR:
+                    case OR_AND:
+                        Expression[] list = (Expression[])extObject;
+                        setExpressionsAlias(list, alias);
+                        break;
+                }
             }
         }
     }
 
-    public static void setExpressionsAlias(List<Expression> expressions, String alias){
+    public static void setExpressionsAlias(Expression[] expressions, String alias){
         if(expressions != null && !StringUtils.isEmpty(alias)){
             for(Expression expression : expressions){
                 setExpressionAlias(expression, alias);
@@ -398,61 +406,117 @@ public class QueryUtils {
     //同一张表怎么半？ select * from test t1, test t2
 
 
-
+    // a and b or (c or d ) or (c and d)
     public static String getConditions(Object queryOrClass, List<Condition> cds, List<Pair> values){
-        List<String> ands = new ArrayList<String>();
+        StringBuffer sql = new StringBuffer();
         if(cds != null) {
+            SQLPair sqlPair = null;
             for (Condition condition : cds) {
-                List<String> ors = new ArrayList<String>();
-                List<Expression> orExpressions = condition.getOrExpressions();
-                for (int i = 0; i < orExpressions.size(); i++) {
-                    Expression expression = orExpressions.get(i);
-                    SQLPair sqlPair = parseExpression(queryOrClass, expression);
-                    if (sqlPair != null) {
-                        ors.add(sqlPair.getSql());
-                        if (sqlPair.getPairs() != null) {//column = column
-                            values.addAll(sqlPair.getPairs());
-                        }
-                    }
-                }
-
-                List<List<Expression>> orAnds = condition.getOrAnds();
-                for (int i = 0; i < orAnds.size(); i++) {
-                    List<Expression> oras = orAnds.get(i);
-                    List<String> temp = new ArrayList<String>();
-                    for (int j = 0; j < oras.size(); j++) {
-                        Expression expression = oras.get(j);
-                        SQLPair sqlPair = parseExpression(queryOrClass, expression);
-                        if (sqlPair != null) {
-                            temp.add(sqlPair.getSql());
-                            if (sqlPair.getPairs() != null) {
-                                values.addAll(sqlPair.getPairs());
+                List<ConditionObject> exts = condition.getConditions();
+                for(ConditionObject ext : exts){
+                    Object extObject = ext.getObject();
+                    switch (ext.getType()){
+                        case AND:
+                            if(extObject instanceof Expression) {
+                                Expression and = (Expression) extObject;
+                                sqlPair = parseExpression(queryOrClass, and);
+                            }else if(extObject instanceof SQLPair){
+                                sqlPair = (SQLPair)extObject;
                             }
-                        }
-                    }
-                    if (!temp.isEmpty()) {
-                        ors.add("(" + ORMUtils.join(temp, " AND ") + ")");
+                            if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
+                                if (sql.length() == 0) {
+                                    sql.append(sqlPair.getSql());
+                                } else {
+                                    sql.append(" AND " + sqlPair.getSql());
+                                }
+                                if (sqlPair.getPairs() != null) {//column = column
+                                    values.addAll(sqlPair.getPairs());
+                                }
+                            }
+                            break;
+                        case OR:
+                            if(extObject instanceof Expression) {
+                                Expression or = (Expression)extObject;
+                                sqlPair = parseExpression(queryOrClass, or);
+                            }else if(extObject instanceof SQLPair){
+                                sqlPair = (SQLPair)extObject;
+                            }
+                            if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
+                                if (sql.length() == 0) {
+                                    sql.append(sqlPair.getSql());
+                                } else {
+                                    sql.append(" OR " + sqlPair.getSql());
+                                }
+                                if (sqlPair.getPairs() != null) {//column = column
+                                    values.addAll(sqlPair.getPairs());
+                                }
+                            }
+                            break;
+                        case AND_OR:
+                            Expression[] aor = (Expression[])extObject;
+                            List<String> aorStr = new ArrayList<String>();
+                            for(Expression orOr : aor){
+                                sqlPair = parseExpression(queryOrClass, orOr);
+                                if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
+                                    aorStr.add(sqlPair.getSql());
+                                    if (sqlPair.getPairs() != null) {//column = column
+                                        values.addAll(sqlPair.getPairs());
+                                    }
+                                }
+                            }
+                            if (aorStr.size() > 0) {
+                                if (sql.length() == 0) {
+                                    sql.append(" (" + ORMUtils.join(aorStr, " OR ") + ") ");
+                                } else {
+                                    sql.append(" AND (" + ORMUtils.join(aorStr, " OR ") + ") ");
+                                }
+                            }
+                            break;
+                        case OR_AND:
+                            Expression[] ands = (Expression[])extObject;
+                            List<String> andStr = new ArrayList<String>();
+                            for(Expression orAnd : ands){
+                                sqlPair = parseExpression(queryOrClass, orAnd);
+                                if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
+                                    andStr.add(sqlPair.getSql());
+                                    if (sqlPair.getPairs() != null) {//column = column
+                                        values.addAll(sqlPair.getPairs());
+                                    }
+                                }
+                            }
+                            if (andStr.size() > 0) {
+                                if (sql.length() == 0) {
+                                    sql.append(" (" + ORMUtils.join(andStr, " AND ") + ") ");
+                                } else {
+                                    sql.append(" OR (" + ORMUtils.join(andStr, " AND ") + ") ");
+                                }
+                            }
+                            break;
+                        case OR_OR:
+                            Expression[] ors = (Expression[])extObject;
+                            List<String> orStr = new ArrayList<String>();
+                            for(Expression orOr : ors){
+                                sqlPair = parseExpression(queryOrClass, orOr);
+                                if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
+                                    orStr.add(sqlPair.getSql());
+                                    if (sqlPair.getPairs() != null) {//column = column
+                                        values.addAll(sqlPair.getPairs());
+                                    }
+                                }
+                            }
+                            if (orStr.size() > 0) {
+                                if (sql.length() == 0) {
+                                    sql.append(" (" + ORMUtils.join(orStr, " OR ") + ") ");
+                                } else {
+                                    sql.append(" OR (" + ORMUtils.join(orStr, " OR ") + ") ");
+                                }
+                            }
+                            break;
                     }
                 }
-
-                if (ors.size() > 0) {
-                    ands.add("(" + ORMUtils.join(ors, " OR ") + ") ");
-                }
-                List<Expression> andExpressions = condition.getAndExpressions();
-                for (int i = 0; i < andExpressions.size(); i++) {
-                    Expression expression = andExpressions.get(i);
-                    SQLPair sqlPair = parseExpression(queryOrClass, expression);
-                    if (sqlPair != null) {
-                        ands.add(sqlPair.getSql());
-                        if (sqlPair.getPairs() != null) {
-                            values.addAll(sqlPair.getPairs());
-                        }
-                    }
-                }
-
             }
         }
-        return ORMUtils.join(ands, " AND ");
+        return sql.toString();
     }
 
     public static String getConditions(Class clazz, Express [] expresses, List<Pair> values){

@@ -46,12 +46,7 @@ public class DataSourceManager {
         return current;
     }
 
-    public DatabaseType getDatabaseType(){
-        if(dataSource == null){
-            return DatabaseType.NONE;
-        }
-        DataSource raw = getRawDataSource();
-
+    public DatabaseType getDatabaseType(DataSource raw){
         DatabaseType type = databaseTypeMap.get(raw);
         if(type != null){
             return type;
@@ -81,6 +76,10 @@ public class DataSourceManager {
             close(connection);
         }
         return DatabaseType.NONE;
+    }
+    public DatabaseType getDatabaseType(){
+        DataSource raw = getRawDataSource();
+        return getDatabaseType(raw);
     }
 
     public DataSource getDataSource() {
@@ -123,7 +122,7 @@ public class DataSourceManager {
 
     public Connection getConnection(){
         DataSource source = getRawDataSource();
-        DatabaseTypeHolder.set(getDatabaseType());
+        DatabaseTypeHolder.set(getDatabaseType(source));
         if(source != null){
             return DataSourceUtils.getConnection(source);
         }

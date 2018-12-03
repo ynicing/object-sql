@@ -15,8 +15,6 @@
  */
 package com.ursful.framework.orm.support;
 
-import com.ursful.framework.orm.utils.ORMUtils;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,73 +28,67 @@ import java.util.List;
  */
 public class Condition implements Serializable {
 
-    private List<Expression> orExpressions = new ArrayList<Expression>();
+    private List<ConditionObject> conditions = new ArrayList<ConditionObject>();
 
-    private List<Expression> andExpressions = new ArrayList<Expression>();
-
-    private List<List<Expression>> orAnds = new ArrayList<List<Expression>>();
-
-    public List<List<Expression>> getOrAnds() {
-        return orAnds;
+    public List<ConditionObject> getConditions() {
+        return conditions;
     }
 
-    public void setOrAnds(List<List<Expression>> orAnds) {
-        this.orAnds = orAnds;
+    public void setConditions(List<ConditionObject> conditions) {
+        this.conditions = conditions;
     }
 
-    public List<Expression> getOrExpressions() {
-        return orExpressions;
-    }
-
-    public void setOrExpressions(List<Expression> orExpressions) {
-        this.orExpressions = orExpressions;
-    }
-
-    public List<Expression> getAndExpressions() {
-        return andExpressions;
-    }
-
-    public void setAndExpressions(List<Expression> andExpressions) {
-        this.andExpressions = andExpressions;
-    }
-
-    public Condition or(Expression expression){
-        orExpressions.add(expression);
-        return this;
-    }
-
-    public Condition or(Expression ... expressions){
-        if(expressions != null){
-            for(Expression expression : expressions){
-                orExpressions.add(expression);
+    public Condition and(Expression ... expressions){
+        if(expressions != null) {
+            for(Expression expression: expressions) {
+                conditions.add(new ConditionObject(expression, ConditionType.AND));
             }
         }
         return this;
     }
 
-    public Condition and(Expression expression){
-        andExpressions.add(expression);
+    public Condition or(Expression  ... expressions){
+        if(expressions != null) {
+            for(Expression expression: expressions) {
+                conditions.add(new ConditionObject(expression, ConditionType.OR));
+            }
+        }
         return this;
     }
 
-    public Condition and(Expression ... expressions){
+    public Condition orOr(Expression ... expressions){
         if(expressions != null){
-            for(Expression expression : expressions){
-                andExpressions.add(expression);
-            }
+            conditions.add(new ConditionObject(expressions, ConditionType.OR_OR));
         }
         return this;
     }
 
     public Condition orAnd(Expression ... expressions){
         if(expressions != null){
-            if(expressions.length == 1){
-                or(expressions[0]);
-            }else if(expressions.length > 1){
-                orAnds.add(ORMUtils.newList(expressions));
-            }
+            conditions.add(new ConditionObject(expressions, ConditionType.OR_AND));
         }
         return this;
     }
 
+    public Condition andOr(Expression ... expressions){
+        if(expressions != null){
+            conditions.add(new ConditionObject(expressions, ConditionType.AND_OR));
+        }
+        return this;
+    }
+
+
+    public Condition and(SQLPair pair){
+        if(pair != null) {
+            conditions.add(new ConditionObject(pair, ConditionType.AND));
+        }
+        return this;
+    }
+
+    public Condition or(SQLPair pair){
+        if(pair != null) {
+            conditions.add(new ConditionObject(pair, ConditionType.OR));
+        }
+        return this;
+    }
 }

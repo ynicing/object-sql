@@ -54,6 +54,7 @@ public abstract class AbstractQueryPage implements QueryPage{
         List<Column> returnColumns = query.getReturnColumns();
         List<String> temp = new ArrayList<String>();
         List<String> allAlias = new ArrayList<String>();
+        List<String> inColumn = new ArrayList<String>();
         boolean noAlias = false;
         if(returnColumns.isEmpty()){
             String all = null;
@@ -67,6 +68,7 @@ public abstract class AbstractQueryPage implements QueryPage{
             temp.add(all);
         }else{
             for(Column column : returnColumns){
+                inColumn.add(column.getAlias() + "." + column.getName());
                 if(column.getAlias() == null && !StringUtils.isEmpty(alias)){
                     column.setAlias(alias);
                 }
@@ -85,7 +87,8 @@ public abstract class AbstractQueryPage implements QueryPage{
             for (Order order : orders) {
                 Column column = order.getColumn();
                 QueryUtils.setColumnAlias(column, alias);
-                if (!StringUtils.isEmpty(column.getAlias()) && !allAlias.contains(column.getAlias())) {
+                if (!StringUtils.isEmpty(column.getAlias()) && !allAlias.contains(column.getAlias())
+                        && !inColumn.contains(column.getAlias() + "." + column.getName())) {
                     String orderStr = QueryUtils.parseColumn(column);
                     temp.add(orderStr);
                 }

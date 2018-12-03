@@ -85,16 +85,7 @@ public class ORMUtils {
     }
 
     public static void setFieldValue(Object object, ColumnInfo info, Object value){
-        if(object == null || value == null){
-            return;
-        }
-        try {
-            Field field = info.getField();
-            field.setAccessible(true);
-            field.set(object, value);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException("Set value to [" + object + "] error, value[" + value + "]");
-        }
+        setFieldValue(object, info.getField(), value);
     }
 
     public static void setFieldValue(Object object, Field field, Object value){
@@ -120,17 +111,8 @@ public class ORMUtils {
         return result;
     }
 
-
     public static Object getFieldValue(Object object, ColumnInfo info){
-        Object result = null;
-        try {
-            Field field = info.getField();
-            field.setAccessible(true);
-            result = field.get(object);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException("Get value from [" + object + "] error!");
-        }
-        return result;
+        return getFieldValue(object, info.getField());
     }
 
     private static void analyze(Class<?> clazz){

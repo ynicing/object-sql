@@ -43,7 +43,14 @@ public class SQLHelper {
 	}
 
 	private Field idField;
+	private Object idValue;
 
+	public Object getIdValue() {
+		return idValue;
+	}
+	public void setIdValue(Object idValue) {
+		this.idValue = idValue;
+	}
 	public void setId(Object object, Object value){
 		if(value == null || object == null){
 			return;

@@ -29,9 +29,13 @@ public interface IMultiQuery extends IQuery{
 
     AliasTable table(IQuery query);
     AliasTable table(Class<?> clazz);
+    AliasTable table(IQuery query, String alias);
+    AliasTable table(Class<?> clazz, String alias);
 
     AliasTable join(IQuery query);
     AliasTable join(Class<?> clazz);
+    AliasTable join(IQuery query, String alias);
+    AliasTable join(Class<?> clazz, String alias);
 
     IMultiQuery whereEqual(Column left, Object value);
     IMultiQuery whereNotEqual(Column left, Object value);
@@ -46,7 +50,7 @@ public interface IMultiQuery extends IQuery{
     IMultiQuery whereMore(Column left, Object value);
     IMultiQuery whereMoreEqual(Column left, Object value);
 
-    IMultiQuery where(Column left, ExpressionType type);
+//    IMultiQuery where(Column left, ExpressionType type);
     IMultiQuery whereIsNull(Column left);
     IMultiQuery whereIsNotNull(Column left);
     IMultiQuery where(Column left, Object value, ExpressionType type);

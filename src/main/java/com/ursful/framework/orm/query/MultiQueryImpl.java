@@ -19,7 +19,9 @@ import com.ursful.framework.orm.IMultiQuery;
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.support.*;
+import com.ursful.framework.orm.utils.ORMUtils;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.util.Assert;
 
 import java.util.*;
 
@@ -90,38 +92,41 @@ public class MultiQueryImpl implements IMultiQuery {
     }
 
     public AliasTable join(IQuery query){
-        AliasTable table = null;
-        if(query != null) {
-            table = new AliasTable(query);
-            String alias = generateUniqueAlias(query);
-            table.setAlias(alias);
-        }
+        String alias = generateUniqueAlias(query);
+        return join(query, alias);
+    }
+
+    public AliasTable join(IQuery query, String alias){
+        AliasTable table = new AliasTable(query);
+        table.setAlias(alias);
+        return table;
+    }
+
+    public AliasTable table(IQuery query, String alias){
+        AliasTable table = new AliasTable(query);
+        table.setAlias(alias);
+        aliasList.add(alias);
+        aliasQuery.put(alias, query);
         return table;
     }
 
     public AliasTable table(IQuery query){
-        AliasTable table = null;
-        if(query != null) {
-            table = new AliasTable(query);
-            String alias = generateUniqueAlias(query);
-            table.setAlias(alias);
-            aliasList.add(alias);
-            aliasQuery.put(alias, query);
-        }
+        String alias = generateUniqueAlias(query);
+        return table(query, alias);
+    }
+
+    public AliasTable join(Class<?> clazz, String alias){
+        Assert.notNull(clazz, "AliasTable join class should not be null.");
+        RdTable rdTable = AnnotationUtils.findAnnotation(clazz, RdTable.class);
+        Assert.notNull(rdTable, "Should annotate RdTable");
+        AliasTable table = new AliasTable(clazz);
+        table.setAlias(alias);
         return table;
     }
 
     public AliasTable join(Class<?> clazz){
-        AliasTable table = null;
-        if(clazz != null) {
-            RdTable rdTable = AnnotationUtils.findAnnotation(clazz, RdTable.class);
-            if(rdTable != null) {
-                table = new AliasTable(clazz);
-                String alias = generateUniqueAlias(clazz);
-                table.setAlias(alias);
-            }
-        }
-        return table;
+        String alias = generateUniqueAlias(clazz);
+        return join(clazz, alias);
     }
 
     @Override
@@ -176,6 +181,11 @@ public class MultiQueryImpl implements IMultiQuery {
 
 
     public AliasTable table(Class<?> clazz){
+        String alias = generateUniqueAlias(clazz);
+        return table(clazz, alias);
+    }
+
+    public AliasTable table(Class<?> clazz, String alias){
         if(this.returnClass == null){
             this.returnClass = clazz;
         }
@@ -184,7 +194,7 @@ public class MultiQueryImpl implements IMultiQuery {
             RdTable rdTable = AnnotationUtils.findAnnotation(clazz, RdTable.class);
             if(rdTable != null) {
                 table = new AliasTable(clazz);
-                String alias = generateUniqueAlias(clazz);
+
                 table.setAlias(alias);
                 aliasList.add(alias);
                 aliasTable.put(alias, clazz);
@@ -193,12 +203,12 @@ public class MultiQueryImpl implements IMultiQuery {
         return table;
     }
 
-    public IMultiQuery where(Column left, ExpressionType type) {
-        if(ExpressionType.CDT_IS_NULL == type || ExpressionType.CDT_IS_NOT_NULL == type) {
-            conditions.add(new Condition().and(new Expression(left, type)));
-        }
-        return this;
-    }
+//    public IMultiQuery where(Column left, ExpressionType type) {
+//        if(ExpressionType.CDT_IS_NULL == type || ExpressionType.CDT_IS_NOT_NULL == type) {
+//            conditions.add(new Condition().and(new Expression(left, type)));
+//        }
+//        return this;
+//    }
 
     public IMultiQuery whereIsNull(Column left) {
         conditions.add(new Condition().and(new Expression(left, ExpressionType.CDT_IS_NULL)));
@@ -211,14 +221,10 @@ public class MultiQueryImpl implements IMultiQuery {
     }
 
     public IMultiQuery where(Column left, Object value, ExpressionType type) {
-        if(value == null){
-            return this;
-        }
-        if("".equals(value)){
+        if(ORMUtils.isEmpty(value)){
             return this;
         }
         conditions.add(new Condition().and(new Expression(left, value, type)));
-
         return this;
     }
 
@@ -263,10 +269,7 @@ public class MultiQueryImpl implements IMultiQuery {
     }
 
     public IMultiQuery having(Column left, Object value, ExpressionType type) {
-        if(value == null){
-            return this;
-        }
-        if("".equals(value)){
+        if(ORMUtils.isEmpty(value)){
             return this;
         }
         havings.add(new Condition().or(new Expression(left, value, type)));

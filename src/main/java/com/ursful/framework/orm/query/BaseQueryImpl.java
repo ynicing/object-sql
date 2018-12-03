@@ -19,6 +19,7 @@ import com.ursful.framework.orm.IBaseQuery;
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.support.*;
+import com.ursful.framework.orm.utils.ORMUtils;
 import org.springframework.core.annotation.AnnotationUtils;
 
 import java.util.ArrayList;
@@ -111,10 +112,7 @@ public class BaseQueryImpl implements IBaseQuery {
     }
 
     public IBaseQuery where(String name, Object value, ExpressionType type){
-        if(value == null){
-            return this;
-        }
-        if("".equals(value)){
+        if(ORMUtils.isEmpty(value)){
             return this;
         }
         conditions.add(new Condition().and(new Expression(new Column(name), value, type)));

@@ -178,6 +178,7 @@ public class SQLHelperCreator {
             Object fo = ORMUtils.getFieldValue(obj, info);
             if(info.getPrimaryKey()){// many updates when them had no ids
                 helper.setIdField(info.getField());
+                helper.setIdValue(fo);
             }
             if(fo != null || updateNull){
                 if(info.getPrimaryKey()){
@@ -245,13 +246,15 @@ public class SQLHelperCreator {
                 continue;
             }
             if(info.getPrimaryKey()){
+                helper.setIdField(info.getField());
                 if(StringUtils.isEmpty(fo)){
                     if(String.class.getSimpleName().equals(info.getType())){
                         fo = UUID.randomUUID().toString();
                         ORMUtils.setFieldValue(obj, info, fo);
-                    }else {
-                        helper.setIdField(info.getField());//值为空的时候，但是无id，需要自取了
+                        helper.setIdValue(fo);
                     }
+                }else{//值为空的时候，但是无id，需要自取了
+                    helper.setIdValue(fo);
                 }
             }
             if(fo != null) {
