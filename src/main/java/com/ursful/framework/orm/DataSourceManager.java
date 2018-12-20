@@ -7,6 +7,8 @@ import com.ursful.framework.orm.page.SQLServerQueryPage;
 import com.ursful.framework.orm.support.DatabaseType;
 import com.ursful.framework.orm.support.DatabaseTypeHolder;
 import com.ursful.framework.orm.support.QueryPage;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 
 import javax.sql.DataSource;
@@ -23,8 +25,22 @@ public class DataSourceManager {
     private static Map<DataSource, DatabaseType> databaseTypeMap = new HashMap<DataSource, DatabaseType>();
     private static Map<DatabaseType, QueryPage> queryPageMap = new HashMap<DatabaseType, QueryPage>();
 
+    private static Map<Class, DataSource> classDataSourceMap = new HashMap<Class, DataSource>();
+    private static Map<String, DataSource> packageDataSourceMap = new HashMap<String, DataSource>();
+
+    public void register(Class clazz, DataSource dataSource){
+        classDataSourceMap.put(clazz, dataSource);
+    }
+
+    public void register(String pkg, DataSource dataSource){
+        packageDataSourceMap.put(pkg, dataSource);
+    }
+
     private DataSource dataSource;
-    public DataSourceManager(){}
+    public DataSourceManager(){
+
+    }
+
     public DataSourceManager(DataSource dataSource){
         this.dataSource = dataSource;
     }
@@ -53,32 +69,14 @@ public class DataSourceManager {
         }
         Connection connection = null;
         try {
-            connection = raw.getConnection();
-            String productName = connection.getMetaData().getDatabaseProductName().toUpperCase();
-            DatabaseType databaseType = null;
-            if(productName.contains("MYSQL")){
-                databaseType = DatabaseType.MySQL;
-            }else if(productName.contains("ORACLE")){
-                databaseType = DatabaseType.ORACLE;
-            }else if(productName.contains("H2")){
-                databaseType = DatabaseType.H2;
-            }else if(productName.contains("SERVER")){
-                databaseType = DatabaseType.SQLServer;
-            }else{
-                databaseType = DatabaseType.NONE;
-                //throw new RuntimeException("Not support : " +productName);
-            }
-            databaseTypeMap.put(raw, databaseType);
-            return databaseType;
-        } catch (SQLException e) {
-            e.printStackTrace();
+            connection = DataSourceUtils.getConnection(raw);
+            return getDatabaseType(raw, connection);
         } finally {
-            close(connection);
+            DataSourceUtils.releaseConnection(connection, raw);
         }
-        return DatabaseType.NONE;
     }
-    public DatabaseType getDatabaseType(){
-        DataSource raw = getRawDataSource();
+    public DatabaseType getDatabaseType(Class clazz){
+        DataSource raw = getDataSource(clazz);
         return getDatabaseType(raw);
     }
 
@@ -91,7 +89,10 @@ public class DataSourceManager {
     }
 
     public QueryPage getQueryPage(){
-        DatabaseType databaseType =  getDatabaseType();
+        return getQueryPage(null);
+    }
+    public QueryPage getQueryPage(Class clazz){
+        DatabaseType databaseType =  getDatabaseType(clazz);
         QueryPage queryPage = queryPageMap.get(databaseType);
         if(queryPage == null){
             switch (databaseType){
@@ -119,18 +120,78 @@ public class DataSourceManager {
         queryPageMap.put(queryPage.databaseType(), queryPage);
     }
 
-
-    public Connection getConnection(){
-        DataSource source = getRawDataSource();
-        DatabaseTypeHolder.set(getDatabaseType(source));
-        if(source != null){
-            return DataSourceUtils.getConnection(source);
+    private DataSource getPackageDataSource(Class clazz){
+        if(clazz == null || packageDataSourceMap.isEmpty()){
+            return null;
+        }
+        String name = clazz.getName();
+        for(String key : packageDataSourceMap.keySet()){
+            if(name.startsWith(key)){
+                DataSource ds = packageDataSourceMap.get(key);
+                classDataSourceMap.put(clazz, ds);
+                return ds;
+            }
         }
         return null;
     }
 
-    public synchronized void close(ResultSet rs, Statement stmt, Connection conn){
-        DataSource source = getRawDataSource();
+    public void clearPatternDataSource(){
+        classDataSourceMap.clear();
+        packageDataSourceMap.clear();
+    }
+
+    public DataSource getDataSource(Class clazz) {
+        DataSource source = null;
+        if(classDataSourceMap.containsKey(clazz)){
+            source = classDataSourceMap.get(clazz);
+        }else {
+            source = getPackageDataSource(clazz);
+            if(source == null) {
+                source = getRawDataSource();
+            }
+        }
+        return source;
+    }
+
+    public Connection getConnection(Class clazz){
+        DataSource source = getDataSource(clazz);
+        Connection connection = DataSourceUtils.getConnection(source);
+        DatabaseTypeHolder.set(getDatabaseType(source, connection));
+        return connection;
+    }
+
+
+    public DatabaseType getDatabaseType(DataSource source, Connection connection){
+        DatabaseType type = databaseTypeMap.get(source);
+        if(type != null){
+            return type;
+        }
+        try {
+            String productName = connection.getMetaData().getDatabaseProductName().toUpperCase();
+            DatabaseType databaseType = null;
+            if(productName.contains("MYSQL")){
+                databaseType = DatabaseType.MySQL;
+            }else if(productName.contains("ORACLE")){
+                databaseType = DatabaseType.ORACLE;
+            }else if(productName.contains("H2")){
+                databaseType = DatabaseType.H2;
+            }else if(productName.contains("SERVER")){
+                databaseType = DatabaseType.SQLServer;
+            }else{
+                databaseType = DatabaseType.NONE;
+                //throw new RuntimeException("Not support : " +productName);
+            }
+            databaseTypeMap.put(source, databaseType);
+            return databaseType;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return DatabaseType.NONE;
+    }
+
+
+    public synchronized void close(Class clazz, ResultSet rs, Statement stmt, Connection conn){
+        DataSource source = getDataSource(clazz);
         try {
             if(rs != null){
                 rs.close();
@@ -146,12 +207,12 @@ public class DataSourceManager {
         }
     }
 
-    public synchronized void close(Statement stmt, Connection conn){
-        close(null, stmt, conn);
+    public synchronized void close(Class clazz, Statement stmt, Connection conn){
+        close(clazz, null, stmt, conn);
     }
 
-    public synchronized void close(Connection conn){
-        close(null, null, conn);
+    public synchronized void close(Class clazz, Connection conn){
+        close(clazz, null, null, conn);
     }
 
 }

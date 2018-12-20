@@ -15,14 +15,19 @@
  */
 package com.ursful.framework.orm.support;
 
+import com.ursful.framework.orm.annotation.RdColumn;
+import com.ursful.framework.orm.annotation.RdTable;
+
 import java.io.Serializable;
 import java.util.List;
 
+@RdTable(name = "None", title = "分页")
 public class Pageable<S> implements Serializable {
 
     //jqgrid page?
-
+	@RdColumn(title = "当前页", description = "默认1", nullable = false)
 	public Integer page = 1;
+	@RdColumn(title = "一页数量",description = "默认10", nullable = false)
     public Integer size = 10;
     public Integer total;
     public Integer from;

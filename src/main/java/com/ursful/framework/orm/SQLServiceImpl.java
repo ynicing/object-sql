@@ -18,17 +18,24 @@ public class SQLServiceImpl implements ISQLService{
     @Autowired(required = false)
     protected DataSourceManager dataSourceManager;
 
+    protected Class<?> thisClass;
+
     public DataSourceManager getDataSourceManager() {
         return dataSourceManager;
     }
 
     @Override
     public String currentDatabaseType() {
-        DatabaseType type = dataSourceManager.getDatabaseType();
+        DatabaseType type = dataSourceManager.getDatabaseType(thisClass);
         if(type != null){
             return type.name();
         }
         return null;
+    }
+
+    @Override
+    public DataSource getDataSource() {
+        return dataSourceManager.getDataSource(thisClass);
     }
 
     @Override
@@ -53,7 +60,7 @@ public class SQLServiceImpl implements ISQLService{
         } catch (SQLException e) {
             throw new RuntimeException(e);
         } finally{
-            dataSourceManager.close(null, ps, conn);
+            closeConnection(null, ps, conn);
         }
     }
 
@@ -97,7 +104,7 @@ public class SQLServiceImpl implements ISQLService{
                 } catch (SQLException e) {
                 }
             }
-            dataSourceManager.close(rs, ps, conn);
+            closeConnection(rs, ps, conn);
 
         }
         return true;
@@ -134,7 +141,7 @@ public class SQLServiceImpl implements ISQLService{
         } catch (SQLException e) {
             e.printStackTrace();
         } finally{
-            dataSourceManager.close(rs, ps, conn);
+            closeConnection(rs, ps, conn);
         }
         return tempMap;
     }
@@ -171,7 +178,7 @@ public class SQLServiceImpl implements ISQLService{
         } catch (SQLException e) {
             e.printStackTrace();
         } finally{
-            dataSourceManager.close(rs, ps, conn);
+            closeConnection(rs, ps, conn);
         }
         return temp;
     }
@@ -193,7 +200,7 @@ public class SQLServiceImpl implements ISQLService{
         } catch (SQLException e) {
             e.printStackTrace();
         } finally{
-            dataSourceManager.close(rs, ps, conn);
+            closeConnection(rs, ps, conn);
         }
         return temp;
     }
@@ -214,14 +221,18 @@ public class SQLServiceImpl implements ISQLService{
         } catch (SQLException e) {
             e.printStackTrace();
         } finally{
-            dataSourceManager.close(rs, ps, conn);
+            closeConnection(rs, ps, conn);
         }
         return temp;
     }
 
+    public void closeConnection(ResultSet rs, Statement stmt, Connection conn){
+        dataSourceManager.close(thisClass, rs, stmt, conn);
+    }
+
     @Override
     public Connection getConnection() {
-        return dataSourceManager.getConnection();
+        return dataSourceManager.getConnection(thisClass);
     }
 
 

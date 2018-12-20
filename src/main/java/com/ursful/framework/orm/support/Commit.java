@@ -53,7 +53,8 @@ public class Commit {
             if(failure != null){
                 failure.run();
             }
-            throw new RuntimeException("BATCH_EXECUTE_ERROR batch execute : " +  e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Batch execute error", e);
         }finally {
             if(!executeSuccess) {
                 rollback();
