@@ -49,4 +49,17 @@ public interface IQuery{
 
     List<Column> getReturnColumns();
 
+    Pageable getPageable();
+
+    void setPageable(Pageable pageable);
+
+    void setQueryPage(QueryPage queryPage);
+
+    QueryPage getQueryPage();
+
+    QueryInfo doQuery();
+
+    QueryInfo doQueryCount();
+
+
 }

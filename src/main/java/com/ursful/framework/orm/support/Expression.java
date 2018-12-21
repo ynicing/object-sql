@@ -15,6 +15,8 @@
  */
 package com.ursful.framework.orm.support;
 
+import com.ursful.framework.orm.IMultiQuery;
+
 import java.io.Serializable;
 
 public class Expression implements Serializable {
@@ -29,6 +31,13 @@ public class Expression implements Serializable {
     private Column left;
 	private ExpressionType type;
 	private Object value;
+
+	//exists or not exists
+	public Expression(ExpressionType type, IMultiQuery value){
+		this.type = type;
+		this.value = value;
+	}
+
 
 	public Expression(Column left, Column value){
 		this.left = left;

@@ -71,7 +71,14 @@ public interface IMultiQuery extends IQuery{
     IMultiQuery distinct();
 
     boolean containsAlias(String alias);
+    void addUsedAlias(String alias);
 
+    IMultiQuery whereExists(IMultiQuery query);
+    IMultiQuery whereNotExists(IMultiQuery query);
+
+    IMultiQuery createMultiQuery();
+
+    IMultiQuery parentQuery();
 
 
 }

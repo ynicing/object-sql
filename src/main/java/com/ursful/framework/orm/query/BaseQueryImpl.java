@@ -299,6 +299,41 @@ public class BaseQueryImpl implements IBaseQuery {
 
     @Override
     public List<Column> getReturnColumns() {
+        if(returnColumns.isEmpty()){
+            returnColumns.add(new Column(Expression.EXPRESSION_ALL));
+        }
         return returnColumns;
+    }
+
+    private Pageable pageable;
+
+    @Override
+    public Pageable getPageable() {
+        return this.pageable;
+    }
+
+    @Override
+    public void setPageable(Pageable pageable) {
+        this.pageable = pageable;
+    }
+
+    private QueryPage queryPage;
+
+    @Override
+    public void setQueryPage(QueryPage queryPage) {
+        this.queryPage = queryPage;
+    }
+
+    @Override
+    public QueryPage getQueryPage() {
+        return this.queryPage;
+    }
+
+    public QueryInfo doQuery() {
+        return queryPage.doQuery(this, getPageable());
+    }
+
+    public QueryInfo doQueryCount() {
+        return queryPage.doQueryCount(this);
     }
 }

@@ -27,7 +27,20 @@ import java.util.*;
 
 public class MultiQueryImpl implements IMultiQuery {
 
+    private List<IMultiQuery> subQueries = new ArrayList<IMultiQuery>();
+
+    private List<String> usedAlias = new ArrayList<String>();
+
+    public  MultiQueryImpl(){}
+
+    private IMultiQuery parentQuery;
+
+    public MultiQueryImpl(IMultiQuery query){
+        this.parentQuery = query;
+    }
+
     private List<String> aliasList = new ArrayList<String>();
+    private List<String> aliasJoin = new ArrayList<String>();
 	private Map<String, Class<?>> aliasTable = new HashMap<String, Class<?>>();
     private Map<String, IQuery> aliasQuery = new HashMap<String, IQuery>();
     private List<Condition> conditions = new ArrayList<Condition>();
@@ -72,11 +85,12 @@ public class MultiQueryImpl implements IMultiQuery {
         return this;
     }
 
+
     /////////////////////////////////
     private String generateUniqueAlias(Object object){
         int i = 0;
         String prefixAlias = null;
-        if(object instanceof IMultiQuery || object instanceof IQuery){
+        if(object instanceof IQuery){
             prefixAlias = "q";
         }else if(object instanceof Class){
             prefixAlias = ((Class<?>)object).getSimpleName().substring(0, 1).toLowerCase();
@@ -99,6 +113,8 @@ public class MultiQueryImpl implements IMultiQuery {
     public AliasTable join(IQuery query, String alias){
         AliasTable table = new AliasTable(query);
         table.setAlias(alias);
+        aliasJoin.add(alias);
+        addUsedAlias(alias);
         return table;
     }
 
@@ -106,6 +122,7 @@ public class MultiQueryImpl implements IMultiQuery {
         AliasTable table = new AliasTable(query);
         table.setAlias(alias);
         aliasList.add(alias);
+        addUsedAlias(alias);
         aliasQuery.put(alias, query);
         return table;
     }
@@ -121,6 +138,8 @@ public class MultiQueryImpl implements IMultiQuery {
         Assert.notNull(rdTable, "Should annotate RdTable");
         AliasTable table = new AliasTable(clazz);
         table.setAlias(alias);
+        aliasJoin.add(alias);
+        addUsedAlias(alias);
         return table;
     }
 
@@ -194,9 +213,9 @@ public class MultiQueryImpl implements IMultiQuery {
             RdTable rdTable = AnnotationUtils.findAnnotation(clazz, RdTable.class);
             if(rdTable != null) {
                 table = new AliasTable(clazz);
-
                 table.setAlias(alias);
                 aliasList.add(alias);
+                addUsedAlias(alias);
                 aliasTable.put(alias, clazz);
             }
         }
@@ -378,30 +397,108 @@ public class MultiQueryImpl implements IMultiQuery {
 
     @Override
     public List<Column> getReturnColumns() {
+        if(returnColumns.isEmpty()){
+            for(String alias : aliasList){
+                returnColumns.add(new Column(alias, Expression.EXPRESSION_ALL));
+            }
+        }
         return returnColumns;
     }
 
+    public void addUsedAlias(String alias){
+        if(parentQuery == null) {
+            usedAlias.add(alias);
+        }else{
+            IMultiQuery temp = parentQuery;
+            while (temp != null){
+                if(temp.parentQuery() == null){
+                    temp.addUsedAlias(alias);
+                }
+                temp = temp.parentQuery();
+            }
+        }
+    }
+
     public boolean containsAlias(String alias){
-        boolean result = aliasList.contains(alias);
-        if(!result){
-            for(Join join : joins){
-                result = alias.equals(join.getAlias());
-                if(result){
-                    break;
-                }
-            }
+        if(parentQuery == null){
+            return usedAlias.contains(alias);
         }
-        if(!result){
-            for(IQuery query : aliasQuery.values()){
-                if(query instanceof IMultiQuery){
-                    result = ((IMultiQuery)query).containsAlias(alias);
-                    if(result){
-                        break;
-                    }
-                }
+        IMultiQuery temp = parentQuery;
+        boolean hasC = false;
+        while (temp != null){
+            if(temp.parentQuery() == null){
+                hasC = temp.containsAlias(alias);
+                break;
             }
+            temp = temp.parentQuery();
         }
-        return result;
+        return hasC;
+    }
+
+    @Override
+    public IMultiQuery createMultiQuery() {
+        IMultiQuery query = new MultiQueryImpl(this);
+        subQueries.add(query);
+        return query;
+    }
+
+    @Override
+    public IMultiQuery parentQuery() {
+        return this.parentQuery;
+    }
+
+    private  QueryPage queryPage;
+
+    @Override
+    public void setQueryPage(QueryPage queryPage) {
+        this.queryPage = queryPage;
+    }
+
+    @Override
+    public QueryPage getQueryPage() {
+        return this.queryPage;
+    }
+
+    @Override
+    public QueryInfo doQuery() {
+        if(parentQuery != null) {
+            return parentQuery.getQueryPage().doQuery(this, getPageable());
+        }else{
+            return queryPage.doQuery(this, getPageable());
+        }
+    }
+
+    @Override
+    public QueryInfo doQueryCount() {
+        if(parentQuery != null) {
+            return parentQuery.getQueryPage().doQueryCount(this);
+        }else{
+            return queryPage.doQueryCount(this);
+        }
+    }
+
+    @Override
+    public IMultiQuery whereExists(IMultiQuery query) {
+        conditions.add(new Condition().and(new Expression(ExpressionType.CDT_EXISTS, query)));
+        return this;
+    }
+
+    @Override
+    public IMultiQuery whereNotExists(IMultiQuery query) {
+        conditions.add(new Condition().and(new Expression(ExpressionType.CDT_NOT_EXISTS, query)));
+        return this;
+    }
+
+    private Pageable pageable;
+
+    @Override
+    public Pageable getPageable() {
+        return this.pageable;
+    }
+
+    @Override
+    public void setPageable(Pageable pageable) {
+        this.pageable = pageable;
     }
 
 }

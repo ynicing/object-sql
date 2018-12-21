@@ -830,7 +830,11 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
         List<S> temp = new ArrayList<S>();
 
-        QueryInfo qinfo = getQueryPage().doQuery(q, page);// = queryString(names, false);
+        q.setQueryPage(getQueryPage());
+        q.setPageable(page);
+        QueryInfo qinfo =  q.doQuery();
+
+//        QueryInfo qinfo = getQueryPage().doQuery(q, page);// = queryString(names, false);
 
         if(ORMUtils.getDebug()) {
             logger.info("list:" + qinfo);
@@ -875,7 +879,10 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
         List<S> temp = new ArrayList<S>();
 
-        QueryInfo qinfo = getQueryPage().doQuery(q, page);// = queryString(names, false);
+        q.setQueryPage(getQueryPage());
+        q.setPageable(page);
+
+        QueryInfo qinfo =  q.doQuery(); //getQueryPage().doQuery(q, page);// = queryString(names, false);
 
         if(ORMUtils.getDebug()) {
             logger.info("list:" + qinfo);
@@ -924,7 +931,8 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         QueryInfo qinfo = null;
         try {
             conn = getConnection();
-            qinfo = getQueryPage().doQueryCount(q);
+            q.setQueryPage(getQueryPage());
+            qinfo = q.doQueryCount();
             if(ORMUtils.getDebug()) {
                 logger.info("list:" + qinfo);
             }

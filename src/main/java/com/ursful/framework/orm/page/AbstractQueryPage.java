@@ -68,10 +68,10 @@ public abstract class AbstractQueryPage implements QueryPage{
             temp.add(all);
         }else{
             for(Column column : returnColumns){
-                inColumn.add(column.getAlias() + "." + column.getName());
                 if(column.getAlias() == null && !StringUtils.isEmpty(alias)){
                     column.setAlias(alias);
                 }
+                inColumn.add(column.getAlias() + "." + column.getName());
                 temp.add(QueryUtils.parseColumn(column));
                 if(Expression.EXPRESSION_ALL.equals(column.getName())){
                     if(!StringUtils.isEmpty(column.getAlias()) && !allAlias.contains(column.getAlias())){

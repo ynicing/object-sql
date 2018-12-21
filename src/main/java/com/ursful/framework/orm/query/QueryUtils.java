@@ -16,6 +16,7 @@
 package com.ursful.framework.orm.query;
 
 
+import com.ursful.framework.orm.IMultiQuery;
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.utils.ORMUtils;
 import com.ursful.framework.orm.support.*;
@@ -551,9 +552,22 @@ public class QueryUtils {
 
 //    public static SQLPair parseExpression(Expression expression){
         SQLPair sqlPair = null;
-        if(expression == null || expression.getLeft() == null){
+        if(expression == null){
             return sqlPair;
         }
+        if(expression.getLeft() == null){
+            if(expression.getValue() instanceof IMultiQuery){
+                IMultiQuery mq = (IMultiQuery)expression.getValue();
+                QueryInfo qinfo = mq.doQuery();
+                if(expression.getType() == ExpressionType.CDT_EXISTS) {
+                    sqlPair = new SQLPair("EXISTS(" + qinfo.getSql() + ")", qinfo.getValues());
+                }else  if(expression.getType() == ExpressionType.CDT_NOT_EXISTS) {
+                    sqlPair = new SQLPair("NOT EXISTS(" + qinfo.getSql() + ")", qinfo.getValues());
+                }
+            }
+            return sqlPair;
+        }
+
         Column column = expression.getLeft();
         ColumnType columnType = null;
         if(ORMUtils.isEmpty(column.getAlias())){

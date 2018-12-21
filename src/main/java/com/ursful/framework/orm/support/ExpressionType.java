@@ -32,7 +32,9 @@ public enum ExpressionType {
     CDT_NotIn,
     CDT_NotLike,// _a ...
     CDT_IS_NULL,
-    CDT_IS_NOT_NULL;
+    CDT_IS_NOT_NULL,
+    CDT_EXISTS,
+    CDT_NOT_EXISTS;
 
     public static ExpressionType getType(String name){
         if(name != null && !"".equals(name)){
