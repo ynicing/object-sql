@@ -183,6 +183,11 @@ public class Column implements Serializable {
         return this;
     }
 
+    public Column operatorInFunction(Boolean operatorInFunction) {
+        this.operatorInFunction = operatorInFunction;
+        return this;
+    }
+
     public static void main(String[] args) {
         //Column c = new Column().function("sum").alias("u").name("test").as("x");
     }
