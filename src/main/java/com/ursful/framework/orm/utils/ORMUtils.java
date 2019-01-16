@@ -244,7 +244,7 @@ public class ORMUtils {
         }
         if(infoList != null){
             for(ColumnInfo info: infoList){
-                temp.put(info.getName(), info.getColumnType());
+                temp.put(info.getColumnName(), info.getColumnType());
             }
         }
         return temp;
