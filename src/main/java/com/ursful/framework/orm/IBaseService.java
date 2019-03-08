@@ -98,6 +98,9 @@ public interface IBaseService<T> extends IServiceChangedListener<T>, ISQLService
     boolean delete(Object object);
     boolean deleteWithoutListener(Object object);
 
+    boolean deletes(Terms terms);
+    boolean deletesWithoutListener(Terms terms);
+
     boolean deletes(Express... expresses);
     boolean deletesWithoutListener(Express... expresses);
 

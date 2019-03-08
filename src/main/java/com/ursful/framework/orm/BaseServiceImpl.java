@@ -422,12 +422,63 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         }
     }
 
+    public boolean deletes(Terms terms){
+        return deletes(true, terms);
+    }
+
+    public boolean deletesWithoutListener(Terms terms){
+        return deletes(false, terms);
+    }
+
     public boolean deletes(Express ... expresses) {
         return deletes(true, expresses);
     }
 
     public boolean deletesWithoutListener(Express ... expresses) {
         return deletes(false, expresses);
+    }
+
+    private boolean deletes(boolean enableListener, Terms terms) {
+        if(terms == null){
+            throw new RuntimeException("TABLE_DELETE_WITHOUT_EXPRESS, DELETE(Terms) : " + thisClass);
+        }
+
+        PreparedStatement ps = null;
+
+        Connection conn = null;
+        SQLHelper helper = null;
+        try {
+            List<T> nows = null;
+            conn = getConnection();
+            helper = SQLHelperCreator.deleteBy(thisClass, terms);
+            if(enableListener && (!changeListeners.isEmpty()||!changedListeners.isEmpty())) {
+                nows = list(terms);
+            }
+            if(ORMUtils.getDebug()) {
+                logger.info("DELETE(Express): " + helper);
+            }
+            logger.debug("connection :" + conn);
+            ps = conn.prepareStatement(helper.getSql());
+            SQLHelperCreator.setParameter(ps, helper.getParameters(),conn);
+
+            boolean result = ps.executeUpdate() > 0;
+            if(result && nows != null) {
+                for(T t : nows) {
+                    triggerORMListener(t, ORMType.DELETE);
+                    triggerChangeListener(t, null, conn);
+                }
+            }
+            return result;
+        } catch (SQLException e) {
+            logger.error("SQL : " + helper, e);
+            throw new RuntimeException("QUERY_SQL_ERROR, DELETE(Terms) : " +  e.getMessage());
+        } catch (Exception e) {
+            logger.error("SQL : " + helper, e);
+            throw new RuntimeException("QUERY_SQL_ERROR, DELETE(Terms) : " + e.getMessage());
+        }  finally{
+            closeConnection(null, ps, conn);
+            logger.debug("close connection :" + conn);
+        }
     }
 
     private boolean deletes(boolean enableListener, Express ... expresses) {

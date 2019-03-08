@@ -151,6 +151,25 @@ public class SQLHelperCreator {
         return helper;
     }
 
+    public static SQLHelper deleteBy(Class clazz, Terms terms){
+        terms.getCondition().getConditions();
+        List<Pair> pairs = new ArrayList<Pair>();
+        String conditions = null;
+        if(terms != null) {
+            Condition condition = terms.getCondition();
+            conditions = QueryUtils.getConditions(clazz, ORMUtils.newList(condition), pairs);
+        }
+        String tableName = ORMUtils.getTableName(clazz);
+        if(StringUtils.isEmpty(conditions)){
+            throw new RuntimeException("Delete table without conditions, Class[" + clazz.getName() + "]");
+        }
+        StringBuffer sql = new StringBuffer("DELETE FROM " + tableName + " WHERE " + conditions);
+        SQLHelper helper = new SQLHelper();
+        helper.setSql(sql.toString());
+        helper.setParameters(pairs);
+        return helper;
+    }
+
     /**
      * 更新 只能使用id，否则初学者不填id 全部更新了。
      * @param obj
