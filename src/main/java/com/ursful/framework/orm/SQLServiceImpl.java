@@ -1,16 +1,20 @@
 package com.ursful.framework.orm;
 
-import com.ursful.framework.orm.ISQLService;
 import com.ursful.framework.orm.helper.SQLHelperCreator;
 import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.support.DatabaseType;
+import com.ursful.framework.orm.support.DatabaseTypeHolder;
 import com.ursful.framework.orm.support.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.datasource.DataSourceUtils;
 
 import javax.sql.DataSource;
-import java.sql.*;
-import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.Timestamp;
 import java.util.*;
 
 public class SQLServiceImpl implements ISQLService{
@@ -233,6 +237,53 @@ public class SQLServiceImpl implements ISQLService{
     @Override
     public Connection getConnection() {
         return dataSourceManager.getConnection(thisClass);
+    }
+
+    @Override
+    public Date getDatabaseDateTime() {
+
+        ResultSet rs = null;
+        Statement ps = null;
+        Connection conn = null;
+        Date temp = null;
+        try {
+            conn = getConnection();
+            DatabaseType type = DatabaseTypeHolder.get();
+            if(type == null){
+                return null;
+            }
+            String sql = null;
+            switch (type){
+                case H2:
+                case MySQL:
+                    sql = "SELECT NOW()";
+                    break;
+                case SQLServer:
+                    sql = "SELECT GETDATE()";
+                    break;
+                case ORACLE:
+                    sql = "SELECT SYSDATE FROM DUAL";
+                    break;
+            }
+            if(sql == null){
+                return null;
+            }
+            ps = conn.createStatement();
+            rs = ps.executeQuery(sql);
+            if(rs.next()){
+                Object object = rs.getObject(1);
+                if(object instanceof Timestamp) {
+                    temp = new Date(((Timestamp)(object)).getTime());
+                }else if(object instanceof java.sql.Date){
+                    temp = new Date(((java.sql.Date)(object)).getTime());
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally{
+            closeConnection(rs, ps, conn);
+        }
+        return temp;
     }
 
 

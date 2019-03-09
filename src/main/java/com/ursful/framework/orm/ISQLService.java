@@ -4,6 +4,7 @@ import com.ursful.framework.orm.support.DatabaseType;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -33,4 +34,6 @@ public interface ISQLService {
     Object queryResult(String sql, Object ... params);
 
     Connection getConnection();
+
+    Date getDatabaseDateTime();
 }
