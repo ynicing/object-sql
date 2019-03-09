@@ -8,6 +8,7 @@ import com.ursful.framework.orm.support.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.sql.DataSource;
+import java.lang.reflect.Method;
 import java.sql.PreparedStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -241,11 +242,17 @@ public class SQLServiceImpl implements ISQLService{
 
     @Override
     public Date getDatabaseDateTime() {
+        Double longTime = getDatabaseNanoTime();
+        if(longTime != null){
+            return new Date(longTime.longValue());
+        }
+        return null;
+    }
 
+    public Double getDatabaseNanoTime(){
         ResultSet rs = null;
         Statement ps = null;
         Connection conn = null;
-        Date temp = null;
         try {
             conn = getConnection();
             DatabaseType type = DatabaseTypeHolder.get();
@@ -256,13 +263,13 @@ public class SQLServiceImpl implements ISQLService{
             switch (type){
                 case H2:
                 case MySQL:
-                    sql = "SELECT NOW()";
+                    sql = "SELECT NOW(3)";
                     break;
                 case SQLServer:
                     sql = "SELECT GETDATE()";
                     break;
                 case ORACLE:
-                    sql = "SELECT SYSDATE FROM DUAL";
+                    sql = "SELECT SYSTIMESTAMP FROM DUAL";
                     break;
             }
             if(sql == null){
@@ -273,9 +280,14 @@ public class SQLServiceImpl implements ISQLService{
             if(rs.next()){
                 Object object = rs.getObject(1);
                 if(object instanceof Timestamp) {
-                    temp = new Date(((Timestamp)(object)).getTime());
-                }else if(object instanceof java.sql.Date){
-                    temp = new Date(((java.sql.Date)(object)).getTime());
+                    //timestamp.getNanos()/1000000000.0
+                    //402855227933142
+                    //  1552100302023
+                    Timestamp timestamp = (Timestamp) object;
+                    return timestamp.getTime() + timestamp.getNanos()/1000000000.0;
+                }else{
+                    Timestamp timestamp = getOracleTimestamp(object, conn);
+                    return timestamp.getTime() + timestamp.getNanos()/1000000000.0;
                 }
             }
         } catch (SQLException e) {
@@ -283,8 +295,18 @@ public class SQLServiceImpl implements ISQLService{
         } finally{
             closeConnection(rs, ps, conn);
         }
-        return temp;
+        return null;
     }
 
-
+    private Timestamp getOracleTimestamp(Object value, Connection connection) {
+        try {
+            Class clz = value.getClass();
+            Method m = clz.getMethod("timestampValue", Connection.class);
+            //m = clz.getMethod("timeValue", null); 时间类型
+            //m = clz.getMethod("dateValue", null); 日期类型
+            return (Timestamp) m.invoke(value, connection);
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

@@ -36,4 +36,7 @@ public interface ISQLService {
     Connection getConnection();
 
     Date getDatabaseDateTime();
+
+    Double getDatabaseNanoTime();
+
 }
