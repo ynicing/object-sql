@@ -39,4 +39,6 @@ public interface ISQLService {
 
     Double getDatabaseNanoTime();
 
+    void register(Class clazz);
+
 }

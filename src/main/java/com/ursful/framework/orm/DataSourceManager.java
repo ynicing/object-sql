@@ -1,11 +1,16 @@
 package com.ursful.framework.orm;
 
+import com.ursful.framework.orm.helper.table.H2Table;
+import com.ursful.framework.orm.helper.table.MySQLTable;
+import com.ursful.framework.orm.helper.table.OracleTable;
+import com.ursful.framework.orm.helper.table.SQLServerTable;
 import com.ursful.framework.orm.page.H2QueryPage;
 import com.ursful.framework.orm.page.MySQLQueryPage;
 import com.ursful.framework.orm.page.OracleQueryPage;
 import com.ursful.framework.orm.page.SQLServerQueryPage;
 import com.ursful.framework.orm.support.DatabaseType;
 import com.ursful.framework.orm.support.DatabaseTypeHolder;
+import com.ursful.framework.orm.support.DynamicTable;
 import com.ursful.framework.orm.support.QueryPage;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,9 +29,15 @@ public class DataSourceManager {
 
     private static Map<DataSource, DatabaseType> databaseTypeMap = new HashMap<DataSource, DatabaseType>();
     private static Map<DatabaseType, QueryPage> queryPageMap = new HashMap<DatabaseType, QueryPage>();
+    private static Map<DatabaseType, DynamicTable> dynamicTableMap = new HashMap<DatabaseType, DynamicTable>();
 
     private static Map<Class, DataSource> classDataSourceMap = new HashMap<Class, DataSource>();
     private static Map<String, DataSource> packageDataSourceMap = new HashMap<String, DataSource>();
+    private static Map<Class, DataSource> serviceDataSourceMap = new HashMap<Class, DataSource>();
+
+    public void registerService(Class clazz, DataSource dataSource){
+        serviceDataSourceMap.put(clazz, dataSource);
+    }
 
     public void register(Class clazz, DataSource dataSource){
         classDataSourceMap.put(clazz, dataSource);
@@ -45,13 +56,25 @@ public class DataSourceManager {
         this.dataSource = dataSource;
     }
 
-    private List<QueryPage> queryPageList;
-    public void setQueryPageList(List<QueryPage> queryPageList){
-        this.queryPageList = queryPageList;
-        for(QueryPage queryPage : queryPageList){
+    private List<QueryPage> queryPages;
+
+    public void setQueryPages(List<QueryPage> queryPages) {
+        this.queryPages = queryPages;
+        for(QueryPage queryPage : queryPages){
             registerQueryPage(queryPage);
         }
     }
+
+    private List<DynamicTable> dynamicTables;
+
+    public void setDynamicTables(List<DynamicTable> dynamicTables) {
+        this.dynamicTables = dynamicTables;
+        for(DynamicTable dynamicTable : dynamicTables){
+            registerDynamicTable(dynamicTable);
+        }
+    }
+
+
 
     public DataSource getRawDataSource(){
         DataSource current = dataSource;
@@ -116,6 +139,44 @@ public class DataSourceManager {
         return queryPage;
     }
 
+    public DynamicTable getDynamicTable() {
+        return getDynamicTable(null);
+    }
+
+    public DynamicTable getDynamicTable(Class clazz){
+        DataSource raw = getDataSource(clazz);
+        DatabaseType databaseType =  getDatabaseType(raw);
+        String dbName = "null";
+        //((ExtAtomikosDataSourceBean)dataSource).xaProperties = URL
+        //((DruidDataSource) dataSource).jdbcUrl
+        DynamicTable table = dynamicTableMap.get(databaseType);
+        if(table == null){
+            switch (databaseType){
+                case MySQL:
+                    table = new MySQLTable();
+                    break;
+                case ORACLE:
+                    table = new OracleTable();
+                    break;
+                case SQLServer:
+                    table = new SQLServerTable();
+                    break;
+                case H2:
+                    table = new H2Table();
+                    break;
+                default:
+                    break;
+            }
+            dynamicTableMap.put(databaseType, table);
+        }
+        return table;
+    }
+
+    public void registerDynamicTable(DynamicTable dynamicTable){
+        dynamicTableMap.put(dynamicTable.databaseType(), dynamicTable);
+    }
+
+
     public void registerQueryPage(QueryPage queryPage){
         queryPageMap.put(queryPage.databaseType(), queryPage);
     }
@@ -153,8 +214,11 @@ public class DataSourceManager {
         return source;
     }
 
-    public Connection getConnection(Class clazz){
-        DataSource source = getDataSource(clazz);
+    public Connection getConnection(Class clazz, Class serviceClass){
+        DataSource source = serviceDataSourceMap.get(serviceClass);
+        if(source == null) {
+            source = getDataSource(clazz);
+        }
         Connection connection = DataSourceUtils.getConnection(source);
         DatabaseTypeHolder.set(getDatabaseType(source, connection));
         return connection;

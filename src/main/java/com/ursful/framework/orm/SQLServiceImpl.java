@@ -4,6 +4,7 @@ import com.ursful.framework.orm.helper.SQLHelperCreator;
 import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.support.DatabaseType;
 import com.ursful.framework.orm.support.DatabaseTypeHolder;
+import com.ursful.framework.orm.support.DynamicTable;
 import com.ursful.framework.orm.support.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -237,7 +238,7 @@ public class SQLServiceImpl implements ISQLService{
 
     @Override
     public Connection getConnection() {
-        return dataSourceManager.getConnection(thisClass);
+        return dataSourceManager.getConnection(thisClass, this.getClass());
     }
 
     @Override
@@ -296,6 +297,23 @@ public class SQLServiceImpl implements ISQLService{
             closeConnection(rs, ps, conn);
         }
         return null;
+    }
+
+    @Override
+    public void register(Class clazz) {
+        ResultSet rs = null;
+        PreparedStatement ps = null;
+        Connection conn = null;
+        try {
+            //获取dataSource
+            DynamicTable table = dataSourceManager.getDynamicTable(clazz);
+            conn = getConnection();
+            table.register(clazz, conn);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally{
+            closeConnection(rs, ps, conn);
+        }
     }
 
     private Timestamp getOracleTimestamp(Object value, Connection connection) {
