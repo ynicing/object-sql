@@ -15,15 +15,15 @@
  */
 package com.ursful.framework.orm.utils;
 
+import com.ursful.framework.orm.annotation.RdColumn;
 import com.ursful.framework.orm.annotation.RdId;
 import com.ursful.framework.orm.annotation.RdTable;
-import com.ursful.framework.orm.support.Column;
 import com.ursful.framework.orm.support.ColumnInfo;
 import com.ursful.framework.orm.support.ColumnType;
 import com.ursful.framework.orm.support.DebugHolder;
-import com.ursful.framework.orm.annotation.RdColumn;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.util.ConcurrentReferenceHashMap;
+import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
@@ -97,6 +97,15 @@ public class ORMUtils {
             field.set(object, value);
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Set value to [" + object + "] error, value[" + value + "]");
+        }
+    }
+
+    public static void setFieldNullValue(Object object, Field field){
+        try {
+            field.setAccessible(true);
+            field.set(object, null);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Set value to [" + object + "] error, value[NULL]");
         }
     }
 
@@ -280,6 +289,23 @@ public class ORMUtils {
         return temp;
     }
 
+    public static void copyPropertiesWhenUpdateNull(Object from, Object to){
+        if(from == null || to == null){
+            return;
+        }
+        if(from.getClass() == to.getClass()){
+            Class clazz = to.getClass();
+            List<ColumnInfo> columnInfos = getColumnInfo(clazz);
+            for(ColumnInfo info : columnInfos){
+                Object fromValue = getFieldValue(from, info);
+                if(StringUtils.isEmpty(fromValue)){//因为属性
+                    setFieldNullValue(to, info.getField());
+                }else{
+                    setFieldValue(to, info, fromValue);
+                }
+            }
+        }
+    }
 
     public static List<String> getFields(Class<?> clazz){
         List<String> temp = new ArrayList<String>();
