@@ -177,8 +177,11 @@ public class SQLHelperCreator {
      * @param expresses
      * @return SQLHelper
      */
-    public static SQLHelper update(Object obj, Express [] expresses, boolean updateNull){
-
+    public static SQLHelper update(Object obj, Express [] expresses, boolean updateNull, String [] nullColumns){
+        List<String> ncs = new ArrayList<String>();
+        if(nullColumns != null &&  nullColumns.length > 0){
+            ncs.addAll(Arrays.asList(nullColumns));
+        }
         Class clazz = obj.getClass();
 
         String tableName = ORMUtils.getTableName(clazz);
@@ -199,7 +202,7 @@ public class SQLHelperCreator {
                 helper.setIdField(info.getField());
                 helper.setIdValue(fo);
             }
-            if(fo != null || updateNull){
+            if(fo != null || updateNull || ncs.contains(info.getColumnName())){
                 if(info.getPrimaryKey()){
                     primaryKey = new Pair(info, fo);
                 }else{
@@ -211,7 +214,7 @@ public class SQLHelperCreator {
                         Pair pair = new Pair(info, fo);
                         parameters.add(pair);
                     }else{
-                        if(updateNull){
+                        if(updateNull || ncs.contains(info.getColumnName())){
                             sets.add(info.getColumnName() + " = NULL ");
                         }
                     }

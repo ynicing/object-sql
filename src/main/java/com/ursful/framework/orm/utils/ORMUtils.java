@@ -15,12 +15,13 @@
  */
 package com.ursful.framework.orm.utils;
 
-import com.ursful.framework.orm.annotation.RdColumn;
 import com.ursful.framework.orm.annotation.RdId;
 import com.ursful.framework.orm.annotation.RdTable;
+import com.ursful.framework.orm.support.Column;
 import com.ursful.framework.orm.support.ColumnInfo;
 import com.ursful.framework.orm.support.ColumnType;
 import com.ursful.framework.orm.support.DebugHolder;
+import com.ursful.framework.orm.annotation.RdColumn;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.util.ConcurrentReferenceHashMap;
 import org.springframework.util.StringUtils;
@@ -289,9 +290,13 @@ public class ORMUtils {
         return temp;
     }
 
-    public static void copyPropertiesWhenUpdateNull(Object from, Object to){
+    public static void copyPropertiesWhenUpdateNull(Object from, Object to, String ... columns){
         if(from == null || to == null){
             return;
+        }
+        List<String> list = new ArrayList<String>();
+        if(columns != null && columns.length > 0){
+            list.addAll(Arrays.asList(columns)) ;
         }
         if(from.getClass() == to.getClass()){
             Class clazz = to.getClass();
@@ -299,7 +304,9 @@ public class ORMUtils {
             for(ColumnInfo info : columnInfos){
                 Object fromValue = getFieldValue(from, info);
                 if(StringUtils.isEmpty(fromValue)){//因为属性
-                    setFieldNullValue(to, info.getField());
+                    if(list.contains(info.getColumnName())) {
+                        setFieldNullValue(to, info.getField());
+                    }
                 }else{
                     setFieldValue(to, info, fromValue);
                 }

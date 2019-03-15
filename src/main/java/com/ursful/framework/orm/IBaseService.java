@@ -75,20 +75,24 @@ public interface IBaseService<T> extends IServiceChangedListener<T>, ISQLService
         testService.update(test);
     */
     boolean update(T t);
-
+    boolean updateWithoutListener(T t);
     /*  更新（按主键), 若对象字段为空也更新
         testService.update(test, true);
     */
     boolean update(T t, boolean updateNull);
-
-
-    boolean updateWithoutListener(T t);
     boolean updateWithoutListener(T t, boolean updateNull);
 
+    boolean updateNull(T t, String ...forNullColumns);
+    boolean updateNullWithoutListener(T t, String ...forNullColumns);
+
     boolean updates(T t, Express ... expresses);
-    boolean updatesNull(T t, Express ... expresses);
     boolean updatesWithoutListener(T t, Express ... expresses);
+
+    boolean updatesNull(T t, Express ... expresses);
     boolean updatesNullWithoutListener(T t, Express ... expresses);
+
+    boolean updatesNull(T t, String [] forNullColumns,  Express ... expresses);
+    boolean updatesNullWithoutListener(T t, String [] forNullColumns, Express ... expresses);
 
     /* 删除, (限制条件删除，危险的动作)
        testService.delete(test);

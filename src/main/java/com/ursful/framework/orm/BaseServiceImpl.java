@@ -263,22 +263,29 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
 
     public boolean update(T t) {
-        return update(t, false, true);
+        return update(t, false, true, null);
     }
 
     public boolean updateWithoutListener(T t) {
-        return update(t, false, false);
+        return update(t, false, false, null);
     }
 
     public boolean updateWithoutListener(T t, boolean updateNull) {
-        return update(t, updateNull, false);
+        return update(t, updateNull, false, null);
     }
 
     public boolean update(T t, boolean updateNull){
-        return update(t, updateNull, true);
+        return update(t, updateNull, true, null);
     }
 
-    private boolean update(T t, boolean updateNull, boolean enableListener) {
+    public boolean updateNull(T t, String ...forNullColumns){
+        return update(t, false, true, forNullColumns);
+    }
+    public boolean updateNullWithoutListener(T t, String ...forNullColumns){
+        return update(t, false, false, forNullColumns);
+    }
+
+    private boolean update(T t, boolean updateNull, boolean enableListener, String [] nullColumns) {
         PreparedStatement ps = null;
 
         Connection conn = null;
@@ -286,7 +293,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         try {
             conn = getConnection();
             triggerDefaultListener(t, true);
-            helper = SQLHelperCreator.update(t, null, updateNull);
+            helper = SQLHelperCreator.update(t, null, updateNull, nullColumns);
             T original = null;
             if(helper.getPair() != null && (!changeListeners.isEmpty()||!changedListeners.isEmpty())) {
                 original = get(helper.getPair().getValue());
@@ -318,19 +325,25 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
 
     public boolean updates(T t, Express ... expresses){
-        return updates(t, expresses, false, true);
-    }
-    public  boolean updatesNull(T t, Express ... expresses){
-        return updates(t, expresses, true, true);
+        return updates(t, expresses, false, true, null);
     }
     public boolean updatesWithoutListener(T t, Express ... expresses){
-        return updates(t, expresses, true, false);
+        return updates(t, expresses, true, false, null);
+    }
+    public  boolean updatesNull(T t, Express ... expresses){
+        return updates(t, expresses, true, true, null);
     }
     public boolean updatesNullWithoutListener(T t, Express ... expresses){
-        return updates(t, expresses, false, false);
+        return updates(t, expresses, true, false, null);
+    }
+    public boolean updatesNull(T t, String [] forNullColumns,  Express ... expresses){
+        return updates(t, expresses, false, true, forNullColumns);
+    }
+    public boolean updatesNullWithoutListener(T t, String [] forNullColumns, Express ... expresses){
+        return updates(t, expresses, false, false, forNullColumns);
     }
 
-    private boolean updates(T t, Express [] expresses, boolean updateNull, boolean enableListener) {
+    private boolean updates(T t, Express [] expresses, boolean updateNull, boolean enableListener, String [] forNullColumns) {
         PreparedStatement ps = null;
 
         Connection conn = null;
@@ -338,7 +351,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         try {
             //triggerDefaultListener(t, true);
             conn = getConnection();
-            helper = SQLHelperCreator.update(t, expresses, updateNull);
+            helper = SQLHelperCreator.update(t, expresses, updateNull, forNullColumns);
             List<T> originals = null;
             if(helper.getIdValue() == null && helper.getIdField() != null && expresses != null && (expresses.length > 0) && (!changeListeners.isEmpty()||!changedListeners.isEmpty())) {
                 originals = list(expresses);
