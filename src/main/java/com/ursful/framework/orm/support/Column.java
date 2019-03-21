@@ -121,7 +121,7 @@ public class Column implements Serializable {
 	public Column(String alias, String name, String asName){
 		this.alias = alias;
 		this.name = name;
-		this.asName = asName;
+		this.asName = asName.toUpperCase();
 	}
 	
 	//sum(u.num) as big
@@ -129,7 +129,7 @@ public class Column implements Serializable {
 		this.function = function;
 		this.alias = alias;
 		this.name = name;
-		this.asName = asName;
+		this.asName = asName.toUpperCase();
 	}
 
     public Column function(String function){
@@ -148,7 +148,7 @@ public class Column implements Serializable {
     }
 
     public Column as(String asName){
-        this.asName = asName;
+        this.asName = asName.toUpperCase();
         return this;
     }
 

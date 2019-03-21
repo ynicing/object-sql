@@ -147,6 +147,11 @@ public class SQLHelperCreator {
             pairs.addAll(pair.getPairs());
         }
         sql.append(ORMUtils.join(terms, " AND "));
+//        for(Express express : expresses){
+//            SQLPair pair = QueryUtils.parseExpression(clazz, express.getExpression());
+//            sql.append(pair.getSql());
+//            pairs.addAll(pair.getPairs());
+//        }
         SQLHelper helper = new SQLHelper();
         helper.setSql(sql.toString());
         helper.setParameters(pairs);
@@ -522,14 +527,36 @@ public class SQLHelperCreator {
                 ResultSetMetaData meta = rs.getMetaData();
 
                 Map<String, Object> temp = new HashMap<String, Object>();
-                for(int i = 1; i <= meta.getColumnCount(); i++){
-                    String tmp = QueryUtils.displayNameOrAsName(meta.getColumnLabel(i), meta.getColumnName(i));
-                    temp.put(tmp, rs.getObject(meta.getColumnLabel(i)));
+                for(int i = 1; i <= meta.getColumnCount(); i++){// orderTest - ORDERTEST ---> ORDER_NUM
+                    String label = meta.getColumnLabel(i);
+                    String name = meta.getColumnName(i);
+                    Object value = rs.getObject(label);
+                    String tmp = QueryUtils.displayNameOrAsName(label, name);
+                    temp.put(tmp, value);
+                    temp.put(label, value);
+                    temp.put(label.toUpperCase(), value);
                 }
                 List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
                 for(ColumnInfo info : infoList){
-                    if(temp.containsKey(info.getName())){
-                        setFieldValue(t, info,temp.get(info.getName()));
+                    Object obj = temp.get(info.getColumnName());
+                    if(obj == null){
+                        obj = temp.get(info.getColumnName().toUpperCase());
+                    }
+                    if(obj == null) {
+                        obj = temp.get(info.getName());
+                    }
+                    if(obj != null){
+                        setFieldValue(t, info, obj);
+                    }
+                }
+                List<ColumnInfo> fields = ORMUtils.getExtendFields(clazz);
+                for (ColumnInfo info : fields){
+                    Object obj = temp.get(info.getName());
+                    if(obj == null){
+                        obj = temp.get(info.getName().toUpperCase());
+                    }
+                    if(obj != null){
+                        setFieldValue(t, info, obj);
                     }
                 }
                 break;

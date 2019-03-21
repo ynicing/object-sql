@@ -369,4 +369,40 @@ public class ORMUtils {
         temp.addAll(getDeclaredFields(tmp));
         return temp;
     }
+
+    private static Map<Class, List<ColumnInfo>> extendFieldCache = new ConcurrentReferenceHashMap<Class, List<ColumnInfo>>();
+
+    public static List<ColumnInfo> getExtendFields(Class<?> clazz){
+        List<ColumnInfo> infoList = extendFieldCache.get(clazz);
+        if(infoList == null){
+            List<Field> fields = getDeclaredExtendFields(clazz);
+            infoList = new ArrayList<ColumnInfo>();
+            for(Field field : fields){
+                ColumnInfo info = new ColumnInfo();
+                info.setField(field);
+                info.setName(field.getName());
+                info.setType(field.getType().getSimpleName());
+                infoList.add(info);
+            }
+            extendFieldCache.put(clazz, infoList);
+        }
+        return infoList;
+    }
+
+    public static List<Field> getDeclaredExtendFields(Class<?> clazz){
+        List<Field> temp = new ArrayList<Field>();
+        if(clazz == null){
+            return temp;
+        }
+        Field [] fields = clazz.getDeclaredFields();
+        for(Field field : fields){
+            RdColumn column = field.getAnnotation(RdColumn.class);
+            if(column == null){
+                temp.add(field);
+            }
+        }
+        Class<?> tmp = clazz.getSuperclass();
+        temp.addAll(getDeclaredExtendFields(tmp));
+        return temp;
+    }
 }
