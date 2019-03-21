@@ -140,11 +140,13 @@ public class SQLHelperCreator {
         }
         StringBuffer sql = new StringBuffer("DELETE FROM " + tableName + " WHERE ");
         List<Pair> pairs = new ArrayList<Pair>();
+        List<String> terms = new ArrayList<String>();
         for(Express express : expresses){
             SQLPair pair = QueryUtils.parseExpression(clazz, express.getExpression());
-            sql.append(pair.getSql());
+            terms.add(pair.getSql());
             pairs.addAll(pair.getPairs());
         }
+        sql.append(ORMUtils.join(terms, " AND "));
         SQLHelper helper = new SQLHelper();
         helper.setSql(sql.toString());
         helper.setParameters(pairs);
