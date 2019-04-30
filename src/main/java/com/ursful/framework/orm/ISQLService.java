@@ -41,4 +41,5 @@ public interface ISQLService {
 
     void register(Class clazz);
 
+    <S> List<S> batchSaves(List<S> ts, boolean rollback);
 }

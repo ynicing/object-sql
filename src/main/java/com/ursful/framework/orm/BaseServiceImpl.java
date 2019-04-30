@@ -236,9 +236,10 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             try {
                 if(helper.getIdValue() == null && helper.getIdField() != null) {
                     ResultSet seqRs = ps.getGeneratedKeys();
-                    seqRs.next();
-                    Object key = seqRs.getObject(1);
-                    helper.setId(t, key);
+                    if(seqRs.next()) {
+                        Object key = seqRs.getObject(1);
+                        helper.setId(t, key);
+                    }
                     seqRs.close();
                 }
             }catch (Exception e){

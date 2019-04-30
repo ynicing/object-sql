@@ -1,5 +1,6 @@
 package com.ursful.framework.orm;
 
+import com.ursful.framework.orm.helper.SQLHelper;
 import com.ursful.framework.orm.helper.SQLHelperCreator;
 import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.support.DatabaseType;
@@ -96,6 +97,7 @@ public class SQLServiceImpl implements ISQLService{
                 }
             }
             ps.executeBatch();
+//            ps.clearParameters();
         } catch (SQLException e) {
             e.printStackTrace();
             try {
@@ -326,5 +328,68 @@ public class SQLServiceImpl implements ISQLService{
         } catch (Exception e) {
             return null;
         }
+    }
+
+
+    @Override
+    public <S> List<S> batchSaves(List<S> ts, boolean rollback) {
+        ResultSet rs = null;
+        PreparedStatement ps = null;
+        Connection conn = null;
+        List<S> result = new ArrayList<S>();
+        try {
+            conn = getConnection();
+
+            List<SQLHelper> helpers = SQLHelperCreator.inserts(ts);
+
+            if(helpers.isEmpty()){
+                return new ArrayList<S>();
+            }
+            SQLHelper helper = helpers.get(0);
+            if(helper.getIdValue() == null && helper.getIdField() != null) {
+                ps = conn.prepareStatement(helper.getSql(), Statement.RETURN_GENERATED_KEYS);
+            }else{
+                ps = conn.prepareStatement(helper.getSql());
+            }
+            conn.setAutoCommit(false);
+            for(SQLHelper sqlHelper : helpers) {
+                SQLHelperCreator.setParameter(ps, sqlHelper.getParameters(), conn);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+//            ps.clearBatch();
+//            ps.clearParameters();
+            if(helper.getIdValue() == null && helper.getIdField() != null) {
+                ResultSet seqRs = ps.getGeneratedKeys();
+                int i = 0;
+                int count = ts.size();
+                while (seqRs.next() && i < count) {
+                    Object key = seqRs.getObject(1);
+                    S s = ts.get(i);
+                    helper.setId(s, key);
+                    i++;
+                    result.add(s);
+                }
+                seqRs.close();
+            }
+        } catch (SQLException e) {
+            if(rollback) {
+                try {
+                    conn.rollback();
+                } catch (SQLException e1) {
+                }
+            }
+            throw new RuntimeException(e);
+        } finally{
+            if(conn != null){
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException e) {
+                }
+            }
+            closeConnection(rs, ps, conn);
+
+        }
+        return result;
     }
 }

@@ -308,6 +308,68 @@ public class SQLHelperCreator {
 
     }
 
+    public static <S> List<SQLHelper> inserts(List<S> objs){
+        List<SQLHelper> helpers = new ArrayList<SQLHelper>();
+        if(objs == null || objs.isEmpty()){
+            return helpers;
+        }
+        String insertSQL = null;
+        Class clazz = null;
+        for(Object obj : objs) {
+            if(clazz == null) {
+                clazz = obj.getClass();
+            }else{
+                if(!clazz.equals(obj.getClass())){
+                    throw new RuntimeException("Error class, [" + clazz.getName() + "] but [" + obj.getClass() + "]");
+                }
+            }
+            String tableName = ORMUtils.getTableName(clazz);
+            List<Pair> parameters = new ArrayList<Pair>();
+            List<String> ps = new ArrayList<String>();
+            List<String> vs = new ArrayList<String>();
+            SQLHelper helper = new SQLHelper();
+            List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
+            DatabaseType databaseType = DatabaseTypeHolder.get();
+            for (ColumnInfo info : infoList) {
+                Object fo = ORMUtils.getFieldValue(obj, info);
+                if (databaseType == DatabaseType.SQLServer && info.getColumnType() == ColumnType.TIMESTAMP) {
+                    continue;
+                }
+                if (info.getPrimaryKey()) {
+                    helper.setIdField(info.getField());
+                    if (StringUtils.isEmpty(fo)) {
+                        if (String.class.getSimpleName().equals(info.getType())) {
+                            fo = UUID.randomUUID().toString();
+                            ORMUtils.setFieldValue(obj, info, fo);
+                            helper.setIdValue(fo);
+                        }
+                    } else {//值为空的时候，但是无id，需要自取了
+                        helper.setIdValue(fo);
+                    }
+                }
+                ps.add(info.getColumnName());
+                vs.add("?");
+                Pair pair = new Pair(info, fo);
+                parameters.add(pair);
+            }
+            if(insertSQL == null) {
+                StringBuffer sql = new StringBuffer("INSERT INTO ");
+                sql.append(tableName);
+                sql.append("(");
+                sql.append(ORMUtils.join(ps, ","));
+                sql.append(") VALUES (");
+                sql.append(ORMUtils.join(vs, ","));
+                sql.append(")");
+                insertSQL = sql.toString();
+            }
+            helper.setSql(insertSQL);
+            helper.setParameters(parameters);
+            helpers.add(helper);
+        }
+        return helpers;
+
+    }
+
     /**
      * 允许获取 id，匹配，唯一等值
      * 有id根据id获取，其他根据列 等值获取
@@ -748,7 +810,14 @@ public class SQLHelperCreator {
                             ps.setLong(i + 1, ((Date) obj).getTime());
                         }else if(columnType == ColumnType.DATETIME) {
                             Date date = (Date)obj;
-                            ps.setDate(i + 1, new java.sql.Date(date.getTime()));
+                            ps.setTimestamp(i+1, new Timestamp(date.getTime()));
+//                            if(databaseType == DatabaseType.SQLServer){
+//                                public java.sql.Timestamp getTimestamp(Date date) {
+//                                    return new java.sql.Timestamp(date.getTime());
+//                                }
+//                            }else {
+//                                ps.setDate(i + 1, new java.sql.Date(date.getTime()));
+//                            }
                         }else{//timestamp
                             if(databaseType != null && databaseType == DatabaseType.SQLServer){
                                 ps.setTimestamp(i + 1, null);
@@ -764,11 +833,11 @@ public class SQLHelperCreator {
                     ps.setBigDecimal(i + 1, setScale);
                     break;
                 case DOUBLE:
-                    if(databaseType == DatabaseType.ORACLE){
-                        BigDecimal bg=new BigDecimal((Double)obj);
-                        bg.setScale(5,BigDecimal.ROUND_HALF_DOWN);
-                        ps.setDouble(i + 1, bg.doubleValue());
-                    }else{
+                        if(databaseType == DatabaseType.ORACLE){
+                            BigDecimal bg=new BigDecimal((Double)obj);
+                            bg.setScale(5,BigDecimal.ROUND_HALF_DOWN);
+                            ps.setDouble(i + 1, bg.doubleValue());
+                        }else{
                         ps.setObject(i + 1, obj);
                     }
                     break;
