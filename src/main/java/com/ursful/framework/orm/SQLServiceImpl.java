@@ -3,11 +3,9 @@ package com.ursful.framework.orm;
 import com.ursful.framework.orm.helper.SQLHelper;
 import com.ursful.framework.orm.helper.SQLHelperCreator;
 import com.ursful.framework.orm.query.QueryUtils;
-import com.ursful.framework.orm.support.DatabaseType;
-import com.ursful.framework.orm.support.DatabaseTypeHolder;
-import com.ursful.framework.orm.support.DynamicTable;
-import com.ursful.framework.orm.support.Pair;
+import com.ursful.framework.orm.support.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.Assert;
 
 import javax.sql.DataSource;
 import java.lang.reflect.Method;
@@ -290,6 +288,7 @@ public class SQLServiceImpl implements ISQLService{
                     return timestamp.getTime() + timestamp.getNanos()/1000000000.0;
                 }else{
                     Timestamp timestamp = getOracleTimestamp(object, conn);
+                    Assert.notNull(timestamp, "Error get timestamp from oracle.");
                     return timestamp.getTime() + timestamp.getNanos()/1000000000.0;
                 }
             }
@@ -320,11 +319,27 @@ public class SQLServiceImpl implements ISQLService{
 
     private Timestamp getOracleTimestamp(Object value, Connection connection) {
         try {
+            Connection conn = connection;
+            List<IRealConnection> realConnections = DataSourceManager.getRealConnection();
+            if(!realConnections.isEmpty()){
+                for (IRealConnection realConnection :realConnections){
+                    Connection temp = realConnection.getConnection(connection);
+                    if(temp != null){
+                        conn = temp;
+                        break;
+                    }
+                }
+            }
+            if(connection != null && connection.getClass().getName().endsWith("DruidPooledConnection")){
+                Class clazz = connection.getClass().getClassLoader().loadClass("com.alibaba.druid.pool.DruidPooledConnection");
+                Method method = clazz.getMethod("getConnection");
+                conn = (Connection)method.invoke(connection);
+            }
             Class clz = value.getClass();
             Method m = clz.getMethod("timestampValue", Connection.class);
             //m = clz.getMethod("timeValue", null); 时间类型
             //m = clz.getMethod("dateValue", null); 日期类型
-            return (Timestamp) m.invoke(value, connection);
+            return (Timestamp) m.invoke(value, conn);
         } catch (Exception e) {
             return null;
         }

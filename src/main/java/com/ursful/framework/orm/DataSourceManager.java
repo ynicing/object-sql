@@ -8,10 +8,7 @@ import com.ursful.framework.orm.page.H2QueryPage;
 import com.ursful.framework.orm.page.MySQLQueryPage;
 import com.ursful.framework.orm.page.OracleQueryPage;
 import com.ursful.framework.orm.page.SQLServerQueryPage;
-import com.ursful.framework.orm.support.DatabaseType;
-import com.ursful.framework.orm.support.DatabaseTypeHolder;
-import com.ursful.framework.orm.support.DynamicTable;
-import com.ursful.framework.orm.support.QueryPage;
+import com.ursful.framework.orm.support.*;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.datasource.DataSourceUtils;
@@ -21,11 +18,27 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class DataSourceManager {
+
+    private static List<IRealConnection> connectionInterface = new ArrayList<IRealConnection>();
+
+    public static List<IRealConnection> getRealConnection(){
+        return connectionInterface;
+    }
+
+    public static void register(IRealConnection connection){
+        if(!connectionInterface.contains(connection)){
+            connectionInterface.add(connection);
+        }
+    }
+    public static void deregister(IRealConnection connection){
+        connectionInterface.remove(connection);
+    }
 
     private static Map<DataSource, DatabaseType> databaseTypeMap = new HashMap<DataSource, DatabaseType>();
     private static Map<DatabaseType, QueryPage> queryPageMap = new HashMap<DatabaseType, QueryPage>();
