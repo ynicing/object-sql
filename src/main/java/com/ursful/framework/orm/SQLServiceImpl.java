@@ -323,7 +323,7 @@ public class SQLServiceImpl implements ISQLService{
             Connection conn = null;
             List<IRealConnection> realConnections = DataSourceManager.getRealConnection();
             if(!realConnections.isEmpty()){
-                for (IRealConnection realConnection :realConnections){
+                for (IRealConnection realConnection : realConnections){
                     Connection temp = realConnection.getConnection(connection);
                     if(temp != null){
                         conn = temp;
