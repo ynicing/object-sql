@@ -319,7 +319,8 @@ public class SQLServiceImpl implements ISQLService{
 
     private Timestamp getOracleTimestamp(Object value, Connection connection) {
         try {
-            Connection conn = connection;
+            Assert.notNull(connection, "Oracle connection should not be nullable.");
+            Connection conn = null;
             List<IRealConnection> realConnections = DataSourceManager.getRealConnection();
             if(!realConnections.isEmpty()){
                 for (IRealConnection realConnection :realConnections){
@@ -330,10 +331,13 @@ public class SQLServiceImpl implements ISQLService{
                     }
                 }
             }
-            if(connection != null && connection.getClass().getName().endsWith("DruidPooledConnection")){
+            if(conn == null && connection.getClass().getName().endsWith("DruidPooledConnection")){
                 Class clazz = connection.getClass().getClassLoader().loadClass("com.alibaba.druid.pool.DruidPooledConnection");
                 Method method = clazz.getMethod("getConnection");
                 conn = (Connection)method.invoke(connection);
+            }
+            if(conn == null){
+                conn = connection;
             }
             Class clz = value.getClass();
             Method m = clz.getMethod("timestampValue", Connection.class);
