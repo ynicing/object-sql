@@ -188,7 +188,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                 listener.change(original, t);
             }catch (Exception e){
                 logger.error("Change Listener Error", e);
-                if(!autoCommit) {//事务，变更影响其他监听器
+                if(!autoCommit || (e instanceof RuntimeException)) {//事务，变更影响其他监听器
                     throw e;
                 }
             }
@@ -253,6 +253,8 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
             throw new RuntimeException("QUERY_SQL_ERROR, SAVE: " + e.getMessage());
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("SQL : " + helper, e);
             throw new RuntimeException("QUERY_SQL_ERROR, SAVE Listener : " + e.getMessage());
@@ -314,7 +316,9 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             return result;
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
-            throw new RuntimeException("QUERY_SQL_ERROR, UPDATE: " +  e.getMessage());
+            throw new RuntimeException("QUERY_SQL_ERROR, UPDATE: " + e.getMessage());
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("SQL : " + helper, e);
             throw new RuntimeException("QUERY_SQL_ERROR, UPDATE Listener : " + e.getMessage());
@@ -377,6 +381,8 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
             throw new RuntimeException("QUERY_SQL_ERROR, UPDATE: " +  e.getMessage());
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("SQL : " + helper, e);
             throw new RuntimeException("QUERY_SQL_ERROR, UPDATE Listener : " + e.getMessage());
@@ -427,6 +433,8 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
             throw new RuntimeException("QUERY_SQL_ERROR, DELETE : " +  e.getMessage());
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("SQL : " + helper, e);
             throw new RuntimeException("QUERY_SQL_ERROR, DELETE : " + e.getMessage());
@@ -486,6 +494,8 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
             throw new RuntimeException("QUERY_SQL_ERROR, DELETE(Terms) : " +  e.getMessage());
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("SQL : " + helper, e);
             throw new RuntimeException("QUERY_SQL_ERROR, DELETE(Terms) : " + e.getMessage());
@@ -530,6 +540,8 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
             throw new RuntimeException("QUERY_SQL_ERROR, DELETE(Express) : " +  e.getMessage());
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             logger.error("SQL : " + helper, e);
             throw new RuntimeException("QUERY_SQL_ERROR, DELETE(Express) : " + e.getMessage());
