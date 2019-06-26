@@ -46,11 +46,11 @@ public class DataSourceManager {
 
     private static Map<Class, DataSource> classDataSourceMap = new HashMap<Class, DataSource>();
     private static Map<String, DataSource> packageDataSourceMap = new HashMap<String, DataSource>();
-    private static Map<Class, DataSource> serviceDataSourceMap = new HashMap<Class, DataSource>();
+//    private static Map<Class, DataSource> serviceDataSourceMap = new HashMap<Class, DataSource>();
 
-    public void registerService(Class clazz, DataSource dataSource){
-        serviceDataSourceMap.put(clazz, dataSource);
-    }
+//    public void registerService(Class clazz, DataSource dataSource){
+//        serviceDataSourceMap.put(clazz, dataSource);
+//    }
 
     public void register(Class clazz, DataSource dataSource){
         classDataSourceMap.put(clazz, dataSource);
@@ -214,6 +214,14 @@ public class DataSourceManager {
         packageDataSourceMap.clear();
     }
 
+    public DataSource getDataSource(Class clazz, Class serviceClass) {
+        DataSource source = classDataSourceMap.get(serviceClass);
+        if(source == null) {
+            source = getDataSource(clazz);
+        }
+        return source;
+    }
+
     public DataSource getDataSource(Class clazz) {
         DataSource source = null;
         if(classDataSourceMap.containsKey(clazz)){
@@ -228,7 +236,7 @@ public class DataSourceManager {
     }
 
     public Connection getConnection(Class clazz, Class serviceClass){
-        DataSource source = serviceDataSourceMap.get(serviceClass);
+        DataSource source = classDataSourceMap.get(serviceClass);
         if(source == null) {
             source = getDataSource(clazz);
         }

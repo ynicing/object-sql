@@ -40,10 +40,7 @@ public class SQLServiceImpl implements ISQLService{
 
     @Override
     public DataSource getDataSource() {
-        if(thisClass == null){
-            thisClass = this.getClass();
-        }
-        return dataSourceManager.getDataSource(thisClass);
+        return dataSourceManager.getDataSource(thisClass, this.getClass());
     }
 
     @Override
