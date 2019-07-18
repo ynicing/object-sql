@@ -23,6 +23,7 @@ import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.util.Assert;
 import org.springframework.util.ConcurrentReferenceHashMap;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.DataBinder;
@@ -63,6 +64,7 @@ public class SQLHelperCreator {
 
         Pair primaryKey = null;
         List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
+        Assert.notNull(infoList, "Get columns cache is empty.");
         for(ColumnInfo info : infoList){
             if(info.getPrimaryKey()){
                 Object fo = null;
@@ -200,7 +202,7 @@ public class SQLHelperCreator {
         List<String> sets = new ArrayList<String>();
         Pair primaryKey = null;
         List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
-
+        Assert.notNull(infoList, "Get columns cache is empty.");
         DatabaseType databaseType = DatabaseTypeHolder.get();
         SQLHelper helper = new SQLHelper();
         for(ColumnInfo info : infoList){
@@ -268,6 +270,7 @@ public class SQLHelperCreator {
         List<String> vs = new ArrayList<String>();
         SQLHelper helper = new SQLHelper();
         List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
+        Assert.notNull(infoList, "Get columns cache is empty.");
         DatabaseType databaseType = DatabaseTypeHolder.get();
         for(ColumnInfo info : infoList){
             Object fo = ORMUtils.getFieldValue(obj, info);
@@ -329,6 +332,7 @@ public class SQLHelperCreator {
             List<String> vs = new ArrayList<String>();
             SQLHelper helper = new SQLHelper();
             List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
+            Assert.notNull(infoList, "Get columns cache is empty.");
             DatabaseType databaseType = DatabaseTypeHolder.get();
             for (ColumnInfo info : infoList) {
                 Object fo = ORMUtils.getFieldValue(obj, info);
@@ -397,6 +401,7 @@ public class SQLHelperCreator {
         Pair primaryKey = null;
 
         List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
+        Assert.notNull(infoList, "Get columns cache is empty.");
         for(ColumnInfo info : infoList) {
             Object fo = ORMUtils.getFieldValue(obj, info);
             if (fo != null) {
@@ -488,6 +493,7 @@ public class SQLHelperCreator {
         Pair primaryKey = null;
         List<Pair> parameters = new ArrayList<Pair>();
         List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
+        Assert.notNull(infoList, "Get columns cache is empty.");
         for(ColumnInfo info : infoList){
             if(info.getPrimaryKey() && id != null){
                 primaryKey = new Pair(info, id);
@@ -599,6 +605,7 @@ public class SQLHelperCreator {
                     temp.put(label.toUpperCase(), value);
                 }
                 List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
+                Assert.notNull(infoList, "Get columns cache is empty.");
                 for(ColumnInfo info : infoList){
                     Object obj = temp.get(info.getColumnName());
                     if(obj == null){

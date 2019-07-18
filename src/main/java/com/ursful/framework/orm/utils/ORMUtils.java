@@ -23,6 +23,7 @@ import com.ursful.framework.orm.support.ColumnType;
 import com.ursful.framework.orm.support.DebugHolder;
 import com.ursful.framework.orm.annotation.RdColumn;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.util.Assert;
 import org.springframework.util.ConcurrentReferenceHashMap;
 import org.springframework.util.StringUtils;
 
@@ -125,7 +126,7 @@ public class ORMUtils {
         return getFieldValue(object, info.getField());
     }
 
-    private static void analyze(Class<?> clazz){
+    private static List<ColumnInfo> analyze(Class<?> clazz){
         List<ColumnInfo> infoList = new ArrayList<ColumnInfo>();
         List<Field> fields = getDeclaredFields(clazz);
         for(Field field : fields){
@@ -147,6 +148,7 @@ public class ORMUtils {
             }
         }
         columnInfoCache.put(clazz, infoList);
+        return infoList;
     }
 
 
@@ -249,8 +251,7 @@ public class ORMUtils {
         Map<String, ColumnType> temp = new HashMap<String, ColumnType>();
         List<ColumnInfo> infoList = columnInfoCache.get(clazz);
         if(infoList == null){
-            analyze(clazz);
-            infoList = columnInfoCache.get(clazz);
+            infoList = analyze(clazz);
         }
         if(infoList != null){
             for(ColumnInfo info: infoList){
@@ -264,8 +265,7 @@ public class ORMUtils {
         Map<String, String> temp = new HashMap<String, String>();
         List<ColumnInfo> infoList = columnInfoCache.get(clazz);
         if(infoList == null){
-            analyze(clazz);
-            infoList = columnInfoCache.get(clazz);
+            infoList = analyze(clazz);
         }
         if(infoList != null){
             for(ColumnInfo info: infoList){
@@ -279,8 +279,7 @@ public class ORMUtils {
         Map<String, String> temp = new HashMap<String, String>();
         List<ColumnInfo> infoList = columnInfoCache.get(clazz);
         if(infoList == null){
-            analyze(clazz);
-            infoList = columnInfoCache.get(clazz);
+            infoList = analyze(clazz);
         }
         if(infoList != null){
             for(ColumnInfo info: infoList){
@@ -301,6 +300,7 @@ public class ORMUtils {
         if(from.getClass() == to.getClass()){
             Class clazz = to.getClass();
             List<ColumnInfo> columnInfos = getColumnInfo(clazz);
+            Assert.notNull(columnInfos, "Get columns cache is empty.");
             for(ColumnInfo info : columnInfos){
                 Object fromValue = getFieldValue(from, info);
                 if(StringUtils.isEmpty(fromValue)){//因为属性
@@ -318,8 +318,7 @@ public class ORMUtils {
         List<String> temp = new ArrayList<String>();
         List<ColumnInfo> infoList = columnInfoCache.get(clazz);
         if(infoList == null){
-            analyze(clazz);
-            infoList = columnInfoCache.get(clazz);
+            infoList = analyze(clazz);
         }
         if(infoList != null){
             for(ColumnInfo info: infoList){
@@ -332,8 +331,7 @@ public class ORMUtils {
     public static List<ColumnInfo> getColumnInfo(Class<?> clazz){
         List<ColumnInfo> infoList = columnInfoCache.get(clazz);
         if(infoList == null){
-            analyze(clazz);
-            infoList = columnInfoCache.get(clazz);
+            infoList = analyze(clazz);
         }
         return infoList;
     }
@@ -342,10 +340,9 @@ public class ORMUtils {
         List<String> temp = new ArrayList<String>();
         List<ColumnInfo> infoList = columnInfoCache.get(clazz);
         if(infoList == null){
-            analyze(clazz);
-            infoList = columnInfoCache.get(clazz);
+            infoList = analyze(clazz);
         }
-        if(infoList != null){
+        if(infoList != null) {
             for(ColumnInfo info: infoList){
                 temp.add(info.getColumnName());
             }
