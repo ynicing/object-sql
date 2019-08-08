@@ -63,8 +63,8 @@ public class ORMUtils {
 
     public static boolean getDebug(){//true
         String _debug = DebugHolder.get();
-        if (_debug != null && "true".equals(_debug)) {
-            return true;
+        if (_debug != null) {
+            return "true".equals(_debug);
         }
         return debug;
     }
