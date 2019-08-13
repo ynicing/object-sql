@@ -1,7 +1,5 @@
 package com.ursful.framework.orm;
 
-import com.ursful.framework.orm.support.DatabaseType;
-
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.util.Date;
@@ -39,7 +37,7 @@ public interface ISQLService {
 
     Double getDatabaseNanoTime();
 
-    void register(Class clazz);
+    void register(Class clazz, Class serviceClass);
 
     <S> List<S> batchSaves(List<S> ts, boolean rollback);
 }

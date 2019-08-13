@@ -9,8 +9,6 @@ import com.ursful.framework.orm.page.MySQLQueryPage;
 import com.ursful.framework.orm.page.OracleQueryPage;
 import com.ursful.framework.orm.page.SQLServerQueryPage;
 import com.ursful.framework.orm.support.*;
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 
 import javax.sql.DataSource;
@@ -44,16 +42,12 @@ public class DataSourceManager {
     private static Map<DatabaseType, QueryPage> queryPageMap = new HashMap<DatabaseType, QueryPage>();
     private static Map<DatabaseType, DynamicTable> dynamicTableMap = new HashMap<DatabaseType, DynamicTable>();
 
-    private static Map<Class, DataSource> classDataSourceMap = new HashMap<Class, DataSource>();
+    private static Map<Class, DataSource> dataSourceMap = new HashMap<Class, DataSource>();
     private static Map<String, DataSource> packageDataSourceMap = new HashMap<String, DataSource>();
-//    private static Map<Class, DataSource> serviceDataSourceMap = new HashMap<Class, DataSource>();
-
-//    public void registerService(Class clazz, DataSource dataSource){
-//        serviceDataSourceMap.put(clazz, dataSource);
-//    }
+    private static Map<String, DataSource> classDataSourceMap = new HashMap<String, DataSource>();
 
     public void register(Class clazz, DataSource dataSource){
-        classDataSourceMap.put(clazz, dataSource);
+        classDataSourceMap.put(clazz.getName(), dataSource);
     }
 
     public void register(String pkg, DataSource dataSource){
@@ -89,32 +83,16 @@ public class DataSourceManager {
 
 
 
-    public DataSource getRawDataSource(){
-        DataSource current = dataSource;
-        if(dataSource instanceof DynamicDataSource){
-            DynamicDataSource dynamicDataSource = (DynamicDataSource) dataSource;
-            current = dynamicDataSource.currentDataSource();
+    public DataSource getRawDataSource(DataSource current){
+        DataSource raw = current;
+        if(current instanceof DynamicDataSource){
+            DynamicDataSource dynamicDataSource = (DynamicDataSource) current;
+            raw = dynamicDataSource.currentDataSource();
         }
-        return current;
+        return raw;
     }
 
-    public DatabaseType getDatabaseType(DataSource raw){
-        DatabaseType type = databaseTypeMap.get(raw);
-        if(type != null){
-            return type;
-        }
-        Connection connection = null;
-        try {
-            connection = DataSourceUtils.getConnection(raw);
-            return getDatabaseType(raw, connection);
-        } finally {
-            DataSourceUtils.releaseConnection(connection, raw);
-        }
-    }
-    public DatabaseType getDatabaseType(Class clazz){
-        DataSource raw = getDataSource(clazz);
-        return getDatabaseType(raw);
-    }
+
 
     public DataSource getDataSource() {
         return dataSource;
@@ -125,10 +103,10 @@ public class DataSourceManager {
     }
 
     public QueryPage getQueryPage(){
-        return getQueryPage(null);
+        return getQueryPage(null, null);
     }
-    public QueryPage getQueryPage(Class clazz){
-        DatabaseType databaseType =  getDatabaseType(clazz);
+    public QueryPage getQueryPage(Class clazz, Class serviceClass){
+        DatabaseType databaseType =  getDatabaseType(clazz, serviceClass);
         QueryPage queryPage = queryPageMap.get(databaseType);
         if(queryPage == null){
             switch (databaseType){
@@ -153,13 +131,12 @@ public class DataSourceManager {
     }
 
     public DynamicTable getDynamicTable() {
-        return getDynamicTable(null);
+        return getDynamicTable(null, null);
     }
 
-    public DynamicTable getDynamicTable(Class clazz){
-        DataSource raw = getDataSource(clazz);
+    public DynamicTable getDynamicTable(Class clazz, Class serviceClass){
+        DataSource raw = getDataSource(clazz, serviceClass);
         DatabaseType databaseType =  getDatabaseType(raw);
-        String dbName = "null";
         //((ExtAtomikosDataSourceBean)dataSource).xaProperties = URL
         //((DruidDataSource) dataSource).jdbcUrl
         DynamicTable table = dynamicTableMap.get(databaseType);
@@ -202,7 +179,7 @@ public class DataSourceManager {
         for(String key : packageDataSourceMap.keySet()){
             if(name.startsWith(key)){
                 DataSource ds = packageDataSourceMap.get(key);
-                classDataSourceMap.put(clazz, ds);
+                dataSourceMap.put(clazz, ds);
                 return ds;
             }
         }
@@ -210,44 +187,91 @@ public class DataSourceManager {
     }
 
     public void clearPatternDataSource(){
+        dataSourceMap.clear();
         classDataSourceMap.clear();
         packageDataSourceMap.clear();
     }
 
-    public DataSource getDataSource(Class clazz, Class serviceClass) {
-        DataSource source = classDataSourceMap.get(serviceClass);
-        if(source == null) {
-            source = getDataSource(clazz);
+    private DataSource getPatternDataSource(Class clazz){
+        if(clazz == null){
+            return null;
         }
-        return source;
-    }
 
-    public DataSource getDataSource(Class clazz) {
-        DataSource source = null;
-        if(classDataSourceMap.containsKey(clazz)){
-            source = classDataSourceMap.get(clazz);
-        }else {
-            source = getPackageDataSource(clazz);
-            if(source == null) {
-                source = getRawDataSource();
+        String name = clazz.getName();
+        DataSource ds = classDataSourceMap.get(name);
+        if(ds != null){
+            dataSourceMap.put(clazz, ds);
+            return ds;
+        }
+        for(String key : packageDataSourceMap.keySet()){
+            if(name.startsWith(key)){
+                ds = packageDataSourceMap.get(key);
+                dataSourceMap.put(clazz, ds);
+                return ds;
             }
         }
-        return source;
+        return null;
     }
 
-    public Connection getConnection(Class clazz, Class serviceClass){
-        DataSource source = classDataSourceMap.get(serviceClass);
-        if(source == null) {
-            source = getDataSource(clazz);
+    public DataSource getDataSource(Class clazz, Class serviceClass) {
+        if(clazz == null && serviceClass == null){
+            return dataSource;
         }
+        DataSource source = null;
+        if(serviceClass != null && dataSourceMap.containsKey(serviceClass)){
+            source = dataSourceMap.get(serviceClass);
+            return source;
+        }
+        if(clazz != null && dataSourceMap.containsKey(clazz)) {
+            source = dataSourceMap.get(clazz);
+            return source;
+        }
+        source = getPatternDataSource(serviceClass);
+        if(source != null){
+            return source;
+        }
+        source = getPatternDataSource(clazz);
+        if(source != null){
+            return source;
+        }
+        if(serviceClass != null) {
+            dataSourceMap.put(serviceClass, dataSource);
+        }
+        if(clazz != null) {
+            dataSourceMap.put(clazz, dataSource);
+        }
+        return dataSource;
+    }
+
+
+    public Connection getConnection(Class clazz, Class serviceClass){
+        DataSource source = getDataSource(clazz, serviceClass);
         Connection connection = DataSourceUtils.getConnection(source);
         DatabaseTypeHolder.set(getDatabaseType(source, connection));
         return connection;
     }
 
+    public DatabaseType getDatabaseType(DataSource raw){
+        DatabaseType type = databaseTypeMap.get(raw);
+        if(type != null){
+            return type;
+        }
+        Connection connection = null;
+        try {
+            connection = DataSourceUtils.getConnection(raw);
+            return getDatabaseType(raw, connection);
+        } finally {
+            DataSourceUtils.releaseConnection(connection, raw);
+        }
+    }
+    public DatabaseType getDatabaseType(Class clazz, Class serviceClass){
+        DataSource temp = getDataSource(clazz, serviceClass);
+        return getDatabaseType(temp);
+    }
 
     public DatabaseType getDatabaseType(DataSource source, Connection connection){
-        DatabaseType type = databaseTypeMap.get(source);
+        DataSource raw = getRawDataSource(source);
+        DatabaseType type = databaseTypeMap.get(raw);
         if(type != null){
             return type;
         }
@@ -266,7 +290,7 @@ public class DataSourceManager {
                 databaseType = DatabaseType.NONE;
                 //throw new RuntimeException("Not support : " +productName);
             }
-            databaseTypeMap.put(source, databaseType);
+            databaseTypeMap.put(raw, databaseType);
             return databaseType;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -275,8 +299,8 @@ public class DataSourceManager {
     }
 
 
-    public synchronized void close(Class clazz, ResultSet rs, Statement stmt, Connection conn){
-        DataSource source = getDataSource(clazz);
+    public synchronized void close(Class clazz, Class serviceClass, ResultSet rs, Statement stmt, Connection conn){
+        DataSource source = getDataSource(clazz, serviceClass);
         try {
             if(rs != null){
                 rs.close();
@@ -292,12 +316,5 @@ public class DataSourceManager {
         }
     }
 
-    public synchronized void close(Class clazz, Statement stmt, Connection conn){
-        close(clazz, null, stmt, conn);
-    }
-
-    public synchronized void close(Class clazz, Connection conn){
-        close(clazz, null, null, conn);
-    }
 
 }

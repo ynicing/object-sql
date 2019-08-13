@@ -24,6 +24,7 @@ public class SQLServiceImpl implements ISQLService{
     protected DataSourceManager dataSourceManager;
 
     protected Class<?> thisClass;
+    protected Class<?> serviceClass;
 
     public DataSourceManager getDataSourceManager() {
         return dataSourceManager;
@@ -31,7 +32,7 @@ public class SQLServiceImpl implements ISQLService{
 
     @Override
     public String currentDatabaseType() {
-        DatabaseType type = dataSourceManager.getDatabaseType(thisClass);
+        DatabaseType type = dataSourceManager.getDatabaseType(thisClass, serviceClass);
         if(type != null){
             return type.name();
         }
@@ -40,7 +41,7 @@ public class SQLServiceImpl implements ISQLService{
 
     @Override
     public DataSource getDataSource() {
-        return dataSourceManager.getDataSource(thisClass, this.getClass());
+        return dataSourceManager.getDataSource(thisClass, serviceClass);
     }
 
     @Override
@@ -54,7 +55,6 @@ public class SQLServiceImpl implements ISQLService{
 
     @Override
     public boolean execute(String sql, Object... params) {
-        int res = -1;
         PreparedStatement ps = null;
         Connection conn = null;
         try {
@@ -233,12 +233,12 @@ public class SQLServiceImpl implements ISQLService{
     }
 
     public void closeConnection(ResultSet rs, Statement stmt, Connection conn){
-        dataSourceManager.close(thisClass, rs, stmt, conn);
+        dataSourceManager.close(thisClass, serviceClass, rs, stmt, conn);
     }
 
     @Override
     public Connection getConnection() {
-        return dataSourceManager.getConnection(thisClass, this.getClass());
+        return dataSourceManager.getConnection(thisClass, serviceClass);
     }
 
     @Override
@@ -301,13 +301,13 @@ public class SQLServiceImpl implements ISQLService{
     }
 
     @Override
-    public void register(Class clazz) {
+    public void register(Class clazz, Class serviceClass) {
         ResultSet rs = null;
         PreparedStatement ps = null;
         Connection conn = null;
         try {
             //获取dataSource
-            DynamicTable table = dataSourceManager.getDynamicTable(clazz);
+            DynamicTable table = dataSourceManager.getDynamicTable(clazz, serviceClass);
             conn = getConnection();
             table.register(clazz, conn);
         } catch (Exception e) {

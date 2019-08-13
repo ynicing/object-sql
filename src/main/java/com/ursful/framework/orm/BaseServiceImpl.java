@@ -46,6 +46,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         Type[] ts = ((ParameterizedType) getClass()
                 .getGenericSuperclass()).getActualTypeArguments();
         thisClass = (Class<T>) ts[0];
+        serviceClass = this.getClass();
     }
 
     private List<IORMListener> listeners = new ArrayList<IORMListener>();
@@ -1076,7 +1077,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
 
     private QueryPage getQueryPage(){
-        return dataSourceManager.getQueryPage(thisClass);
+        return dataSourceManager.getQueryPage(thisClass, serviceClass);
     }
 
 }
