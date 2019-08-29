@@ -780,7 +780,11 @@ public class SQLHelperCreator {
                     }else if(columnType == ColumnType.BLOB){
                         if(obj != null) {
                             try {
-                                ps.setBlob(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
+                                if(databaseType == DatabaseType.PostgreSQL){
+                                    ps.setBinaryStream(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
+                                }else {
+                                    ps.setBlob(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
+                                }
                             } catch (UnsupportedEncodingException e) {
                                 e.printStackTrace();
                             }
@@ -795,7 +799,13 @@ public class SQLHelperCreator {
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
-                        }else {
+                        } else if(databaseType == DatabaseType.PostgreSQL){
+                            try {
+                                ps.setBinaryStream(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
+                            } catch (UnsupportedEncodingException e) {
+                                e.printStackTrace();
+                            }
+                        } else {
                             Clob clob = null;
                             if(obj != null) {
                                 clob = new SerialClob(obj.toString().toCharArray());

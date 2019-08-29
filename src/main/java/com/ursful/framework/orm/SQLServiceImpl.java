@@ -272,6 +272,10 @@ public class SQLServiceImpl implements ISQLService{
                 case ORACLE:
                     sql = "SELECT SYSTIMESTAMP FROM DUAL";
                     break;
+                case PostgreSQL:
+                    sql = "SELECT NOW()";
+                    break;
+
             }
             if(sql == null){
                 return null;

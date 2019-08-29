@@ -20,5 +20,6 @@ public enum DatabaseType {
     H2,
     MySQL,
     ORACLE,
-    SQLServer
+    SQLServer,
+    PostgreSQL
 }

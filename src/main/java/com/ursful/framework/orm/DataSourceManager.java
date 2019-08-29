@@ -4,10 +4,7 @@ import com.ursful.framework.orm.helper.table.H2Table;
 import com.ursful.framework.orm.helper.table.MySQLTable;
 import com.ursful.framework.orm.helper.table.OracleTable;
 import com.ursful.framework.orm.helper.table.SQLServerTable;
-import com.ursful.framework.orm.page.H2QueryPage;
-import com.ursful.framework.orm.page.MySQLQueryPage;
-import com.ursful.framework.orm.page.OracleQueryPage;
-import com.ursful.framework.orm.page.SQLServerQueryPage;
+import com.ursful.framework.orm.page.*;
 import com.ursful.framework.orm.support.*;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 
@@ -112,6 +109,9 @@ public class DataSourceManager {
             switch (databaseType){
                 case MySQL:
                     queryPage = new MySQLQueryPage();
+                    break;
+                case PostgreSQL:
+                    queryPage = new PostgreSQLQueryPage();
                     break;
                 case ORACLE:
                     queryPage = new OracleQueryPage();
@@ -284,8 +284,10 @@ public class DataSourceManager {
                 databaseType = DatabaseType.ORACLE;
             }else if(productName.contains("H2")){
                 databaseType = DatabaseType.H2;
-            }else if(productName.contains("SERVER")){
+            }else if(productName.contains("SERVER")) {
                 databaseType = DatabaseType.SQLServer;
+            }else if(productName.contains("POSTGRESQL")){
+                databaseType = DatabaseType.PostgreSQL;
             }else{
                 databaseType = DatabaseType.NONE;
                 //throw new RuntimeException("Not support : " +productName);
