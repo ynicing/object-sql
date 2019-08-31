@@ -120,6 +120,10 @@ public interface IBaseService<T> extends IServiceChangedListener<T>, ISQLService
     List<T> list(Express ... expresses);
     List<T> list(Terms terms);
     List<T> list(Terms terms, MultiOrder multiOrder);
+    List<T> list(Terms terms, MultiOrder multiOrder, Integer limit);
+    List<T> list(Names names, Terms terms);
+    List<T> list(Names names, Terms terms, MultiOrder multiOrder);
+    List<T> list(Names names, Terms terms, MultiOrder multiOrder, Integer limit);
 
     //复杂的查询（多表）, 可以返回Bean，ExtBean，Map类型
     <S> List<S> query(IQuery query);//queryDistinctString

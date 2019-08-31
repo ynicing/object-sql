@@ -108,7 +108,10 @@ public class OracleQueryPage extends AbstractQueryPage{
             }
         }
         sql.append(order);
-        if(start != null && size != null){
+        if(size != null && size.intValue() > 0){
+            if(start == null){
+                start = 0;
+            }
             if(hasOrder){
                 sql = new StringBuffer("SELECT ora_a_.* FROM (SELECT ora_b_.*,ROWNUM rn_ FROM (" + sql.toString() + ") ora_b_ WHERE ROWNUM <= ?) ora_a_ WHERE ora_a_.rn_ > ? ");
             }else{

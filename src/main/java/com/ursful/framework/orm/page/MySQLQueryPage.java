@@ -73,7 +73,10 @@ public class MySQLQueryPage extends AbstractQueryPage{
                 sql.append(" ORDER BY " + orders);
             }
         }
-        if(start != null && size != null){
+        if(size != null && size.intValue() > 0){
+            if(start == null){
+                start = 0;
+            }
             sql.append(" LIMIT ? OFFSET ? ");
             values.add(new Pair(size));
             values.add(new Pair(start));

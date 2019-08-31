@@ -94,7 +94,10 @@ public class SQLServerQueryPage extends AbstractQueryPage{
                 sql.append(" WHERE " + conditions);
             }
         }
-        if(start != null && size != null){
+        if(size != null && size.intValue() > 0){
+            if(start == null){
+                start = 0;
+            }
             String tempSQL = sql.toString();
             sql = new StringBuffer("SELECT TOP " + size +" * ");
             sql.append(" FROM (");

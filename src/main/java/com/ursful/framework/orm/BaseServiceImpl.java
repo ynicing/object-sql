@@ -679,11 +679,31 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
     }
 
     public List<T> list(Terms terms) {
-        return list(terms, null);
+        return list(null, terms, null, null);
     }
 
     @Override
     public List<T> list(Terms terms, MultiOrder multiOrder) {
+        return list(null, terms, multiOrder, null);
+    }
+
+    @Override
+    public List<T> list(Terms terms, MultiOrder multiOrder, Integer limit) {
+        return list(null, terms, multiOrder, limit);
+    }
+
+    @Override
+    public List<T> list(Names names, Terms terms) {
+        return list(names, terms, null, null);
+    }
+
+    @Override
+    public List<T> list(Names names, Terms terms, MultiOrder multiOrder) {
+         return list(names, terms, multiOrder, null);
+    }
+
+    @Override
+    public List<T> list(Names names, Terms terms, MultiOrder multiOrder, Integer limit) {
         PreparedStatement ps = null;
         ResultSet rs = null;
         List<T> temp = new ArrayList<T>();
@@ -692,9 +712,9 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         SQLHelper helper = null;
         try {
             conn = getConnection();
-            helper = getQueryPage().doQuery(thisClass, null, terms, multiOrder, null, null);
+            helper = getQueryPage().doQuery(thisClass, names != null? names.names():null, terms, multiOrder, null, limit);
             if(ORMUtils.getDebug()) {
-                logger.info("list(terms, multiOrder) : " + helper);
+                logger.info("list(names, terms, multiOrder, limit) : " + helper);
             }
             ps = conn.prepareStatement(helper.getSql());
             SQLHelperCreator.setParameter(ps, helper.getParameters(), conn);
