@@ -31,5 +31,5 @@ public @interface RdColumn {
 
 	String title() default "";
 	String description() default "";
-
+	int order() default 0;
 }
