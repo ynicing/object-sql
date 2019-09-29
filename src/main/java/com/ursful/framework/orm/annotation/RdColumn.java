@@ -28,7 +28,6 @@ public @interface RdColumn {
 	boolean unique() default false;
 	boolean nullable() default true;
     ColumnType type() default ColumnType.NULL;
-
 	String title() default "";
 	String description() default "";
 	int order() default 0;

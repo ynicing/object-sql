@@ -208,10 +208,15 @@ public class QueryUtils {
                 String result = getColumnWithOperator(column);
                 sb.append(result);
             }else{
+                String aliasName = column.getName();
                 if(!ORMUtils.isEmpty(column.getAlias())){
-                    sb.append(column.getAlias() + ".");
+                    aliasName = column.getAlias() + "." + aliasName;
                 }
-                sb.append(column.getName());
+                if(StringUtils.isEmpty(column.getFormat())){
+                    sb.append(aliasName);
+                }else{
+                    sb.append(String.format(column.getFormat(), aliasName));
+                }
             }
         }
         // operator out of function as name is invalid

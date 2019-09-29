@@ -17,6 +17,7 @@
 package com.ursful.framework.orm.support;
 
 import java.io.Serializable;
+import java.util.Locale;
 
 public class Column implements Serializable {
 
@@ -27,6 +28,8 @@ public class Column implements Serializable {
 
     private Object value;
     private OperatorType type;
+
+    private String format;
 
     private Boolean operatorInFunction = true;
 
@@ -59,7 +62,9 @@ public class Column implements Serializable {
 	}
 
 	public void setAsName(String asName) {
-		this.asName = asName;
+        if(asName != null) {
+            this.asName = getReplace(asName.toUpperCase(Locale.ROOT));
+        }
 	}
 
     public String getAlias() {
@@ -75,15 +80,24 @@ public class Column implements Serializable {
 	}
 
 	public void setFunction(String function) {
-		this.function = function;
+        if(function != null) {
+            this.function = getReplace(function);
+        }
 	}
 
 	public String getName() {
 		return name;
 	}
 
+    public String getReplace(String value){
+        if(value != null){
+            value = value.replace(" ", "");
+        }
+        return value;
+    }
+
 	public void setName(String name) {
-		this.name = name;
+		this.name = getReplace(name);
 	}
 
 	//---num
@@ -108,32 +122,32 @@ public class Column implements Serializable {
 
 	//num
 	public Column(String name){
-		this.name = name;
+        setName(name);
 	}
 		
 	//u.num
 	public Column(String alias, String name){
-		this.name = name;
+		setName(name);
 		this.alias = alias;
 	}
 		
 	//u.num as big
 	public Column(String alias, String name, String asName){
 		this.alias = alias;
-		this.name = name;
-		this.asName = asName.toUpperCase();
+        setName(name);
+        setAsName(asName);
 	}
 	
 	//sum(u.num) as big
 	public Column(String function, String alias, String name, String asName){
-		this.function = function;
 		this.alias = alias;
-		this.name = name;
-		this.asName = asName.toUpperCase();
+        setFunction(function);
+        setName(name);
+        setAsName(asName);
 	}
 
     public Column function(String function){
-        this.function = function;
+        setFunction(function);
         return this;
     }
 
@@ -143,12 +157,12 @@ public class Column implements Serializable {
     }
 
     public Column name(String name){
-        this.name = name;
+        setName(name);
         return this;
     }
 
     public Column as(String asName){
-        this.asName = asName.toUpperCase();
+        setAsName(asName);
         return this;
     }
 
@@ -159,6 +173,17 @@ public class Column implements Serializable {
 
     public Column operator(OperatorType type){
         this.type = type;
+        return this;
+    }
+
+//    String badStr = "'|and|exec|execute|insert|select|delete|update|count|drop|*|%|chr|mid|master|truncate|" +
+//            "char|declare|sitename|net user|xp_cmdshell|;|or|-|+|,|like'|and|exec|execute|insert|create|drop|" +
+//            "table|from|grant|use|group_concat|column_name|" +
+//            "information_schema.columns|table_schema|union|where|select|delete|update|order|by|count|*|" +
+//            "chr|mid|master|truncate|char|declare|or|;|-|--|+|,|like|//|/|%|#";
+
+    public Column format(String format){
+        this.format = format;
         return this;
     }
 
@@ -181,6 +206,14 @@ public class Column implements Serializable {
         this.name = sb.toString();
 
         return this;
+    }
+
+    public String getFormat() {
+        return format;
+    }
+
+    public void setFormat(String format) {
+        this.format = format;
     }
 
     public Column operatorInFunction(Boolean operatorInFunction) {
