@@ -20,17 +20,17 @@ public enum ExpressionType {
     CDT_Equal, //=
     CDT_NotEqual,//<> !=
     CDT_Like,// like %x% 不建议使用
+    CDT_NotLike,// _a ...
     CDT_StartWith,// x% 建议使用
     CDT_NotStartWith,
     CDT_EndWith,// %x  禁止使用 除非特定情况
     CDT_NotEndWith,
     CDT_Less,// <
-    CDT_More,// >
     CDT_LessEqual,// <=
+    CDT_More,// >
     CDT_MoreEqual,// >=
     CDT_In, // []/List/Collection/Set
     CDT_NotIn,
-    CDT_NotLike,// _a ...
     CDT_IS_NULL,
     CDT_IS_NOT_NULL,
     CDT_EXISTS,

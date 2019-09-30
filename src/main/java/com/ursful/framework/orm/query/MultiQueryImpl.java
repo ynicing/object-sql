@@ -447,33 +447,33 @@ public class MultiQueryImpl implements IMultiQuery {
         return this.parentQuery;
     }
 
-    private  QueryPage queryPage;
+    private  Options options;
 
     @Override
-    public void setQueryPage(QueryPage queryPage) {
-        this.queryPage = queryPage;
+    public void setOptions(Options options) {
+        this.options = options;
     }
 
     @Override
-    public QueryPage getQueryPage() {
-        return this.queryPage;
+    public Options getOptions() {
+        return this.options;
     }
 
     @Override
     public QueryInfo doQuery() {
         if(parentQuery != null) {
-            return parentQuery.getQueryPage().doQuery(this, getPageable());
+            return parentQuery.getOptions().doQuery(this, getPageable());
         }else{
-            return queryPage.doQuery(this, getPageable());
+            return options.doQuery(this, getPageable());
         }
     }
 
     @Override
     public QueryInfo doQueryCount() {
         if(parentQuery != null) {
-            return parentQuery.getQueryPage().doQueryCount(this);
+            return parentQuery.getOptions().doQueryCount(this);
         }else{
-            return queryPage.doQueryCount(this);
+            return options.doQueryCount(this);
         }
     }
 

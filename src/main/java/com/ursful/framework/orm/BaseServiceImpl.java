@@ -232,7 +232,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             //ps = conn.prepareStatement(sql);
             //ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             //ps = conn.prepareStatement(sql, new String[]{idCols.getFirst()});
-            SQLHelperCreator.setParameter(ps, helper.getParameters(), conn);
+            SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
             boolean flag =  ps.executeUpdate() > 0;
             try {
                 if(helper.getIdValue() == null && helper.getIdField() != null) {
@@ -297,7 +297,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         try {
             conn = getConnection();
             triggerDefaultListener(t, true);
-            helper = SQLHelperCreator.update(t, null, updateNull, nullColumns);
+            helper = SQLHelperCreator.update(getOptions(), t, null, updateNull, nullColumns);
             T original = null;
             if(helper.getPair() != null && (!changeListeners.isEmpty()||!changedListeners.isEmpty())) {
                 original = get(helper.getPair().getValue());
@@ -307,7 +307,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             }
             logger.debug("connection :" + conn);
             ps = conn.prepareStatement(helper.getSql());
-            SQLHelperCreator.setParameter(ps, helper.getParameters(), conn);
+            SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
 
             boolean result = ps.executeUpdate() > 0;
             if(result && enableListener) {
@@ -357,7 +357,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         try {
             //triggerDefaultListener(t, true);
             conn = getConnection();
-            helper = SQLHelperCreator.update(t, expresses, updateNull, forNullColumns);
+            helper = SQLHelperCreator.update(getOptions(), t, expresses, updateNull, forNullColumns);
             List<T> originals = null;
             if(helper.getIdValue() == null && helper.getIdField() != null && expresses != null && (expresses.length > 0) && (!changeListeners.isEmpty()||!changedListeners.isEmpty())) {
                 originals = list(expresses);
@@ -367,7 +367,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             }
             logger.debug("connection :" + conn);
             ps = conn.prepareStatement(helper.getSql());
-            SQLHelperCreator.setParameter(ps, helper.getParameters(), conn);
+            SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
 
             boolean result = ps.executeUpdate() > 0;
             if(result && enableListener &&  (originals != null)) {
@@ -423,7 +423,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             }
             logger.debug("connection :" + conn);
             ps = conn.prepareStatement(helper.getSql());
-            SQLHelperCreator.setParameter(ps, helper.getParameters(), conn);
+            SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
 
             boolean result = ps.executeUpdate() > 0;
             if(result && enableListener) {
@@ -473,7 +473,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         try {
             List<T> nows = null;
             conn = getConnection();
-            helper = SQLHelperCreator.deleteBy(thisClass, terms);
+            helper = SQLHelperCreator.deleteBy(thisClass,getOptions(), terms);
             if(enableListener && (!changeListeners.isEmpty()||!changedListeners.isEmpty())) {
                 nows = list(terms);
             }
@@ -482,7 +482,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             }
             logger.debug("connection :" + conn);
             ps = conn.prepareStatement(helper.getSql());
-            SQLHelperCreator.setParameter(ps, helper.getParameters(),conn);
+            SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(),conn);
 
             boolean result = ps.executeUpdate() > 0;
             if(result && nows != null) {
@@ -519,7 +519,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         try {
             List<T> nows = null;
             conn = getConnection();
-            helper = SQLHelperCreator.deleteBy(thisClass, expresses);
+            helper = SQLHelperCreator.deleteBy(thisClass, getOptions(), expresses);
             if(enableListener && (!changeListeners.isEmpty()||!changedListeners.isEmpty())) {
                 nows = list(expresses);
             }
@@ -528,7 +528,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             }
             logger.debug("connection :" + conn);
             ps = conn.prepareStatement(helper.getSql());
-            SQLHelperCreator.setParameter(ps, helper.getParameters(),conn);
+            SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(),conn);
 
             boolean result = ps.executeUpdate() > 0;
             if(result && nows != null) {
@@ -561,7 +561,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         SQLHelper helper = null;
         try {
             conn = getConnection();
-            helper = getQueryPage().doQuery(thisClass, null, null, null, null, null);
+            helper = getOptions().doQuery(thisClass, null, null, null, null, null);
             if(ORMUtils.getDebug()) {
                 logger.info("list() : " + helper);
             }
@@ -592,7 +592,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         SQLHelper helper = null;
         try {
             conn = getConnection();
-            helper = getQueryPage().doQuery(thisClass, names, null, null, null, null);
+            helper = getOptions().doQuery(thisClass, names, null, null, null, null);
             if(ORMUtils.getDebug()) {
                 logger.info("list() : " + helper);
             }
@@ -623,12 +623,12 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         SQLHelper helper = null;
         try {
             conn = getConnection();
-            helper = getQueryPage().doQuery(thisClass, null, null, null, start, size);
+            helper = getOptions().doQuery(thisClass, null, null, null, start, size);
             if(ORMUtils.getDebug()) {
                 logger.info("list(start,size) : " + helper);
             }
             ps = conn.prepareStatement(helper.getSql());
-            SQLHelperCreator.setParameter(ps, helper.getParameters(), conn);
+            SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
             rs = ps.executeQuery();
             while (rs.next()) {
                 T tmp = SQLHelperCreator.newClass(thisClass, rs);
@@ -655,12 +655,12 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         SQLHelper helper = null;
         try {
             conn = getConnection();
-            helper = SQLHelperCreator.query(thisClass, expresses);
+            helper = SQLHelperCreator.query(getOptions(), thisClass, expresses);
             if(ORMUtils.getDebug()) {
                 logger.info("list(expresses) : " + helper);
             }
             ps = conn.prepareStatement(helper.getSql());
-            SQLHelperCreator.setParameter(ps, helper.getParameters(), conn);
+            SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
             rs = ps.executeQuery();
             while (rs.next()) {
                 T tmp = SQLHelperCreator.newClass(thisClass, rs);
@@ -712,12 +712,12 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         SQLHelper helper = null;
         try {
             conn = getConnection();
-            helper = getQueryPage().doQuery(thisClass, names != null? names.names():null, terms, multiOrder, null, limit);
+            helper = getOptions().doQuery(thisClass, names != null? names.names():null, terms, multiOrder, null, limit);
             if(ORMUtils.getDebug()) {
                 logger.info("list(names, terms, multiOrder, limit) : " + helper);
             }
             ps = conn.prepareStatement(helper.getSql());
-            SQLHelperCreator.setParameter(ps, helper.getParameters(), conn);
+            SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
             rs = ps.executeQuery();
             while (rs.next()) {
                 T tmp = SQLHelperCreator.newClass(thisClass, rs);
@@ -744,12 +744,12 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         SQLHelper helper = null;
         try {
             conn = getConnection();
-            helper = SQLHelperCreator.queryCount(this.thisClass, terms);
+            helper = SQLHelperCreator.queryCount(getOptions(), this.thisClass, terms);
             if(ORMUtils.getDebug()) {
                 logger.info("exists : " + helper);
             }
             ps = conn.prepareStatement(helper.getSql());
-            SQLHelperCreator.setParameter(ps, helper.getParameters(), conn);
+            SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
             rs = ps.executeQuery();
             if (rs.next()) {
                 Object tmp = rs.getObject(1);
@@ -774,12 +774,12 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         SQLHelper helper = null;
         try {
             conn = getConnection();
-            helper = SQLHelperCreator.queryCountExpress(this.thisClass, expresses);
+            helper = SQLHelperCreator.queryCountExpress(getOptions(), this.thisClass, expresses);
             if(ORMUtils.getDebug()) {
                 logger.info("exists : " + helper);
             }
             ps = conn.prepareStatement(helper.getSql());
-            SQLHelperCreator.setParameter(ps, helper.getParameters(), conn);
+            SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
             rs = ps.executeQuery();
             if (rs.next()) {
                 Object tmp = rs.getObject(1);
@@ -804,12 +804,12 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         SQLHelper helper = null;
         try {
             conn = getConnection();
-            helper = SQLHelperCreator.queryCountExpress(this.thisClass, expresses);
+            helper = SQLHelperCreator.queryCountExpress(getOptions(), this.thisClass, expresses);
             if(ORMUtils.getDebug()) {
                 logger.info("Count : " + helper);
             }
             ps = conn.prepareStatement(helper.getSql());
-            SQLHelperCreator.setParameter(ps, helper.getParameters(), conn);
+            SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
             rs = ps.executeQuery();
             if (rs.next()) {
                 Object tmp = rs.getObject(1);
@@ -832,7 +832,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
         Connection conn = getConnection();
         //setClob通用
-        QueryInfo qinfo = getQueryPage().doQuery(query, null);// = queryString(names, false);
+        QueryInfo qinfo = getOptions().doQuery(query, null);// = queryString(names, false);
 
         if(ORMUtils.getDebug()) {
             logger.info("list:" + qinfo);
@@ -842,7 +842,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         ResultSet rs = null;
         try {
             ps = conn.prepareStatement(qinfo.getSql());
-            SQLHelperCreator.setParameter(ps, qinfo.getValues(), conn);
+            SQLHelperCreator.setParameter(getOptions(), ps, qinfo.getValues(), conn);
             rs = ps.executeQuery();
 
             if(rs.next()){
@@ -895,7 +895,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                 logger.info("GET : " + helper);
             }
             ps = conn.prepareStatement(helper.getSql());
-            SQLHelperCreator.setParameter(ps, helper.getParameters(), conn);
+            SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
             rs = ps.executeQuery();
             if (rs.next()) {
                 temp = SQLHelperCreator.newClass(thisClass, rs);
@@ -928,7 +928,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
         List<S> temp = new ArrayList<S>();
 
-        q.setQueryPage(getQueryPage());
+        q.setOptions(getOptions());
         q.setPageable(page);
         QueryInfo qinfo =  q.doQuery();
 
@@ -943,7 +943,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         try {
 
             ps = conn.prepareStatement(qinfo.getSql());
-            SQLHelperCreator.setParameter(ps, qinfo.getValues(), conn);
+            SQLHelperCreator.setParameter(getOptions(), ps, qinfo.getValues(), conn);
             rs = ps.executeQuery();
 
             while(rs.next()){
@@ -977,7 +977,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
         List<S> temp = new ArrayList<S>();
 
-        q.setQueryPage(getQueryPage());
+        q.setOptions(getOptions());
         q.setPageable(page);
 
         QueryInfo qinfo =  q.doQuery(); //getQueryPage().doQuery(q, page);// = queryString(names, false);
@@ -991,7 +991,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         try {
 
             ps = conn.prepareStatement(qinfo.getSql());
-            SQLHelperCreator.setParameter(ps, qinfo.getValues(), conn);
+            SQLHelperCreator.setParameter(getOptions(), ps, qinfo.getValues(), conn);
             rs = ps.executeQuery();
 
             while(rs.next()){
@@ -1029,7 +1029,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         QueryInfo qinfo = null;
         try {
             conn = getConnection();
-            q.setQueryPage(getQueryPage());
+            q.setOptions(getOptions());
             qinfo = q.doQueryCount();
             if(ORMUtils.getDebug()) {
                 logger.info("list:" + qinfo);
@@ -1038,7 +1038,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             String query = qinfo.getSql();// = queryString(names, false);
 
             ps = conn.prepareStatement(query);
-            SQLHelperCreator.setParameter(ps, qinfo.getValues(), conn);
+            SQLHelperCreator.setParameter(getOptions(), ps, qinfo.getValues(), conn);
             rs = ps.executeQuery();
 
             if(rs.next()){
@@ -1083,7 +1083,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             conn = getConnection();
             ps = conn.prepareStatement(sql);
             for(Object[] objects : parameters) {
-                SQLHelperCreator.setParameter(ps, objects);
+                SQLHelperCreator.setParameter(getOptions(), ps, objects);
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -1096,8 +1096,5 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
     }*/
 
 
-    private QueryPage getQueryPage(){
-        return dataSourceManager.getQueryPage(thisClass, serviceClass);
-    }
 
 }

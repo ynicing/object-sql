@@ -16,6 +16,7 @@
 
 package com.ursful.framework.orm.listener;
 
+@Deprecated
 public interface IORMListener<T> {
     void insert(T object);
     void update(T object);

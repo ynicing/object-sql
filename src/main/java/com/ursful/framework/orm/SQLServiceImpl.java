@@ -30,11 +30,21 @@ public class SQLServiceImpl implements ISQLService{
         return dataSourceManager;
     }
 
+    protected Options getOptions(){
+        return dataSourceManager.getOptions(thisClass, serviceClass);
+    }
+
+    @Override
+    public String currentDatabaseName() {
+        return dataSourceManager.getProductName(thisClass, serviceClass);
+    }
+
+
     @Override
     public String currentDatabaseType() {
-        DatabaseType type = dataSourceManager.getDatabaseType(thisClass, serviceClass);
-        if(type != null){
-            return type.name();
+        Options options = getOptions();
+        if(options != null) {
+            return getOptions().databaseType();
         }
         return null;
     }
@@ -75,7 +85,7 @@ public class SQLServiceImpl implements ISQLService{
             for(Object object : params){
                 pairList.add(new Pair(object));
             }
-            SQLHelperCreator.setParameter(ps, pairList, connection);
+            SQLHelperCreator.setParameter(getOptions(), ps, pairList, connection);
         }
     }
 
@@ -256,27 +266,15 @@ public class SQLServiceImpl implements ISQLService{
         Connection conn = null;
         try {
             conn = getConnection();
-            DatabaseType type = DatabaseTypeHolder.get();
+            String type = DatabaseTypeHolder.get();
             if(type == null){
                 return null;
             }
-            String sql = null;
-            switch (type){
-                case H2:
-                case MySQL:
-                    sql = "SELECT NOW(3)";
-                    break;
-                case SQLServer:
-                    sql = "SELECT GETDATE()";
-                    break;
-                case ORACLE:
-                    sql = "SELECT SYSTIMESTAMP FROM DUAL";
-                    break;
-                case PostgreSQL:
-                    sql = "SELECT NOW()";
-                    break;
-
+            Options options = dataSourceManager.getOptions(type);
+            if(options == null){
+                return null;
             }
+            String sql = options.nanoTimeSQL();
             if(sql == null){
                 return null;
             }
@@ -304,22 +302,22 @@ public class SQLServiceImpl implements ISQLService{
         return null;
     }
 
-    @Override
-    public void register(Class clazz, Class serviceClass) {
-        ResultSet rs = null;
-        PreparedStatement ps = null;
-        Connection conn = null;
-        try {
-            //获取dataSource
-            DynamicTable table = dataSourceManager.getDynamicTable(clazz, serviceClass);
-            conn = getConnection();
-            table.register(clazz, conn);
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally{
-            closeConnection(rs, ps, conn);
-        }
-    }
+//    @Override
+//    public void register(Class clazz, Class serviceClass) {
+//        ResultSet rs = null;
+//        PreparedStatement ps = null;
+//        Connection conn = null;
+//        try {
+//            //获取dataSource
+//            DynamicTable table = dataSourceManager.getDynamicTable(clazz, serviceClass);
+//            conn = getConnection();
+//            table.register(clazz, conn);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        } finally{
+//            closeConnection(rs, ps, conn);
+//        }
+//    }
 
     private Timestamp getOracleTimestamp(Object value, Connection connection) {
         try {
@@ -376,7 +374,7 @@ public class SQLServiceImpl implements ISQLService{
             }
             conn.setAutoCommit(false);
             for(SQLHelper sqlHelper : helpers) {
-                SQLHelperCreator.setParameter(ps, sqlHelper.getParameters(), conn);
+                SQLHelperCreator.setParameter(getOptions(), ps, sqlHelper.getParameters(), conn);
                 ps.addBatch();
             }
             ps.executeBatch();

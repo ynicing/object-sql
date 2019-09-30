@@ -15,23 +15,25 @@
  */
 package com.ursful.framework.orm.support;
 
+import java.util.Locale;
+
 public abstract class DatabaseTypeHolder {
 
-	private static final ThreadLocal<DatabaseType> threadLocal = new ThreadLocal<DatabaseType>();
+	private static final ThreadLocal<String> threadLocal = new ThreadLocal<String>();
 
 	public static void remove() {
         threadLocal.remove();
 	}
 
-	public static void set(DatabaseType type) {
+	public static void set(String type) {
 		if (type == null) {
 			remove();
 		}else {
-            threadLocal.set(type);
+            threadLocal.set(type.toUpperCase(Locale.ROOT));
 		}
 	}
 
-	public static DatabaseType get() {
+	public static String get() {
         return threadLocal.get();
 	}
 

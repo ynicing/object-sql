@@ -1,24 +1,93 @@
-package com.ursful.framework.orm.page;
+package com.ursful.framework.orm.option;
 
 import com.ursful.framework.orm.IQuery;
-import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.helper.SQLHelper;
 import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
-import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.util.StringUtils;
 
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
-public class SQLServerQueryPage extends AbstractQueryPage{
+public class SQLServerOptions extends AbstractOptions{
 
     @Override
-    public DatabaseType databaseType() {
-        return DatabaseType.SQLServer;
+    public String keyword() {
+            return "server";
+    }
+
+    public boolean preSetParameter(PreparedStatement ps, Connection connection, String databaseType, int i, Object obj, ColumnType columnType, DataType type) throws SQLException {
+        if((type == DataType.DATE) && (columnType != ColumnType.LONG) && (columnType != ColumnType.DATETIME) && (obj != null)){
+            ps.setTimestamp(i + 1, null);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public String getColumnWithOperator(OperatorType operatorType, String name, String value) {
+        String result = null;
+        switch (operatorType){
+            case XOR: //(x + y) - BITAND(x, y)*2
+                result = "(" + name + "+" + value + " - 2*(" + name + "&" + value + "))";
+                break;
+            case LL: //x* power(2,y)
+                result = "(" + name + "*POWER(2," + value + "))";
+                break;
+            case RR: //FLOOR(x/ power(2,y))
+                result = "FLOOR(" + name + "/POWER(2," + value + ")";
+                break;
+        }
+        return result;
+    }
+
+    @Override
+    public String getColumnWithOperatorAndFunction(String function, boolean inFunction, OperatorType operatorType, String name, String value) {
+        String result = null;
+        switch (operatorType){
+            case XOR: //(x + y) - BITAND(x, y)*2
+                if(inFunction) {
+                    result = function + "(" + name + "+" + value + " - 2*(" + name + "&" + value + "))";
+                }else{
+                    result = "(" + function +  "(" + name + ")+" + value + " - 2*(" +
+                            function + "(" + name + ")&" + value + "))";
+                }
+                break;
+            case LL: //x* power(2,y)
+                if(inFunction) {
+                    result = function + "(" + name + "*POWER(2," + value + "))";
+                }else{
+                    result = "(" + function + "(" + name + ")*POWER(2," + value + "))";
+                }
+                break;
+            case RR: //FLOOR(x/ power(2,y))
+                if(inFunction) {
+                    result = function + "(FLOOR(" + name + "/POWER(2," + value + "))";
+                }else{
+                    result = "FLOOR(" + function + "(" + name + ")/POWER(2," + value + ")";
+                }
+                break;
+        }
+        if(result == null){
+            if(inFunction) {
+                result = function + "(" + name + operatorType.getOperator() + value + ")";
+            }else{
+                result = "(" + function + "(" + name + ")"  + operatorType.getOperator() + value + ")";
+            }
+        }
+        return result;
+    }
+
+    @Override
+    public String databaseType() {
+        return "SQLServer";
+    }
+
+    @Override
+    public String nanoTimeSQL() {
+        return "SELECT GETDATE()";
     }
 
     @Override
@@ -74,7 +143,7 @@ public class SQLServerQueryPage extends AbstractQueryPage{
         if(start != null && size != null){
             String byOrders = null;
             if(multiOrder != null) {
-                String orders = QueryUtils.getOrders(multiOrder.getOrders());
+                String orders = QueryUtils.getOrders(this, multiOrder.getOrders());
                 if (!StringUtils.isEmpty(orders)) {
                     byOrders = " ORDER BY " + orders;
                 }
@@ -89,7 +158,7 @@ public class SQLServerQueryPage extends AbstractQueryPage{
         List<Pair> values = new ArrayList<Pair>();
         if(terms != null) {
             Condition condition = terms.getCondition();
-            String conditions = QueryUtils.getConditions(clazz, ORMUtils.newList(condition), values);
+            String conditions = QueryUtils.getConditions(this, clazz, ORMUtils.newList(condition), values);
             if (!StringUtils.isEmpty(conditions)) {
                 sql.append(" WHERE " + conditions);
             }
@@ -107,7 +176,7 @@ public class SQLServerQueryPage extends AbstractQueryPage{
         }else{
             String byOrders = null;
             if(multiOrder != null) {
-                String orders = QueryUtils.getOrders(multiOrder.getOrders());
+                String orders = QueryUtils.getOrders(this, multiOrder.getOrders());
                 if (!StringUtils.isEmpty(orders)) {
                     byOrders = " ORDER BY " + orders;
                 }

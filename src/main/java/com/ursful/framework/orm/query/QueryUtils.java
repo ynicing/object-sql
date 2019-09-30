@@ -157,11 +157,11 @@ public class QueryUtils {
         }
     }
 
-	public static String getOrders(List<Order> orders){
+	public static String getOrders(Options options, List<Order> orders){
         List<String> temp = new ArrayList<String>();
         if(orders != null){
             for(Order order : orders){
-                temp.add(parseColumn(order.getColumn()) + " " + order.getOrder());
+                temp.add(parseColumn(options, order.getColumn()) + " " + order.getOrder());
             }
         }
         String result = ORMUtils.join(temp, ",");
@@ -169,17 +169,17 @@ public class QueryUtils {
 	}
 
 
-	public static String getGroups(List<Column> columns){
+	public static String getGroups(Options options, List<Column> columns){
 		List<String> temp = new ArrayList<String>();
 		for(Column column : columns){
-			temp.add(parseColumn(column));
+			temp.add(parseColumn(options, column));
 		}
         String result = ORMUtils.join(temp, ",");
         return result;
 	}
 
 
-	public static String parseColumn(Column column){
+	public static String parseColumn(Options options, Column column){
 
         if(column == null){
             throw new RuntimeException("QUERY_SQL_COLUMN_IS_NULL this column is null");
@@ -192,7 +192,7 @@ public class QueryUtils {
 
         if(!ORMUtils.isEmpty(column.getFunction())){
             if(!ORMUtils.isEmpty(column.getType())){
-                String result = getColumnWithOperatorAndFunction(column);
+                String result = getColumnWithOperatorAndFunction(options, column);
                 sb.append(result);
             }else{
                 sb.append(column.getFunction());
@@ -205,7 +205,7 @@ public class QueryUtils {
             }
         }else{
             if(!ORMUtils.isEmpty(column.getType())){
-                String result = getColumnWithOperator(column);
+                String result = getColumnWithOperator(options, column);
                 sb.append(result);
             }else{
                 String aliasName = column.getName();
@@ -227,64 +227,19 @@ public class QueryUtils {
 	}
 
 
-    private static String getColumnWithOperator(Column column) {
+    private static String getColumnWithOperator(Options options, Column column) {
         String name = ORMUtils.isEmpty(column.getAlias())? column.getName():column.getAlias()  + "." + column.getName();
         String value = null;
         if(column.getValue() instanceof Column){
-            value = "(" + parseColumn((Column)column.getValue()) + ")";
+            value = "(" + parseColumn(options,(Column)column.getValue()) + ")";
         }else{
             if(column.getValue() != null) {
                 value = column.getValue().toString();
             }
         }
         String result = null;
-        DatabaseType type = DatabaseTypeHolder.get();
-        switch (type){
-            case MySQL:
-                switch (column.getType()){
-                    case NOT:
-                        result = "(" + column.getType().getOperator() + name + ")";
-                        break;
-                }
-                break;
-            case ORACLE:
-                switch (column.getType()){
-                    case AND://BITAND(x, y)
-                        result = "BITAND(" + name + "," + value + ")";
-                        break;
-                    case OR: //(x + y) - BITAND(x, y)
-                        result = "(" + name + "+" + value + " - BITAND(" + name + "," + value + "))";
-                        break;
-                    case XOR: //(x + y) - BITAND(x, y)*2
-                        result = "(" + name + "+" + value + " - 2*BITAND(" + name + "," + value + "))";
-                        break;
-                    case NOT: // (x -1 ) - BITAND(x, -1)*2
-                        result = "(" + name + "-1 - 2*BITAND(" + name + ", -1))";
-                        break;
-                    case LL: //x* power(2,y)
-                        result = "(" + name + "*POWER(2," + value + "))";
-                        break;
-                    case RR: //FLOOR(x/ power(2,y))
-                        result = "FLOOR(" + name + "/POWER(2," + value + ")";
-                        break;
-                    case MOD:
-                        result = "MOD(" + name + "," + value + ")";
-                        break;
-                }
-                break;
-            case SQLServer:
-                switch (column.getType()){
-                    case XOR: //(x + y) - BITAND(x, y)*2
-                        result = "(" + name + "+" + value + " - 2*(" + name + "&" + value + "))";
-                        break;
-                    case LL: //x* power(2,y)
-                        result = "(" + name + "*POWER(2," + value + "))";
-                        break;
-                    case RR: //FLOOR(x/ power(2,y))
-                        result = "FLOOR(" + name + "/POWER(2," + value + ")";
-                        break;
-                }
-                break;
+        if(options != null) {
+            result = options.getColumnWithOperator(column.getType(), name, value);
         }
         if(result == null){
             result = name + column.getType().getOperator() + value;
@@ -293,127 +248,29 @@ public class QueryUtils {
     }
 
 
-    private static String getColumnWithOperatorAndFunction(Column column) {
+    private static String getColumnWithOperatorAndFunction(Options options, Column column) {
         boolean inFunction = column.getOperatorInFunction();
         String name = ORMUtils.isEmpty(column.getAlias())? column.getName():column.getAlias()  + "." + column.getName();
         String value = null;
         if(column.getValue() instanceof Column){
-            value = "(" + parseColumn((Column)column.getValue()) + ")";
+            value = "(" + parseColumn(options, (Column)column.getValue()) + ")";
         }else{
             if(column.getValue() != null) {
                 value = column.getValue().toString();
             }
         }
-        String result = null;
-        DatabaseType type = DatabaseTypeHolder.get();
-        switch (type){
-            case MySQL:
-                switch (column.getType()){
-                    case NOT:
-                        if(inFunction) {// SUM(~NAME)
-                            result = column.getFunction() + "(" + column.getType().getOperator() + name + ")";
-                        }else{// ~SUM(name)
-                            result = "(" + column.getType().getOperator() + column.getFunction() + "(" + name + "))";
-                        }
-                        break;
-                }
-                break;
-            case ORACLE:
-                switch (column.getType()){
-                    case AND://BITAND(x, y)
-                        if(inFunction) {
-                            result = column.getFunction() + "(BITAND(" + name + "," + value + "))";
-                        }else{
-                            result = "BITAND(" + column.getFunction() + "(" + name + ")," + value + ")";
-                        }
-                        break;
-                    case OR: //(x + y) - BITAND(x, y)
-                        if(inFunction) {
-                            result = column.getFunction() + "(" + name + "+" + value + " - BITAND(" + name + "," + value + "))";
-                        }else{
-                            result = "(" + column.getFunction() +  "(" + name + ")+" + value + " - BITAND(" +
-                                    column.getFunction() + "(" + name + ")," + value + "))";
-                        }
-                        break;
-                    case XOR: //(x + y) - BITAND(x, y)*2
-                        if(inFunction) {
-                            result = column.getFunction() + "(" + name + "+" + value + " - 2*BITAND(" + name + "," + value + "))";
-                        }else{
-                            result = "(" + column.getFunction() +  "(" + name + ")+" + value + " - 2*BITAND(" +
-                                    column.getFunction() + "(" + name + ")," + value + "))";
-                        }
-                        break;
-                    case NOT: // (x -1 ) - BITAND(x, -1)*2
-                        if(inFunction) {
-                            result = column.getFunction() + "(" + name + "-1 - 2*BITAND(" + name + ", -1))";
-                        }else{
-                            result = "(" + column.getFunction() + "(" + name + ")-1 - 2*BITAND(" + column.getFunction() + "(" + name + "), -1))";
-                        }
-                        break;
-                    case LL: //x* power(2,y)
-                        if(inFunction) {
-                            result = column.getFunction() + "(" + name + "*POWER(2," + value + "))";
-                        }else{
-                            result = "(" + column.getFunction() + "(" + name + ")*POWER(2," + value + "))";
-                        }
-                        break;
-                    case RR: //FLOOR(x/ power(2,y))
-                        if(inFunction) {
-                            result = column.getFunction() + "(FLOOR(" + name + "/POWER(2," + value + "))";
-                        }else{
-                            result = "FLOOR(" + column.getFunction() + "(" + name + ")/POWER(2," + value + ")";
-                        }
-                        break;
-                    case MOD:
-                        if(inFunction) {
-                            result = column.getFunction() + "(MOD(" + name + "," + value + "))";
-                        }else{
-                            result = "MOD(" + column.getFunction() + "(" + name + ")," + value + ")";
-                        }
-                        break;
-                }
-                break;
-            case SQLServer:
-                switch (column.getType()){
-                    case XOR: //(x + y) - BITAND(x, y)*2
-                        if(inFunction) {
-                            result = column.getFunction() + "(" + name + "+" + value + " - 2*(" + name + "&" + value + "))";
-                        }else{
-                            result = "(" + column.getFunction() +  "(" + name + ")+" + value + " - 2*(" +
-                                    column.getFunction() + "(" + name + ")&" + value + "))";
-                        }
-                        break;
-                    case LL: //x* power(2,y)
-                        if(inFunction) {
-                            result = column.getFunction() + "(" + name + "*POWER(2," + value + "))";
-                        }else{
-                            result = "(" + column.getFunction() + "(" + name + ")*POWER(2," + value + "))";
-                        }
-                        break;
-                    case RR: //FLOOR(x/ power(2,y))
-                        if(inFunction) {
-                            result = column.getFunction() + "(FLOOR(" + name + "/POWER(2," + value + "))";
-                        }else{
-                            result = "FLOOR(" + column.getFunction() + "(" + name + ")/POWER(2," + value + ")";
-                        }
-                        break;
-                }
-                break;
-        }
-        if(result == null){
-            if(inFunction) {
-                result = column.getFunction() + "(" + name + column.getType().getOperator() + value + ")";
-            }else{
-                result = "(" + column.getFunction() + "(" + name + ")"  + column.getType().getOperator() + value + ")";
-            }
-        }
+
+        String type = DatabaseTypeHolder.get();
+        String function = column.getFunction();
+        OperatorType operatorType = column.getType();
+        String result = options.getColumnWithOperatorAndFunction(function, inFunction, operatorType, name, value);
         return result;
     }
     //同一张表怎么半？ select * from test t1, test t2
 
 
     // a and b or (c or d ) or (c and d)
-    public static String getConditions(Object queryOrClass, List<Condition> cds, List<Pair> values){
+    public static String getConditions(Options options, Object queryOrClass, List<Condition> cds, List<Pair> values){
         StringBuffer sql = new StringBuffer();
         if(cds != null) {
             SQLPair sqlPair = null;
@@ -425,7 +282,7 @@ public class QueryUtils {
                         case AND:
                             if(extObject instanceof Expression) {
                                 Expression and = (Expression) extObject;
-                                sqlPair = parseExpression(queryOrClass, and);
+                                sqlPair = parseExpression(options, queryOrClass, and);
                             }else if(extObject instanceof SQLPair){
                                 sqlPair = (SQLPair)extObject;
                             }
@@ -443,7 +300,7 @@ public class QueryUtils {
                         case OR:
                             if(extObject instanceof Expression) {
                                 Expression or = (Expression)extObject;
-                                sqlPair = parseExpression(queryOrClass, or);
+                                sqlPair = parseExpression(options, queryOrClass, or);
                             }else if(extObject instanceof SQLPair){
                                 sqlPair = (SQLPair)extObject;
                             }
@@ -462,7 +319,7 @@ public class QueryUtils {
                             Expression[] aor = (Expression[])extObject;
                             List<String> aorStr = new ArrayList<String>();
                             for(Expression orOr : aor){
-                                sqlPair = parseExpression(queryOrClass, orOr);
+                                sqlPair = parseExpression(options, queryOrClass, orOr);
                                 if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
                                     aorStr.add(sqlPair.getSql());
                                     if (sqlPair.getPairs() != null) {//column = column
@@ -482,7 +339,7 @@ public class QueryUtils {
                             Expression[] ands = (Expression[])extObject;
                             List<String> andStr = new ArrayList<String>();
                             for(Expression orAnd : ands){
-                                sqlPair = parseExpression(queryOrClass, orAnd);
+                                sqlPair = parseExpression(options, queryOrClass, orAnd);
                                 if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
                                     andStr.add(sqlPair.getSql());
                                     if (sqlPair.getPairs() != null) {//column = column
@@ -502,7 +359,7 @@ public class QueryUtils {
                             Expression[] ors = (Expression[])extObject;
                             List<String> orStr = new ArrayList<String>();
                             for(Expression orOr : ors){
-                                sqlPair = parseExpression(queryOrClass, orOr);
+                                sqlPair = parseExpression(options, queryOrClass, orOr);
                                 if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
                                     orStr.add(sqlPair.getSql());
                                     if (sqlPair.getPairs() != null) {//column = column
@@ -525,12 +382,12 @@ public class QueryUtils {
         return sql.toString();
     }
 
-    public static String getConditions(Class clazz, Express [] expresses, List<Pair> values){
+    public static String getConditions(Options options, Class clazz, Express [] expresses, List<Pair> values){
         List<String> ands = new ArrayList<String>();
         if(expresses != null) {
             for (int i = 0; i < expresses.length; i++) {
                 Expression expression = expresses[i].getExpression();
-                SQLPair sqlPair = parseExpression(clazz, expression);
+                SQLPair sqlPair = parseExpression(options, clazz, expression);
                 if (sqlPair != null) {
                     ands.add(sqlPair.getSql());
                     if (sqlPair.getPairs() != null) {
@@ -542,18 +399,18 @@ public class QueryUtils {
         return ORMUtils.join(ands, " AND ");
     }
 
-    public static SQLPair parseExpression(Object clazz, Expression expression){
+    public static SQLPair parseExpression(Options options, Object clazz, Expression expression){
         if(clazz instanceof Class){
-            return parseExpression((Class)clazz, null, expression);
+            return parseExpression(options, (Class)clazz, null, expression);
         }else if(clazz instanceof IQuery){
             IQuery query = (IQuery)clazz;
-            return parseExpression(query.getTable(), query.getAliasTable(), expression);
+            return parseExpression(options, query.getTable(), query.getAliasTable(), expression);
         }else{
-            return parseExpression(null, null, expression);
+            return parseExpression(null,null, null, expression);
         }
     }
 
-    public static SQLPair parseExpression(Class clazz, Map<String,Class<?>> clazzes, Expression expression){
+    public static SQLPair parseExpression(Options options, Class clazz, Map<String,Class<?>> clazzes, Expression expression){
 
 //    public static SQLPair parseExpression(Expression expression){
         SQLPair sqlPair = null;
@@ -585,7 +442,7 @@ public class QueryUtils {
             }
         }
 
-        String conditionName = parseColumn(expression.getLeft());
+        String conditionName = parseColumn(options, expression.getLeft());
         Object conditionValue = expression.getValue();
 
         boolean isTrim = ORMUtils.isTrim();
@@ -594,7 +451,7 @@ public class QueryUtils {
         }
         if(conditionValue != null ) {
             if (conditionValue instanceof Column) {
-                String valueSQL = parseColumn((Column) conditionValue);
+                String valueSQL = parseColumn(options, (Column) conditionValue);
                 if(expression.getType() == null){
                     sqlPair = new SQLPair(conditionName + " = " + valueSQL);
                 }else{

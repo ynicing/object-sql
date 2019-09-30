@@ -15,23 +15,15 @@
  */
 package com.ursful.framework.orm.helper;
 
-import com.ursful.framework.orm.annotation.RdId;
 import com.ursful.framework.orm.query.QueryUtils;
-import com.ursful.framework.orm.annotation.RdColumn;
-import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
-import org.springframework.beans.BeanUtils;
-import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.util.Assert;
-import org.springframework.util.ConcurrentReferenceHashMap;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.DataBinder;
 
-import javax.sql.rowset.serial.SerialClob;
 import java.io.*;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
@@ -134,7 +126,7 @@ public class SQLHelperCreator {
 
     }
 
-    public static SQLHelper deleteBy(Class clazz, Express[] expresses){
+    public static SQLHelper deleteBy(Class clazz, Options options, Express[] expresses){
 
         String tableName = ORMUtils.getTableName(clazz);
         if(expresses == null || expresses.length == 0){
@@ -144,7 +136,7 @@ public class SQLHelperCreator {
         List<Pair> pairs = new ArrayList<Pair>();
         List<String> terms = new ArrayList<String>();
         for(Express express : expresses){
-            SQLPair pair = QueryUtils.parseExpression(clazz, express.getExpression());
+            SQLPair pair = QueryUtils.parseExpression(options, clazz, express.getExpression());
             terms.add(pair.getSql());
             pairs.addAll(pair.getPairs());
         }
@@ -160,13 +152,13 @@ public class SQLHelperCreator {
         return helper;
     }
 
-    public static SQLHelper deleteBy(Class clazz, Terms terms){
+    public static SQLHelper deleteBy(Class clazz, Options options, Terms terms){
         terms.getCondition().getConditions();
         List<Pair> pairs = new ArrayList<Pair>();
         String conditions = null;
         if(terms != null) {
             Condition condition = terms.getCondition();
-            conditions = QueryUtils.getConditions(clazz, ORMUtils.newList(condition), pairs);
+            conditions = QueryUtils.getConditions(options, clazz, ORMUtils.newList(condition), pairs);
         }
         String tableName = ORMUtils.getTableName(clazz);
         if(StringUtils.isEmpty(conditions)){
@@ -186,7 +178,7 @@ public class SQLHelperCreator {
      * @param expresses
      * @return SQLHelper
      */
-    public static SQLHelper update(Object obj, Express [] expresses, boolean updateNull, String [] nullColumns){
+    public static SQLHelper update(Options option, Object obj, Express [] expresses, boolean updateNull, String [] nullColumns){
         List<String> ncs = new ArrayList<String>();
         if(nullColumns != null &&  nullColumns.length > 0){
             ncs.addAll(Arrays.asList(nullColumns));
@@ -203,7 +195,7 @@ public class SQLHelperCreator {
         Pair primaryKey = null;
         List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
         Assert.notNull(infoList, "Get columns cache is empty.");
-        DatabaseType databaseType = DatabaseTypeHolder.get();
+        String databaseType = DatabaseTypeHolder.get();
         SQLHelper helper = new SQLHelper();
         for(ColumnInfo info : infoList){
             Object fo = ORMUtils.getFieldValue(obj, info);
@@ -215,7 +207,7 @@ public class SQLHelperCreator {
                 if(info.getPrimaryKey()){
                     primaryKey = new Pair(info, fo);
                 }else{
-                    if(databaseType == DatabaseType.SQLServer && info.getColumnType() == ColumnType.TIMESTAMP){
+                    if(databaseType != null && databaseType.contains("SERVER") && info.getColumnType() == ColumnType.TIMESTAMP){
                         continue;
                     }
                     if(fo != null){
@@ -244,7 +236,7 @@ public class SQLHelperCreator {
             }else{
                 List<String> terms = new ArrayList<String>();
                 for(Express express : expresses){
-                    SQLPair pair = QueryUtils.parseExpression(clazz, express.getExpression());
+                    SQLPair pair = QueryUtils.parseExpression(option, clazz, express.getExpression());
                     terms.add(pair.getSql());
                     parameters.addAll(pair.getPairs());
                 }
@@ -271,10 +263,10 @@ public class SQLHelperCreator {
         SQLHelper helper = new SQLHelper();
         List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
         Assert.notNull(infoList, "Get columns cache is empty.");
-        DatabaseType databaseType = DatabaseTypeHolder.get();
+        String databaseType = DatabaseTypeHolder.get();
         for(ColumnInfo info : infoList){
             Object fo = ORMUtils.getFieldValue(obj, info);
-            if(databaseType == DatabaseType.SQLServer && info.getColumnType() == ColumnType.TIMESTAMP){
+            if(databaseType != null && databaseType.contains("SERVER") && info.getColumnType() == ColumnType.TIMESTAMP){
                 continue;
             }
             if(info.getPrimaryKey()){
@@ -333,10 +325,10 @@ public class SQLHelperCreator {
             SQLHelper helper = new SQLHelper();
             List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
             Assert.notNull(infoList, "Get columns cache is empty.");
-            DatabaseType databaseType = DatabaseTypeHolder.get();
+            String databaseType = DatabaseTypeHolder.get();
             for (ColumnInfo info : infoList) {
                 Object fo = ORMUtils.getFieldValue(obj, info);
-                if (databaseType == DatabaseType.SQLServer && info.getColumnType() == ColumnType.TIMESTAMP) {
+                if (databaseType != null && databaseType.contains("SERVER") && info.getColumnType() == ColumnType.TIMESTAMP) {
                     continue;
                 }
                 if (info.getPrimaryKey()) {
@@ -432,11 +424,11 @@ public class SQLHelperCreator {
 
     }
 
-    public static SQLHelper query(Class<?> clazz, Express [] expresses){
+    public static SQLHelper query(Options options, Class<?> clazz, Express [] expresses){
         String tableName = ORMUtils.getTableName(clazz);
         StringBuffer sql = new StringBuffer("SELECT * FROM " + tableName);
         List<Pair> values = new ArrayList<Pair>();
-        String conditions = QueryUtils.getConditions(clazz, expresses, values);
+        String conditions = QueryUtils.getConditions(options, clazz, expresses, values);
         if (!StringUtils.isEmpty(conditions)) {
             sql.append(" WHERE " + conditions);
         }
@@ -448,11 +440,11 @@ public class SQLHelperCreator {
 
 
 
-    public static SQLHelper queryCountExpress(Class<?> clazz, Express ... expresses){
+    public static SQLHelper queryCountExpress(Options options, Class<?> clazz, Express ... expresses){
         String tableName = ORMUtils.getTableName(clazz);
         StringBuffer sql = new StringBuffer("SELECT COUNT(*) FROM " + tableName);
         List<Pair> values = new ArrayList<Pair>();
-        String conditions = QueryUtils.getConditions(clazz, expresses, values);
+        String conditions = QueryUtils.getConditions(options, clazz, expresses, values);
         if (!StringUtils.isEmpty(conditions)) {
             sql.append(" WHERE " + conditions);
         }
@@ -462,11 +454,11 @@ public class SQLHelperCreator {
         return helper;
     }
 
-    public static SQLHelper queryCount(Class<?> clazz, Terms terms){
+    public static SQLHelper queryCount(Options options, Class<?> clazz, Terms terms){
         String tableName = ORMUtils.getTableName(clazz);
         StringBuffer sql = new StringBuffer("SELECT COUNT(*) FROM " + tableName);
         List<Pair> values = new ArrayList<Pair>();
-        String conditions = QueryUtils.getConditions(clazz, ORMUtils.newList(terms.getCondition()), values);
+        String conditions = QueryUtils.getConditions(options, clazz, ORMUtils.newList(terms.getCondition()), values);
         if (!StringUtils.isEmpty(conditions)) {
             sql.append(" WHERE " + conditions);
         }
@@ -741,154 +733,23 @@ public class SQLHelperCreator {
 
     }
 
-    public static void setParameter(PreparedStatement ps, List<Pair> objects, Connection connection) throws SQLException{
-
-        DatabaseType databaseType = DatabaseTypeHolder.get();
+    public static void setParameter(Options options, PreparedStatement ps, List<Pair> objects, Connection connection) throws SQLException{
+        if(options == null){
+            return;
+        }
+        String databaseType = DatabaseTypeHolder.get();
         //ps.setObject(); 是否可以统一使用
         for(int i = 0; i < objects.size(); i++){
             Pair pair = objects.get(i);
             Object obj = pair.getValue();
             ColumnType columnType = pair.getColumnType();
             DataType type =  DataType.getDataType(pair.getType());
-            switch (type) {
-                case BINARY:
-                    if(obj != null) {
-                        if(obj instanceof byte[]) {
-                            ps.setBinaryStream(i + 1, new ByteArrayInputStream((byte[]) obj));
-                        }else{
-                            try {
-                                ps.setBinaryStream(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
-                            } catch (UnsupportedEncodingException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }else{
-                        ps.setBinaryStream(i + 1, null);
-                    }
-                    break;
-                case STRING:
-                    if(columnType == ColumnType.BINARY){
-                        if(obj != null) {
-                            try {
-                                ps.setBinaryStream(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
-                            } catch (UnsupportedEncodingException e) {
-                                e.printStackTrace();
-                            }
-                        }else{
-                            ps.setBinaryStream(i + 1, null);
-                        }
-                    }else if(columnType == ColumnType.BLOB){
-                        if(obj != null) {
-                            try {
-                                if(databaseType == DatabaseType.PostgreSQL){
-                                    ps.setBinaryStream(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
-                                }else {
-                                    ps.setBlob(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
-                                }
-                            } catch (UnsupportedEncodingException e) {
-                                e.printStackTrace();
-                            }
-                        }else{
-                            ps.setBinaryStream(i + 1, null);
-                        }
-                    }else if(columnType == ColumnType.CLOB){
-                        if(databaseType == DatabaseType.ORACLE){
-                            try {
-                                Clob oracleClob = (Clob) createOracleLob(connection, "oracle.sql.CLOB");
-                                ps.setClob(i +1, oracleStr2Clob(obj.toString(), oracleClob));
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        } else if(databaseType == DatabaseType.PostgreSQL){
-                            try {
-                                ps.setBinaryStream(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
-                            } catch (UnsupportedEncodingException e) {
-                                e.printStackTrace();
-                            }
-                        } else {
-                            Clob clob = null;
-                            if(obj != null) {
-                                clob = new SerialClob(obj.toString().toCharArray());
-                            }
-                            ps.setClob(i + 1, clob);
-                        }
-                    }else {
-                        if (obj != null && "".equals(obj.toString().trim())) {
-                            obj = null;
-                        }
-                        ps.setString(i + 1, (String) obj);
-                    }
-                    break;
-                case DATE:
-                    if(obj == null){
-                        ps.setObject(i + 1, null);
-                    }else {
-                        if(columnType == ColumnType.LONG) {
-                            ps.setLong(i + 1, ((Date) obj).getTime());
-                        }else if(columnType == ColumnType.DATETIME) {
-                            Date date = (Date)obj;
-                            ps.setTimestamp(i+1, new Timestamp(date.getTime()));
-//                            if(databaseType == DatabaseType.SQLServer){
-//                                public java.sql.Timestamp getTimestamp(Date date) {
-//                                    return new java.sql.Timestamp(date.getTime());
-//                                }
-//                            }else {
-//                                ps.setDate(i + 1, new java.sql.Date(date.getTime()));
-//                            }
-                        }else{//timestamp
-                            if(databaseType != null && databaseType == DatabaseType.SQLServer){
-                                ps.setTimestamp(i + 1, null);
-                            }else {
-                                ps.setTimestamp(i + 1, new Timestamp(((Date) obj).getTime()));
-                            }
-                        }
-                    }
-                    break;
-                case DECIMAL:
-                    BigDecimal decimal = (BigDecimal) obj;
-                    BigDecimal setScale = decimal.setScale(5,BigDecimal.ROUND_HALF_DOWN);
-                    ps.setBigDecimal(i + 1, setScale);
-                    break;
-                case DOUBLE:
-                        if(databaseType == DatabaseType.ORACLE){
-                            BigDecimal bg=new BigDecimal((Double)obj);
-                            bg.setScale(5,BigDecimal.ROUND_HALF_DOWN);
-                            ps.setDouble(i + 1, bg.doubleValue());
-                        }else{
-                        ps.setObject(i + 1, obj);
-                    }
-                    break;
-                default:
-                    ps.setObject(i + 1, obj);
-                    break;
-            }
+            options.setParameter(ps, connection, databaseType, i, obj, columnType, type);
         }
     }
 
-    public static Object createOracleLob(Connection conn, String lobClassName)
-            throws Exception {
-        Class lobClass = conn.getClass().getClassLoader().loadClass(
-                lobClassName);
-        final Integer DURATION_SESSION = new Integer(lobClass.getField(
-                "DURATION_SESSION").getInt(null));
-        final Integer MODE_READWRITE = new Integer(lobClass.getField(
-                "MODE_READWRITE").getInt(null));
-        Method createTemporary = lobClass.getMethod("createTemporary",
-                new Class[] { Connection.class, boolean.class, int.class });
-        Object lob = createTemporary.invoke(null, new Object[] { conn, false,
-                DURATION_SESSION });
-        Method open = lobClass.getMethod("open", new Class[] { int.class });
-        open.invoke(lob, new Object[] { MODE_READWRITE });
-        return lob;
-    }
 
-    public static Clob oracleStr2Clob(String str, Clob lob) throws Exception {
-        Method methodToInvoke = lob.getClass().getMethod(
-                "getCharacterOutputStream", (Class[]) null);
-        Writer writer = (Writer) methodToInvoke.invoke(lob, (Object[]) null);
-        writer.write(str);
-        writer.close();
-        return lob;
-    }
+
+
 
 }

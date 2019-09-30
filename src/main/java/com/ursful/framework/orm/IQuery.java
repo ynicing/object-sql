@@ -18,8 +18,6 @@ package com.ursful.framework.orm;
 
 import com.ursful.framework.orm.support.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -53,9 +51,9 @@ public interface IQuery{
 
     void setPageable(Pageable pageable);
 
-    void setQueryPage(QueryPage queryPage);
+    void setOptions(Options options);
 
-    QueryPage getQueryPage();
+    Options getOptions();
 
     QueryInfo doQuery();
 

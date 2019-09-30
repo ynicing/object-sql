@@ -317,23 +317,23 @@ public class BaseQueryImpl implements IBaseQuery {
         this.pageable = pageable;
     }
 
-    private QueryPage queryPage;
+    private  Options options;
 
     @Override
-    public void setQueryPage(QueryPage queryPage) {
-        this.queryPage = queryPage;
+    public void setOptions(Options options) {
+        this.options = options;
     }
 
     @Override
-    public QueryPage getQueryPage() {
-        return this.queryPage;
+    public Options getOptions() {
+        return this.options;
     }
 
     public QueryInfo doQuery() {
-        return queryPage.doQuery(this, getPageable());
+        return options.doQuery(this, getPageable());
     }
 
     public QueryInfo doQueryCount() {
-        return queryPage.doQueryCount(this);
+        return options.doQueryCount(this);
     }
 }

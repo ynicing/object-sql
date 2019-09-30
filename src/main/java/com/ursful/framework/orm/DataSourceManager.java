@@ -1,10 +1,6 @@
 package com.ursful.framework.orm;
 
-import com.ursful.framework.orm.helper.table.H2Table;
-import com.ursful.framework.orm.helper.table.MySQLTable;
-import com.ursful.framework.orm.helper.table.OracleTable;
-import com.ursful.framework.orm.helper.table.SQLServerTable;
-import com.ursful.framework.orm.page.*;
+import com.ursful.framework.orm.option.*;
 import com.ursful.framework.orm.support.*;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 
@@ -13,10 +9,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class DataSourceManager {
 
@@ -35,9 +28,15 @@ public class DataSourceManager {
         connectionInterface.remove(connection);
     }
 
-    private static Map<DataSource, DatabaseType> databaseTypeMap = new HashMap<DataSource, DatabaseType>();
-    private static Map<DatabaseType, QueryPage> queryPageMap = new HashMap<DatabaseType, QueryPage>();
-    private static Map<DatabaseType, DynamicTable> dynamicTableMap = new HashMap<DatabaseType, DynamicTable>();
+    private static Map<DataSource, String> databaseTypeMap = new HashMap<DataSource, String>();
+    private static List<Options> optionsList = Arrays.asList(
+            new Options[]{new H2QueryOptions(),
+                    new MySQLOptions(),
+                    new SQLServerOptions(),
+                    new OracleOptions(),
+                    new PostgreSQLOptions()});
+
+    private static Map<String, Options> optionsCache = new HashMap<String, Options>();
 
     private static Map<Class, DataSource> dataSourceMap = new HashMap<Class, DataSource>();
     private static Map<String, DataSource> packageDataSourceMap = new HashMap<String, DataSource>();
@@ -60,25 +59,6 @@ public class DataSourceManager {
         this.dataSource = dataSource;
     }
 
-    private List<QueryPage> queryPages;
-
-    public void setQueryPages(List<QueryPage> queryPages) {
-        this.queryPages = queryPages;
-        for(QueryPage queryPage : queryPages){
-            registerQueryPage(queryPage);
-        }
-    }
-
-    private List<DynamicTable> dynamicTables;
-
-    public void setDynamicTables(List<DynamicTable> dynamicTables) {
-        this.dynamicTables = dynamicTables;
-        for(DynamicTable dynamicTable : dynamicTables){
-            registerDynamicTable(dynamicTable);
-        }
-    }
-
-
 
     public DataSource getRawDataSource(DataSource current){
         DataSource raw = current;
@@ -89,8 +69,6 @@ public class DataSourceManager {
         return raw;
     }
 
-
-
     public DataSource getDataSource() {
         return dataSource;
     }
@@ -99,76 +77,29 @@ public class DataSourceManager {
         this.dataSource = dataSource;
     }
 
-    public QueryPage getQueryPage(){
-        return getQueryPage(null, null);
+    public Options getOptions(String type){
+        return optionsCache.get(type);
     }
-    public QueryPage getQueryPage(Class clazz, Class serviceClass){
-        DatabaseType databaseType =  getDatabaseType(clazz, serviceClass);
-        QueryPage queryPage = queryPageMap.get(databaseType);
-        if(queryPage == null){
-            switch (databaseType){
-                case MySQL:
-                    queryPage = new MySQLQueryPage();
+
+    public Options getOptions(Class clazz, Class serviceClass){
+        String productName =  getProductName(clazz, serviceClass);
+        Options options = optionsCache.get(productName);
+        if(options == null){
+            for(Options temp : optionsList){
+                if(productName.contains(temp.keyword().toUpperCase(Locale.ROOT))){
+                    options = temp;
                     break;
-                case PostgreSQL:
-                    queryPage = new PostgreSQLQueryPage();
-                    break;
-                case ORACLE:
-                    queryPage = new OracleQueryPage();
-                    break;
-                case SQLServer:
-                    queryPage = new SQLServerQueryPage();
-                    break;
-                case H2:
-                    queryPage = new H2QueryPage();
-                    break;
-                default:
-                    break;
+                }
             }
-            queryPageMap.put(databaseType, queryPage);
+            optionsCache.put(productName, options);
         }
-        return queryPage;
+        return options;
     }
 
-    public DynamicTable getDynamicTable() {
-        return getDynamicTable(null, null);
-    }
-
-    public DynamicTable getDynamicTable(Class clazz, Class serviceClass){
-        DataSource raw = getDataSource(clazz, serviceClass);
-        DatabaseType databaseType =  getDatabaseType(raw);
-        //((ExtAtomikosDataSourceBean)dataSource).xaProperties = URL
-        //((DruidDataSource) dataSource).jdbcUrl
-        DynamicTable table = dynamicTableMap.get(databaseType);
-        if(table == null){
-            switch (databaseType){
-                case MySQL:
-                    table = new MySQLTable();
-                    break;
-                case ORACLE:
-                    table = new OracleTable();
-                    break;
-                case SQLServer:
-                    table = new SQLServerTable();
-                    break;
-                case H2:
-                    table = new H2Table();
-                    break;
-                default:
-                    break;
-            }
-            dynamicTableMap.put(databaseType, table);
+    public void registerOptions(Options options){
+        if (!optionsList.contains(options)){
+            optionsList.add(options);
         }
-        return table;
-    }
-
-    public void registerDynamicTable(DynamicTable dynamicTable){
-        dynamicTableMap.put(dynamicTable.databaseType(), dynamicTable);
-    }
-
-
-    public void registerQueryPage(QueryPage queryPage){
-        queryPageMap.put(queryPage.databaseType(), queryPage);
     }
 
     private DataSource getPackageDataSource(Class clazz){
@@ -247,57 +178,42 @@ public class DataSourceManager {
     public Connection getConnection(Class clazz, Class serviceClass){
         DataSource source = getDataSource(clazz, serviceClass);
         Connection connection = DataSourceUtils.getConnection(source);
-        DatabaseTypeHolder.set(getDatabaseType(source, connection));
+        DatabaseTypeHolder.set(getProductName(source, connection));
         return connection;
     }
 
-    public DatabaseType getDatabaseType(DataSource raw){
-        DatabaseType type = databaseTypeMap.get(raw);
+    public String getProductName(DataSource raw){
+        String type = databaseTypeMap.get(raw);
         if(type != null){
             return type;
         }
         Connection connection = null;
         try {
             connection = DataSourceUtils.getConnection(raw);
-            return getDatabaseType(raw, connection);
+            return getProductName(raw, connection);
         } finally {
             DataSourceUtils.releaseConnection(connection, raw);
         }
     }
-    public DatabaseType getDatabaseType(Class clazz, Class serviceClass){
+    public String getProductName(Class clazz, Class serviceClass){
         DataSource temp = getDataSource(clazz, serviceClass);
-        return getDatabaseType(temp);
+        return getProductName(temp);
     }
 
-    public DatabaseType getDatabaseType(DataSource source, Connection connection){
+    public String getProductName(DataSource source, Connection connection){
         DataSource raw = getRawDataSource(source);
-        DatabaseType type = databaseTypeMap.get(raw);
+        String type = databaseTypeMap.get(raw);
         if(type != null){
             return type;
         }
         try {
-            String productName = connection.getMetaData().getDatabaseProductName().toUpperCase();
-            DatabaseType databaseType = null;
-            if(productName.contains("MYSQL")){
-                databaseType = DatabaseType.MySQL;
-            }else if(productName.contains("ORACLE")){
-                databaseType = DatabaseType.ORACLE;
-            }else if(productName.contains("H2")){
-                databaseType = DatabaseType.H2;
-            }else if(productName.contains("SERVER")) {
-                databaseType = DatabaseType.SQLServer;
-            }else if(productName.contains("POSTGRESQL")){
-                databaseType = DatabaseType.PostgreSQL;
-            }else{
-                databaseType = DatabaseType.NONE;
-                //throw new RuntimeException("Not support : " +productName);
-            }
-            databaseTypeMap.put(raw, databaseType);
-            return databaseType;
+            String productName = connection.getMetaData().getDatabaseProductName().toUpperCase(Locale.ROOT);
+            databaseTypeMap.put(raw, productName);
+            return productName;
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return DatabaseType.NONE;
+        return null;
     }
 
 

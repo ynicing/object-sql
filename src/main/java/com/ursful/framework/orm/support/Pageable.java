@@ -24,13 +24,15 @@ import java.util.List;
 @RdTable(name = "None", title = "分页")
 public class Pageable<S> implements Serializable {
 
-    //jqgrid page?
 	@RdColumn(title = "当前页", description = "默认1", nullable = false)
 	public Integer page = 1;
-	@RdColumn(title = "一页数量",description = "默认10", nullable = false)
+	@RdColumn(title = "分页大小",description = "默认10", nullable = false)
     public Integer size = 10;
+	@RdColumn(title = "总数", nullable = false)
     public Integer total;
-    public Integer from;
+
+	@RdColumn(title = "数据列表")
+	public List<? extends Object> rows;
 
 	public Integer getOffset(){
 		return (Math.max(1, page) - 1) * size;
@@ -43,29 +45,6 @@ public class Pageable<S> implements Serializable {
 		this.page = page;
 		this.size = size;
 	}
-	
-	//private Map<String, String> orders = new HashMap<String, String>();
-	//name-asc or desc
-
-//    public Map<String, Object> attributes;
-//
-//	public Map<String, Object> getAttributes() {
-//		return attributes;
-//	}
-//
-//	public void setAttributes(Map<String, Object> attributes) {
-//		this.attributes = attributes;
-//	}
-
-	public Integer getFrom() {
-		return from;
-	}
-
-	public void setFrom(Integer from) {
-		this.from = from;
-	}
-
-    public List<? extends Object> rows;
 
 	public Integer getPage() {
 		return page;

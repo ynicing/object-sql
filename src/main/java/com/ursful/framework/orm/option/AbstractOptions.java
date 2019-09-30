@@ -1,18 +1,108 @@
-package com.ursful.framework.orm.page;
+package com.ursful.framework.orm.option;
 
 import com.ursful.framework.orm.IQuery;
-import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
-import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.util.StringUtils;
 
+import javax.sql.rowset.serial.SerialClob;
+import java.io.ByteArrayInputStream;
+import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
+import java.sql.*;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-public abstract class AbstractQueryPage implements QueryPage{
+public abstract class AbstractOptions implements Options{
+
+    public abstract boolean preSetParameter(PreparedStatement ps, Connection connection, String databaseType, int i, Object obj, ColumnType columnType, DataType type) throws SQLException;
+
+    public void setParameter(PreparedStatement ps, Connection connection, String databaseType, int i, Object obj, ColumnType columnType, DataType type) throws SQLException {
+        boolean hasSet = preSetParameter(ps, connection, databaseType, i, obj, columnType, type);
+        if(hasSet){
+            return;
+        }
+        switch (type) {
+            case BINARY:
+                if(obj != null) {
+                    if(obj instanceof byte[]) {
+                        ps.setBinaryStream(i + 1, new ByteArrayInputStream((byte[]) obj));
+                    }else{
+                        try {
+                            ps.setBinaryStream(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
+                        } catch (UnsupportedEncodingException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }else{
+                    ps.setBinaryStream(i + 1, null);
+                }
+                break;
+            case STRING:
+                if(columnType == ColumnType.BINARY){
+                    if(obj != null) {
+                        try {
+                            ps.setBinaryStream(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
+                        } catch (UnsupportedEncodingException e) {
+                            e.printStackTrace();
+                        }
+                    }else{
+                        ps.setBinaryStream(i + 1, null);
+                    }
+                }else if(columnType == ColumnType.BLOB){
+                    if(obj != null) {
+                        try {
+                            ps.setBlob(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
+                        } catch (UnsupportedEncodingException e) {
+                            e.printStackTrace();
+                        }
+                    }else{
+                        ps.setBinaryStream(i + 1, null);
+                    }
+                }else if(columnType == ColumnType.CLOB){
+                    Clob clob = null;
+                    if(obj != null) {
+                        clob = new SerialClob(obj.toString().toCharArray());
+                    }
+                    ps.setClob(i + 1, clob);
+                }else {
+                    if (obj != null && "".equals(obj.toString().trim())) {
+                        obj = null;
+                    }
+                    ps.setString(i + 1, (String) obj);
+                }
+                break;
+            case DATE:
+                if(obj == null){
+                    ps.setObject(i + 1, null);
+                }else {
+                    if(columnType == ColumnType.LONG) {
+                        ps.setLong(i + 1, ((Date) obj).getTime());
+                    }else if(columnType == ColumnType.DATETIME) {
+                        Date date = (Date)obj;
+                        ps.setTimestamp(i+1, new Timestamp(date.getTime()));
+                    }else{//timestamp
+                        ps.setTimestamp(i + 1, new Timestamp(((Date) obj).getTime()));
+                    }
+                }
+                break;
+            case DECIMAL:
+                BigDecimal decimal = (BigDecimal) obj;
+                BigDecimal setScale = decimal.setScale(5,BigDecimal.ROUND_HALF_DOWN);
+                ps.setBigDecimal(i + 1, setScale);
+                break;
+            case DOUBLE:
+                ps.setObject(i + 1, obj);
+                break;
+            default:
+                ps.setObject(i + 1, obj);
+                break;
+        }
+    }
+
 
     @Override
     public QueryInfo doQueryCount(IQuery query) {
@@ -72,7 +162,7 @@ public abstract class AbstractQueryPage implements QueryPage{
                     column.setAlias(alias);
                 }
                 inColumn.add(column.getAlias() + "." + column.getName());
-                temp.add(QueryUtils.parseColumn(column));
+                temp.add(QueryUtils.parseColumn(this,column));
                 if(Expression.EXPRESSION_ALL.equals(column.getName())){
                     if(!StringUtils.isEmpty(column.getAlias()) && !allAlias.contains(column.getAlias())){
                         allAlias.add(column.getAlias());
@@ -89,7 +179,7 @@ public abstract class AbstractQueryPage implements QueryPage{
                 QueryUtils.setColumnAlias(column, alias);
                 if (!StringUtils.isEmpty(column.getAlias()) && !allAlias.contains(column.getAlias())
                         && !inColumn.contains(column.getAlias() + "." + column.getName())) {
-                    String orderStr = QueryUtils.parseColumn(column);
+                    String orderStr = QueryUtils.parseColumn(this,column);
                     temp.add(orderStr);
                 }
             }
@@ -109,7 +199,7 @@ public abstract class AbstractQueryPage implements QueryPage{
         String result = "";
         List<Order> orders = query.getOrders();
         QueryUtils.setOrdersAlias(orders, alias);
-        String orderString = QueryUtils.getOrders(orders);
+        String orderString = QueryUtils.getOrders(this, orders);
         if (orderString != null && !"".equals(orderString)) {
             result = " ORDER BY " + orderString;
         }
@@ -148,7 +238,7 @@ public abstract class AbstractQueryPage implements QueryPage{
         String result = "";
         List<Condition> conditions = query.getConditions();
         QueryUtils.setConditionsAlias(conditions, tableAlias);
-        String whereCondition = QueryUtils.getConditions(query, conditions, values);
+        String whereCondition = QueryUtils.getConditions(this, query, conditions, values);
         if(whereCondition != null && !"".equals(whereCondition)){
             result =" WHERE " + whereCondition;
         }
@@ -159,7 +249,7 @@ public abstract class AbstractQueryPage implements QueryPage{
         String result = "";
         List<Column> columns = query.getGroups();
         QueryUtils.setColumnsAlias(columns, alias);
-        String groupString = QueryUtils.getGroups(columns);
+        String groupString = QueryUtils.getGroups(this, columns);
         if(groupString != null && !"".equals(groupString)){
             result =" GROUP BY " + groupString;
         }
@@ -170,7 +260,7 @@ public abstract class AbstractQueryPage implements QueryPage{
         String result = "";
         List<Condition> conditions = query.getHavings();
         QueryUtils.setConditionsAlias(conditions, alias);
-        String havingString = QueryUtils.getConditions(query, conditions, values);
+        String havingString = QueryUtils.getConditions(this, query, conditions, values);
         if(havingString != null && !"".equals(havingString)){
             result = " HAVING " + havingString;
         }
@@ -214,7 +304,7 @@ public abstract class AbstractQueryPage implements QueryPage{
 
             List<Condition> temp = join.getConditions();
 
-            String cdt = QueryUtils.getConditions(obj, temp, values);
+            String cdt = QueryUtils.getConditions(this, obj, temp, values);
             if(cdt != null && !"".equals(cdt)) {
                 sb.append(" ON ");
                 sb.append(cdt);

@@ -13,13 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ursful.framework.orm.support;
+package com.ursful.framework.orm.annotation;
 
-public enum DatabaseType {
-    NONE,
-    H2,
-    MySQL,
-    ORACLE,
-    SQLServer,
-    PostgreSQL
+import java.lang.annotation.*;
+
+
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface RdMultiColumn {
+	Class reference();
+	String name();
+ 	String asName() default "";
+	int order() default 0;
 }

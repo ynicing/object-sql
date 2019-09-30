@@ -8,6 +8,8 @@ import java.util.Map;
 
 public interface ISQLService {
 
+    String currentDatabaseName();
+
     String currentDatabaseType();
 
     DataSource getDataSource();
@@ -18,7 +20,6 @@ public interface ISQLService {
 
     void setDataSourceManager(DataSourceManager dataSourceManager);
 
-    //save update delete?
     boolean execute(String sql, Object ... params);
 
     boolean executeBatch(String sql, Object [] ... params);
@@ -36,8 +37,6 @@ public interface ISQLService {
     Date getDatabaseDateTime();
 
     Double getDatabaseNanoTime();
-
-    void register(Class clazz, Class serviceClass);
 
     <S> List<S> batchSaves(List<S> ts, boolean rollback);
 }
