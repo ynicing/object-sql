@@ -32,7 +32,7 @@ public class Commit {
     private PlatformTransactionManager transactionManager;
     private TransactionStatus status;
     private boolean executeSuccess = false;
-    private Runnable failure;
+    private ICommitHandler commitHandler;
 
     public Commit(Object manager){
         this.transactionManager = (PlatformTransactionManager)manager;
@@ -41,7 +41,7 @@ public class Commit {
     public void execute(Runnable runnable){
         execute(runnable, null);
     }
-    public void execute(Runnable runnable, Runnable failure){
+    public void execute(Runnable runnable, ICommitHandler commitHandler){
         if(runnable == null){
             return;
         }
@@ -50,11 +50,9 @@ public class Commit {
             runnable.run();
             commit();
         }catch (Exception e){
-            if(failure != null){
-                failure.run();
+            if(commitHandler != null){
+                commitHandler.handle(e);
             }
-            e.printStackTrace();
-            throw new RuntimeException("Batch execute error", e);
         }finally {
             if(!executeSuccess) {
                 rollback();

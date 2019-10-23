@@ -22,5 +22,11 @@ import java.lang.annotation.*;
 public @interface RdTable {
 	String name();//user/create  user
 	String schema() default "";
+	@Deprecated
 	String title() default "";
+	String comment() default "";
+	boolean dropped() default false;
+	//MySQL
+	String engine() default "InnoDB";
+	String collate() default "utf8mb4_bin";
 }

@@ -25,10 +25,13 @@ package com.ursful.framework.orm.support;
 
 public enum ColumnType {
     NULL,//空，默认选项
+    CHAR,//短文本
+    TEXT,//长文本
     BLOB,//数据库Blob
     CLOB,//数据库Clob
     BINARY,//数据库二进制流
     LONG,//与Date使用，时间转long
+    REAL,
     DATETIME,//数据库DateTime 或者 Date（Oracle）
     TIMESTAMP;//数据库Timestamp
 }

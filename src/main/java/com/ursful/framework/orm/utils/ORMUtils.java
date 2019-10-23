@@ -72,6 +72,7 @@ public class ORMUtils {
     private static Map<Class, List<ColumnInfo>> columnInfoCache = new ConcurrentReferenceHashMap<Class, List<ColumnInfo>>();
 
     private static Map<Class, String> tableNameCache = new ConcurrentReferenceHashMap<Class, String>();
+    private static Map<Class, RdTable> rdTableCache = new ConcurrentReferenceHashMap<Class, RdTable>();
 
     public static String getTableName(Class clazz){
         if(tableNameCache.containsKey(clazz)){
@@ -82,8 +83,23 @@ public class ORMUtils {
             throw new RuntimeException("Table not found Class(" + clazz.getName() + ")");
         }
         String tableName = table.name();
+        rdTableCache.put(clazz, table);
         tableNameCache.put(clazz, tableName);
         return tableName;
+    }
+
+    public static RdTable getRdTable(Class clazz){
+        if(rdTableCache.containsKey(clazz)){
+            return rdTableCache.get(clazz);
+        }
+        RdTable table = AnnotationUtils.findAnnotation(clazz, RdTable.class);
+        if(table == null){
+            throw new RuntimeException("Table not found Class(" + clazz.getName() + ")");
+        }
+        String tableName = table.name();
+        rdTableCache.put(clazz, table);
+        tableNameCache.put(clazz, tableName);
+        return table;
     }
 
     public static void setFieldValue(Object object, ColumnInfo info, Object value){
@@ -134,6 +150,7 @@ public class ORMUtils {
             if(column != null){
                 ColumnInfo info = new ColumnInfo();
                 info.setField(field);
+                info.setOrder(column.order());
                 info.setName(field.getName());
                 info.setColumnName(column.name());
                 info.setColumnType(column.type());
@@ -147,6 +164,12 @@ public class ORMUtils {
                 }
             }
         }
+        infoList.sort(new Comparator<ColumnInfo>() {
+            @Override
+            public int compare(ColumnInfo o1, ColumnInfo o2) {
+                return o1.getOrder() - o2.getOrder();
+            }
+        });
         columnInfoCache.put(clazz, infoList);
         return infoList;
     }

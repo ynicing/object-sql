@@ -1,13 +1,18 @@
 package com.ursful.framework.orm;
 
+import com.ursful.framework.orm.annotation.RdColumn;
+import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.helper.SQLHelper;
 import com.ursful.framework.orm.helper.SQLHelperCreator;
 import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.support.*;
+import com.ursful.framework.orm.utils.ORMUtils;
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.Assert;
 
 import javax.sql.DataSource;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.PreparedStatement;
 import java.sql.Connection;
@@ -19,6 +24,8 @@ import java.sql.Timestamp;
 import java.util.*;
 
 public class SQLServiceImpl implements ISQLService{
+
+    private Logger logger = Logger.getLogger(SQLServiceImpl.class);
 
     @Autowired(required = false)
     protected DataSourceManager dataSourceManager;
@@ -322,25 +329,7 @@ public class SQLServiceImpl implements ISQLService{
     private Timestamp getOracleTimestamp(Object value, Connection connection) {
         try {
             Assert.notNull(connection, "Oracle connection should not be nullable.");
-            Connection conn = null;
-            List<IRealConnection> realConnections = DataSourceManager.getRealConnection();
-            if(!realConnections.isEmpty()){
-                for (IRealConnection realConnection : realConnections){
-                    Connection temp = realConnection.getConnection(connection);
-                    if(temp != null){
-                        conn = temp;
-                        break;
-                    }
-                }
-            }
-            if(conn == null && connection.getClass().getName().endsWith("DruidPooledConnection")){
-                Class clazz = connection.getClass().getClassLoader().loadClass("com.alibaba.druid.pool.DruidPooledConnection");
-                Method method = clazz.getMethod("getConnection");
-                conn = (Connection)method.invoke(connection);
-            }
-            if(conn == null){
-                conn = connection;
-            }
+            Connection conn = getRealConnection(connection);
             Class clz = value.getClass();
             Method m = clz.getMethod("timestampValue", Connection.class);
             //m = clz.getMethod("timeValue", null); 时间类型
@@ -349,6 +338,40 @@ public class SQLServiceImpl implements ISQLService{
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private Connection getRealConnection(Connection connection){
+        Connection conn = null;
+        List<IRealConnection> realConnections = DataSourceManager.getRealConnection();
+        if(!realConnections.isEmpty()){
+            for (IRealConnection realConnection : realConnections){
+                Connection temp = realConnection.getConnection(connection);
+                if(temp != null){
+                    conn = temp;
+                    break;
+                }
+            }
+        }
+        if(conn == null && connection.getClass().getName().endsWith("DruidPooledConnection")){
+            Class clazz = null;
+            try {
+                clazz = connection.getClass().getClassLoader().loadClass("com.alibaba.druid.pool.DruidPooledConnection");
+                Method method = clazz.getMethod("getConnection");
+                conn = (Connection)method.invoke(connection);
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
+                e.getTargetException();
+            } catch (NoSuchMethodException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+        if(conn == null){
+            conn = connection;
+        }
+        return conn;
     }
 
 
@@ -412,5 +435,103 @@ public class SQLServiceImpl implements ISQLService{
 
         }
         return result;
+    }
+
+    //((JdbcConnection) connection).getURL() org.h2.jdbc.JdbcConnection
+    //((JDBC4Connection) connection).getURL() com.mysql.jdbc.JDBC4Connection
+    //((T4CConnection) connection).getURL() oracle.jdbc.driver.T4CConnection
+    //connection.getCatalog() connection.getSchema() com.microsoft.sqlserver.jdbc.SQLServerConnection
+
+    @Override
+    public void createOrUpdate(Class<?> table) {
+        RdTable rdTable = ORMUtils.getRdTable(table);
+        Assert.notNull(rdTable, "Error Entity, it must contain RdTable");
+        Options options = getOptions();
+        if(options == null){
+            logger.warn("Create Or update Not Support.");
+            return;
+        }
+        Connection temp = getConnection();
+        try{
+            Connection connection = getRealConnection(temp);
+            Table queryTable  = options.table(connection, rdTable.name());
+            List<ColumnInfo> columnInfoList = ORMUtils.getColumnInfo(table);
+            List<TableColumn> columns = null;
+            if(queryTable != null  &&  !rdTable.dropped()){//judge Columns
+                columns = options.columns(connection, rdTable.name());
+            }
+            List<String> sqls = options.manageTable(rdTable, columnInfoList, queryTable != null, columns);
+            logger.info("-------------------------------------------sql start-------------");
+            for(String sql : sqls){
+                System.out.println(sql);
+            }
+            logger.info("-------------------------------------------sql end-------------");
+            if(sqls != null && !sqls.isEmpty()){
+                for(String sql : sqls){
+                    PreparedStatement ps = null;
+                    try {
+                        ps = temp.prepareStatement(sql);
+                        ps.execute();
+                    } catch (SQLException e) {
+                        logger.error("Execute SQL Error : " + sql);
+                        throw new RuntimeException(e);
+                    } finally{
+                        closeConnection(null, ps, null);
+                    }
+                }
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally{
+            closeConnection(null, null, temp);
+        }
+
+    }
+
+    @Override
+    public Table table(Class<?> clazz) {
+        RdTable rdTable = ORMUtils.getRdTable(clazz);
+        Assert.notNull(rdTable, "Error Entity, it must contain RdTable");
+        Options options = getOptions();
+        if(options == null){
+            logger.warn("Query table Not Support.");
+            return null;
+        }
+        Connection temp = getConnection();
+        try{
+            Connection connection = getRealConnection(temp);
+            return options.table(connection, rdTable.name());
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally{
+            closeConnection(null, null, temp);
+        }
+        return null;
+    }
+
+    @Override
+    public List<TableColumn> columns(Class<?> clazz) {
+        RdTable rdTable = ORMUtils.getRdTable(clazz);
+        Assert.notNull(rdTable, "Error Entity, it must contain RdTable");
+        Options options = getOptions();
+        if(options == null){
+            logger.warn("Create Or update Not Support.");
+            return null;
+        }
+        Connection temp = getConnection();
+        try{
+            Connection connection = getRealConnection(temp);
+            Table queryTable  = options.table(connection, rdTable.name());
+            List<TableColumn> columns = null;
+            if(queryTable != null  &&  !rdTable.dropped()){//judge Columns
+                columns = options.columns(connection, rdTable.name());
+            }
+            return columns;
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally{
+            closeConnection(null, null, temp);
+        }
+        return null;
     }
 }

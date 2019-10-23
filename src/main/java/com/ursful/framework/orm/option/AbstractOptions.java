@@ -1,6 +1,8 @@
 package com.ursful.framework.orm.option;
 
 import com.ursful.framework.orm.IQuery;
+import com.ursful.framework.orm.annotation.RdColumn;
+import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
@@ -11,10 +13,8 @@ import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.sql.*;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.Date;
-import java.util.List;
-import java.util.Map;
 
 public abstract class AbstractOptions implements Options{
 
@@ -312,4 +312,60 @@ public abstract class AbstractOptions implements Options{
         }
         return sb.toString();
     }
+
+
+    protected String getUniqueSQL(RdTable table, RdColumn rdColumn) {
+        String uniqueName = rdColumn.uniqueName();
+        if(StringUtils.isEmpty(uniqueName)){
+            String [] tabs = table.name().split("_");
+            StringBuffer names = new StringBuffer();
+            for(String tab : tabs){
+                if(tab.length() > 0) {
+                    names.append(tab.charAt(0));
+                }
+            }
+            names.append("_" + rdColumn.name());
+            uniqueName = names.toString();
+        }
+        String uniqueKeys = ORMUtils.join(rdColumn.uniqueKeys(), ",");
+        if(StringUtils.isEmpty(uniqueKeys)){
+            uniqueKeys =  rdColumn.name();
+        }
+        return String.format("CONSTRAINT %s UNIQUE(%s)", uniqueName, uniqueKeys);
+    }
+
+    protected String columnComment(RdColumn rdColumn){
+        String comment = null;
+        if(!StringUtils.isEmpty(rdColumn.title())){
+            comment =  rdColumn.title();
+            if(!StringUtils.isEmpty(rdColumn.description())){
+                comment += ";" + rdColumn.description();
+            }
+        }
+        return comment;
+    }
+
+
+    protected String columnString(ColumnInfo info, RdColumn rdColumn, boolean addKey) {
+        StringBuffer temp = new StringBuffer();
+        temp.append(info.getColumnName().toUpperCase(Locale.ROOT));
+        temp.append(" ");
+
+        String type = getColumnType(info, rdColumn);
+        if(!StringUtils.isEmpty(rdColumn.defaultValue())){
+            type += " DEFAULT '" +  rdColumn.defaultValue() + "'";
+        }
+        if(!rdColumn.nullable()){
+            type += " NOT NULL";
+        }
+        temp.append(type);
+        if(info.getPrimaryKey() && addKey){
+            temp.append(" ");
+            temp.append("PRIMARY KEY");
+        }
+        return temp.toString();
+    }
+
+    abstract String getColumnType(ColumnInfo info, RdColumn column);
+
 }

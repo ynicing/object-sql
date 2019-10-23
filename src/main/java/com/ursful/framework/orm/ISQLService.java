@@ -1,5 +1,8 @@
 package com.ursful.framework.orm;
 
+import com.ursful.framework.orm.support.Table;
+import com.ursful.framework.orm.support.TableColumn;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.util.Date;
@@ -39,4 +42,9 @@ public interface ISQLService {
     Double getDatabaseNanoTime();
 
     <S> List<S> batchSaves(List<S> ts, boolean rollback);
+
+    void createOrUpdate(Class<?> table);
+
+    Table table(Class<?> clazz);
+    List<TableColumn> columns(Class<?> clazz);
 }

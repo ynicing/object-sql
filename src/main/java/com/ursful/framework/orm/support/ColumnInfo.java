@@ -26,6 +26,15 @@ public class ColumnInfo implements Serializable {
 	private ColumnType columnType;//String
     private Field field;
 	private Boolean primaryKey = false;
+	private int order;
+
+	public int getOrder() {
+		return order;
+	}
+
+	public void setOrder(int order) {
+		this.order = order;
+	}
 
 	private String type;//String
 

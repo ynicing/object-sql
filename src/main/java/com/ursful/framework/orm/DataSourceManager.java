@@ -30,7 +30,7 @@ public class DataSourceManager {
 
     private static Map<DataSource, String> databaseTypeMap = new HashMap<DataSource, String>();
     private static List<Options> optionsList = Arrays.asList(
-            new Options[]{new H2QueryOptions(),
+            new Options[]{new H2Options(),
                     new MySQLOptions(),
                     new SQLServerOptions(),
                     new OracleOptions(),
