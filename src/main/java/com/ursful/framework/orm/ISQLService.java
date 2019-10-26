@@ -27,6 +27,10 @@ public interface ISQLService {
 
     boolean executeBatch(String sql, Object [] ... params);
 
+    <T> T queryObject(Class<T> clazz, String sql, Object ... params);
+
+    <T> List<T> queryObjectList(Class<T> clazz, String sql, Object ... params);
+
     Map<String, Object> queryMap(String sql, Object ... params);
 
     List<Map<String, Object>> queryMapList(String sql, Object ... params);
@@ -45,6 +49,7 @@ public interface ISQLService {
 
     void createOrUpdate(Class<?> table);
 
+    boolean tableExists(String table);
     Table table(Class<?> clazz);
     List<TableColumn> columns(Class<?> clazz);
 }

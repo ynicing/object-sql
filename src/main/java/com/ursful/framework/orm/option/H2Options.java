@@ -61,6 +61,41 @@ public class H2Options extends MySQLOptions{
     }
 
     @Override
+    public boolean tableExists(Connection connection, String tableName) {
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            String dbName = connection.getCatalog();
+            String sql = "SELECT * FROM information_schema.TABLES WHERE (TABLE_NAME = ? OR TABLE_NAME = ?) AND (TABLE_CATALOG = ? OR TABLE_CATALOG = ?)";
+            ps = connection.prepareStatement(sql);
+            ps.setString(1, tableName.toUpperCase(Locale.ROOT));
+            ps.setString(2, tableName.toLowerCase(Locale.ROOT));
+            ps.setString(3, dbName.toUpperCase(Locale.ROOT));
+            ps.setString(4, dbName.toLowerCase(Locale.ROOT));
+            rs = ps.executeQuery();
+            if(rs.next()) {
+                return true;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(ps != null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if(rs != null){
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
     public List<TableColumn> columns(Connection connection, String tableName) {
         List<TableColumn> columns = new ArrayList<TableColumn>();
         PreparedStatement ps = null;

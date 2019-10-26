@@ -24,6 +24,7 @@ public interface Options {
     QueryInfo doQuery(IQuery query, Pageable page);
     SQLHelper doQuery(Class<?> clazz, String[] names, Terms terms, MultiOrder multiOrder, Integer start, Integer size);
 
+    boolean tableExists(Connection connection, String tableName);
     Table table(Connection connection, String tableName);
     List<TableColumn> columns(Connection connection, String tableName);
 

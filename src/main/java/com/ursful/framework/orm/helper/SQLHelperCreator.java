@@ -597,7 +597,6 @@ public class SQLHelperCreator {
                     temp.put(label.toUpperCase(), value);
                 }
                 List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
-                Assert.notNull(infoList, "Get columns cache is empty.");
                 for(ColumnInfo info : infoList){
                     Object obj = temp.get(info.getColumnName());
                     if(obj == null){
@@ -747,9 +746,6 @@ public class SQLHelperCreator {
             options.setParameter(ps, connection, databaseType, i, obj, columnType, type);
         }
     }
-
-
-
 
 
 }

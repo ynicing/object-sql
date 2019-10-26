@@ -300,6 +300,38 @@ public class OracleOptions extends AbstractOptions{
     }
 
     @Override
+    public boolean tableExists(Connection connection, String tableName) {
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            String sql = "SELECT * FROM USER_TABLES WHERE  (TABLE_NAME = ? OR TABLE_NAME = ?) ";
+            ps = connection.prepareStatement(sql);
+            ps.setString(1, tableName.toUpperCase(Locale.ROOT));
+            ps.setString(2, tableName.toLowerCase(Locale.ROOT));
+            rs = ps.executeQuery();
+            if(rs.next()) {
+                return true;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(ps != null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if(rs != null){
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+        return false;
+    }
+
+    @Override
     public Table table(Connection connection, String tableName) {
         PreparedStatement ps = null;
         ResultSet rs = null;

@@ -134,6 +134,72 @@ public class SQLServiceImpl implements ISQLService{
     }
 
     @Override
+    public <T> T queryObject(Class<T> clazz, String sql, Object... params) {
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        T temp = null;
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            ps = conn.prepareStatement(sql);
+            if(params != null) {
+                List<Pair> pairList = new ArrayList<Pair>();
+                for(Object param : params ){
+                    pairList.add(new Pair(param));
+                }
+                SQLHelperCreator.setParameter(getOptions(), ps, pairList, conn);
+            }
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                temp = SQLHelperCreator.newClass(clazz, rs);
+            }
+        } catch (SQLException e) {
+            logger.error("SQL : " + sql, e);
+            throw new RuntimeException("QUERY_SQL_ERROR, OBJECT: " +  e.getMessage());
+        } catch (IllegalAccessException e) {
+            logger.error("SQL : " + sql, e);
+            throw new RuntimeException("QUERY_SQL_ILLEGAL_ACCESS, OBJECT: " +  e.getMessage());
+        } finally{
+            closeConnection(rs, ps, conn);
+        }
+        return temp;
+    }
+
+    @Override
+    public <T> List<T> queryObjectList(Class<T> clazz, String sql, Object... params) {
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        List<T> temp = new ArrayList<T>();
+        Connection conn = null;
+        try {
+            conn = getConnection();
+
+            ps = conn.prepareStatement(sql);
+            if(params != null) {
+                List<Pair> pairList = new ArrayList<Pair>();
+                for(Object param : params ){
+                    pairList.add(new Pair(param));
+                }
+                SQLHelperCreator.setParameter(getOptions(), ps, pairList, conn);
+            }
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                T tmp = SQLHelperCreator.newClass(clazz, rs);
+                temp.add(tmp);
+            }
+        } catch (SQLException e) {
+            logger.error("SQL : " + sql, e);
+            throw new RuntimeException("QUERY_SQL_ERROR, OBJECT LIST: " +  e.getMessage());
+        } catch (IllegalAccessException e) {
+            logger.error("SQL : " + sql, e);
+            throw new RuntimeException("QUERY_SQL_ILLEGAL_ACCESS, OBJECT LIST: " +  e.getMessage());
+        } finally{
+            closeConnection(rs, ps, conn);
+        }
+        return temp;
+    }
+
+    @Override
     public Map<String, Object> queryMap(String sql, Object... params) {
         ResultSet rs = null;
         PreparedStatement ps = null;
@@ -461,11 +527,6 @@ public class SQLServiceImpl implements ISQLService{
                 columns = options.columns(connection, rdTable.name());
             }
             List<String> sqls = options.manageTable(rdTable, columnInfoList, queryTable != null, columns);
-            logger.info("-------------------------------------------sql start-------------");
-            for(String sql : sqls){
-                System.out.println(sql);
-            }
-            logger.info("-------------------------------------------sql end-------------");
             if(sqls != null && !sqls.isEmpty()){
                 for(String sql : sqls){
                     PreparedStatement ps = null;
@@ -486,6 +547,24 @@ public class SQLServiceImpl implements ISQLService{
             closeConnection(null, null, temp);
         }
 
+    }
+
+    @Override
+    public boolean tableExists(String table) {
+        Options options = getOptions();
+        if(options == null){
+            logger.warn("SQL Not Support.");
+        }
+        Connection temp = getConnection();
+        try{
+            Connection connection = getRealConnection(temp);
+            return options.tableExists(connection, table);
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally{
+            closeConnection(null, null, temp);
+        }
+        return false;
     }
 
     @Override

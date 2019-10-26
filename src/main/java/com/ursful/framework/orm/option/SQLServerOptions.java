@@ -196,6 +196,37 @@ public class SQLServerOptions extends AbstractOptions{
         return helper;
     }
 
+    @Override
+    public boolean tableExists(Connection connection, String tableName) {
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            String schemaName = connection.getSchema();
+            String sql = String.format("select * from %s.sysobjects where (id = object_id('%s') or id = object_id('%s')) and type = 'U'", schemaName,tableName.toUpperCase(Locale.ROOT),tableName.toLowerCase(Locale.ROOT));
+            ps = connection.prepareStatement(sql);
+            rs = ps.executeQuery();
+            if(rs.next()){
+                return true;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(ps != null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if(rs != null){
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+        return false;
+    }
+
 
     @Override
     public Table table(Connection connection, String tableName) {
