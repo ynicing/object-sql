@@ -130,6 +130,9 @@ public class BaseQueryImpl implements IBaseQuery {
     public IBaseQuery where(Express... expresses) {
         if(expresses != null){
             for(Express express : expresses) {
+                if(express == null){
+                    continue;
+                }
                 conditions.add(new Condition().and(express.getExpression()));
             }
         }

@@ -39,6 +39,9 @@ public class Terms  implements Serializable {
     public Terms and(Express ... expresses){
         if(expresses != null) {
             for(Express express : expresses) {
+                if(express == null){
+                    continue;
+                }
                 conditions.add(new ConditionObject(express.getExpression(), ConditionType.AND));
             }
         }
@@ -48,6 +51,9 @@ public class Terms  implements Serializable {
     public Terms or(Express ... expresses){
         if(expresses != null) {
             for(Express express : expresses) {
+                if(express == null){
+                    continue;
+                }
                 conditions.add(new ConditionObject(express.getExpression(), ConditionType.OR));
             }
         }
@@ -55,39 +61,32 @@ public class Terms  implements Serializable {
     }
 
     public Terms andOr(Express ... expresses){
-        if(expresses != null && expresses.length > 0) {
-            int length = expresses.length;
-            Expression expressions [] = new Expression[length];
-            for(int i = 0; i < length; i++){
-                expressions[i] = expresses[i].getExpression();
-            }
-            conditions.add(new ConditionObject(expressions, ConditionType.AND_OR));
-        }
+        expresses(ConditionType.AND_OR, expresses);
         return this;
     }
 
     public Terms orOr(Express ... expresses){
-        if(expresses != null && expresses.length > 0) {
-            int length = expresses.length;
-            Expression expressions [] = new Expression[length];
-            for(int i = 0; i < length; i++){
-               expressions[i] = expresses[i].getExpression();
-            }
-            conditions.add(new ConditionObject(expressions, ConditionType.OR_OR));
-        }
+        expresses(ConditionType.OR_OR, expresses);
         return this;
     }
 
     public Terms orAnd(Express ... expresses){
+        expresses(ConditionType.OR_AND, expresses);
+        return this;
+    }
+
+    private void expresses(ConditionType type, Express ... expresses){
         if(expresses != null && expresses.length > 0) {
             int length = expresses.length;
-            Expression expressions [] = new Expression[length];
+            List<Expression> expressions = new ArrayList<Expression>();
             for(int i = 0; i < length; i++){
-                expressions[i] = expresses[i].getExpression();
+                Express express = expresses[i];
+                if(express != null){
+                    expressions.add(express.getExpression());
+                }
             }
-            conditions.add(new ConditionObject(expressions, ConditionType.OR_AND));
+            conditions.add(new ConditionObject(expressions.toArray(new Expression[expressions.size()]), type));
         }
-        return this;
     }
 
 }

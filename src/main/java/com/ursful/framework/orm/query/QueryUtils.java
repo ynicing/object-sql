@@ -51,6 +51,9 @@ public class QueryUtils {
         if(condition != null && !StringUtils.isEmpty(alias)){
             List<ConditionObject> exts = condition.getConditions();
             for(ConditionObject ext : exts){
+                if(ext == null){
+                    continue;
+                }
                 Object extObject = ext.getObject();
                 switch (ext.getType()){
                     case AND:
@@ -275,6 +278,9 @@ public class QueryUtils {
         if(cds != null) {
             SQLPair sqlPair = null;
             for (Condition condition : cds) {
+                if(condition == null){
+                    continue;
+                }
                 List<ConditionObject> exts = condition.getConditions();
                 for(ConditionObject ext : exts){
                     Object extObject = ext.getObject();
@@ -386,7 +392,11 @@ public class QueryUtils {
         List<String> ands = new ArrayList<String>();
         if(expresses != null) {
             for (int i = 0; i < expresses.length; i++) {
-                Expression expression = expresses[i].getExpression();
+                Express express = expresses[i];
+                if(express == null){
+                    continue;
+                }
+                Expression expression = express.getExpression();
                 SQLPair sqlPair = parseExpression(options, clazz, expression);
                 if (sqlPair != null) {
                     ands.add(sqlPair.getSql());

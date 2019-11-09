@@ -136,16 +136,14 @@ public class SQLHelperCreator {
         List<Pair> pairs = new ArrayList<Pair>();
         List<String> terms = new ArrayList<String>();
         for(Express express : expresses){
+            if(express == null){
+                continue;
+            }
             SQLPair pair = QueryUtils.parseExpression(options, clazz, express.getExpression());
             terms.add(pair.getSql());
             pairs.addAll(pair.getPairs());
         }
         sql.append(ORMUtils.join(terms, " AND "));
-//        for(Express express : expresses){
-//            SQLPair pair = QueryUtils.parseExpression(clazz, express.getExpression());
-//            sql.append(pair.getSql());
-//            pairs.addAll(pair.getPairs());
-//        }
         SQLHelper helper = new SQLHelper();
         helper.setSql(sql.toString());
         helper.setParameters(pairs);
@@ -153,7 +151,6 @@ public class SQLHelperCreator {
     }
 
     public static SQLHelper deleteBy(Class clazz, Options options, Terms terms){
-        terms.getCondition().getConditions();
         List<Pair> pairs = new ArrayList<Pair>();
         String conditions = null;
         if(terms != null) {
@@ -236,6 +233,9 @@ public class SQLHelperCreator {
             }else{
                 List<String> terms = new ArrayList<String>();
                 for(Express express : expresses){
+                    if(express == null){
+                        continue;
+                    }
                     SQLPair pair = QueryUtils.parseExpression(option, clazz, express.getExpression());
                     terms.add(pair.getSql());
                     parameters.addAll(pair.getPairs());

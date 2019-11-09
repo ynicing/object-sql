@@ -16,8 +16,8 @@
 package com.ursful.framework.orm.utils;
 
 import com.ursful.framework.orm.annotation.RdId;
+import com.ursful.framework.orm.annotation.RdObject;
 import com.ursful.framework.orm.annotation.RdTable;
-import com.ursful.framework.orm.support.Column;
 import com.ursful.framework.orm.support.ColumnInfo;
 import com.ursful.framework.orm.support.ColumnType;
 import com.ursful.framework.orm.support.DebugHolder;
@@ -200,6 +200,26 @@ public class ORMUtils {
     }
 
     public static boolean isTheSameClass(Class<?> thisClass, Class<?> clazz){
+        RdObject object = AnnotationUtils.findAnnotation(clazz, RdObject.class);
+        if(object != null){
+            Class<?> [] classes = object.classes();
+            if(classes != null){
+                for(Class<?> c : classes){
+                    if (thisClass.isAssignableFrom(c)) {
+                        return true;
+                    }
+                }
+            }
+            String [] patterns = object.patterns();
+            if(patterns != null){
+                for(String pattern : patterns){
+                    if (thisClass.getName().startsWith(pattern)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
         Type[] ts = clazz.getGenericInterfaces();
         if(ts.length > 0) {
             try {

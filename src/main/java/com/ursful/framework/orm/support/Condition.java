@@ -41,6 +41,9 @@ public class Condition implements Serializable {
     public Condition and(Expression ... expressions){
         if(expressions != null) {
             for(Expression expression: expressions) {
+                if(expression == null){
+                    continue;
+                }
                 conditions.add(new ConditionObject(expression, ConditionType.AND));
             }
         }
@@ -50,6 +53,9 @@ public class Condition implements Serializable {
     public Condition or(Expression  ... expressions){
         if(expressions != null) {
             for(Expression expression: expressions) {
+                if(expression == null){
+                    continue;
+                }
                 conditions.add(new ConditionObject(expression, ConditionType.OR));
             }
         }
