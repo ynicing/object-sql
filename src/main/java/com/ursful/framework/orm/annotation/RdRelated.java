@@ -24,5 +24,7 @@ import java.lang.annotation.*;
 public @interface RdRelated {
 	Class<?> table();
 	String tableId();
+	String [] names() default {};
+	String [] asNames() default {};
 	JoinType joinType() default JoinType.LEFT_JOIN;
 }

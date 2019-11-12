@@ -1,6 +1,9 @@
 package com.ursful.framework.orm.support;
 
+import com.ursful.framework.orm.utils.ORMUtils;
+
 import java.io.Serializable;
+import java.util.List;
 
 public class AliasTable implements Serializable {
 
@@ -46,5 +49,33 @@ public class AliasTable implements Serializable {
         this.table = table;
     }
 
+    private String id;
 
+    public Column getIdColumn(){
+        return new Column(alias, getId());
+    }
+
+    public String getId(){
+        if(id == null) {
+            ColumnInfo columnInfo = getColumnInfoId();
+            if (columnInfo != null) {
+                return columnInfo.getColumnName();
+            }
+        }
+        return id;
+    }
+
+    public ColumnInfo getColumnInfoId() {
+        ColumnInfo columnInfoId = null;
+        if(table instanceof Class) {
+            List<ColumnInfo> infoList = ORMUtils.getColumnInfo((Class) table);
+            for (ColumnInfo info : infoList) {
+                if (info.getPrimaryKey()) {
+                    columnInfoId = info;
+                    break;
+                }
+            }
+        }
+        return columnInfoId;
+    }
 }
