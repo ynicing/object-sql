@@ -241,6 +241,9 @@ public class MultiQueryImpl implements IMultiQuery {
 
     public IMultiQuery where(Column left, Object value, ExpressionType type) {
         if(ORMUtils.isEmpty(value)){
+            if(type == ExpressionType.CDT_IS_NULL || type == ExpressionType.CDT_IS_NOT_NULL){
+                conditions.add(new Condition().and(new Expression(left, type)));
+            }
             return this;
         }
         conditions.add(new Condition().and(new Expression(left, value, type)));

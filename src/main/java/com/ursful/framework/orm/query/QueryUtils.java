@@ -488,6 +488,21 @@ public class QueryUtils {
                 }
                 return sqlPair;
             }
+            if(sqlPair == null){
+                switch (expression.getType()) {
+                    case CDT_IS_NULL:
+                        sqlPair = new SQLPair(" "+ conditionName + " IS NULL ");
+                        break;
+                    case CDT_IS_NOT_NULL:
+                        sqlPair = new SQLPair(" "+ conditionName + " IS NOT NULL ");
+                        break;
+                    default:
+                        break;
+                }
+                if(sqlPair != null){
+                    return sqlPair;
+                }
+            }
         }
         if(ORMUtils.isEmpty(conditionValue)){
             switch (expression.getType()) {
