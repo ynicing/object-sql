@@ -38,11 +38,17 @@ public class SQLServiceImpl implements ISQLService{
     }
 
     protected Options getOptions(){
+        if(dataSourceManager == null){
+            return null;
+        }
         return dataSourceManager.getOptions(thisClass, serviceClass);
     }
 
     @Override
     public String currentDatabaseName() {
+        if(dataSourceManager == null){
+            return null;
+        }
         return dataSourceManager.getProductName(thisClass, serviceClass);
     }
 
@@ -58,6 +64,9 @@ public class SQLServiceImpl implements ISQLService{
 
     @Override
     public DataSource getDataSource() {
+        if(dataSourceManager == null){
+            return null;
+        }
         return dataSourceManager.getDataSource(thisClass, serviceClass);
     }
 
@@ -316,11 +325,17 @@ public class SQLServiceImpl implements ISQLService{
     }
 
     public void closeConnection(ResultSet rs, Statement stmt, Connection conn){
+        if(dataSourceManager == null){
+            return;
+        }
         dataSourceManager.close(thisClass, serviceClass, rs, stmt, conn);
     }
 
     @Override
     public Connection getConnection() {
+        if(dataSourceManager == null){
+            return null;
+        }
         return dataSourceManager.getConnection(thisClass, serviceClass);
     }
 
@@ -334,6 +349,9 @@ public class SQLServiceImpl implements ISQLService{
     }
 
     public Double getDatabaseNanoTime(){
+        if(dataSourceManager == null){
+            return null;
+        }
         ResultSet rs = null;
         Statement ps = null;
         Connection conn = null;
