@@ -107,7 +107,7 @@ public class ORMUtils {
     }
 
     public static void setFieldValue(Object object, Field field, Object value){
-        if(object == null || value == null){
+        if(object == null || value == null || field == null){
             return;
         }
         try {
@@ -119,6 +119,9 @@ public class ORMUtils {
     }
 
     public static void setFieldNullValue(Object object, Field field){
+        if(object == null || field == null){
+            return;
+        }
         try {
             field.setAccessible(true);
             field.set(object, null);
@@ -128,6 +131,9 @@ public class ORMUtils {
     }
 
     public static Object getFieldValue(Object object, Field field){
+        if(object == null || field == null){
+            return null;
+        }
         Object result = null;
         try {
             field.setAccessible(true);

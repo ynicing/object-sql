@@ -371,6 +371,72 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
             boolean result = ps.executeUpdate() > 0;
             if(result && enableListener &&  (originals != null)) {
+                for(T original : originals) {//updates重新注入id
+                    Object idValue = ORMUtils.getFieldValue(original, helper.getIdField());
+                    ORMUtils.setFieldValue(t, helper.getIdField(), idValue);
+                    triggerORMListener(t, ORMType.UPDATE);
+                    triggerChangeListener(original, t, conn);
+                }
+            }
+            return result;
+        } catch (SQLException e) {
+            logger.error("SQL : " + helper, e);
+            throw new RuntimeException("QUERY_SQL_ERROR, UPDATE: " +  e.getMessage());
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("SQL : " + helper, e);
+            throw new RuntimeException("QUERY_SQL_ERROR, UPDATE Listener : " + e.getMessage());
+        } finally{
+            closeConnection(null, ps, conn);
+            logger.debug("close connection :" + conn);
+        }
+    }
+
+    public boolean updates(T t, Terms terms){
+        return updates(t, terms, false, true, null);
+    }
+
+    public boolean updatesWithoutListener(T t, Terms terms){
+        return updates(t, terms, false, false, null);
+    }
+
+    public  boolean updatesNull(T t, Terms terms){
+        return updates(t, terms, true, true, null);
+    }
+    public  boolean updatesNullWithoutListener(T t, Terms terms){
+        return updates(t, terms, true, false, null);
+    }
+
+    public boolean updatesNull(T t, String [] forNullColumns,  Terms terms){
+        return updates(t, terms, false, true, forNullColumns);
+    }
+    public boolean updatesNullWithoutListener(T t, String [] forNullColumns, Terms terms){
+        return updates(t, terms, false, false, forNullColumns);
+    }
+
+    private boolean updates(T t, Terms terms, boolean updateNull, boolean enableListener, String [] forNullColumns) {
+        PreparedStatement ps = null;
+
+        Connection conn = null;
+        SQLHelper helper = null;
+        try {
+            //triggerDefaultListener(t, true);
+            conn = getConnection();
+            helper = SQLHelperCreator.updateTerms(getOptions(), t, terms, updateNull, forNullColumns);
+            List<T> originals = null;
+            if(helper.getIdValue() == null && helper.getIdField() != null && terms != null && (!changeListeners.isEmpty()||!changedListeners.isEmpty())) {
+                originals = list(terms);
+            }
+            if(ORMUtils.getDebug()) {
+                logger.info("UPDATE : " + helper);
+            }
+            logger.debug("connection :" + conn);
+            ps = conn.prepareStatement(helper.getSql());
+            SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
+
+            boolean result = ps.executeUpdate() > 0;
+            if(result && enableListener &&  (originals != null)) {
                 for(T original : originals) {
                     Object idValue = ORMUtils.getFieldValue(original, helper.getIdField());
                     ORMUtils.setFieldValue(t, helper.getIdField(), idValue);
@@ -392,6 +458,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             logger.debug("close connection :" + conn);
         }
     }
+
 
     public boolean delete(Object t) {
         return delete(t, true);

@@ -94,6 +94,16 @@ public interface IBaseService<T> extends IServiceChangedListener<T>, ISQLService
     boolean updatesNull(T t, String [] forNullColumns,  Express ... expresses);
     boolean updatesNullWithoutListener(T t, String [] forNullColumns, Express ... expresses);
 
+
+    boolean updates(T t, Terms terms);
+    boolean updatesWithoutListener(T t, Terms terms);
+
+    boolean updatesNull(T t, Terms terms);
+    boolean updatesNullWithoutListener(T t, Terms terms);
+
+    boolean updatesNull(T t, String [] forNullColumns,  Terms terms);
+    boolean updatesNullWithoutListener(T t, String [] forNullColumns, Terms terms);
+
     /* 删除, (限制条件删除，危险的动作)
        testService.delete(test);
        删除（按主键)

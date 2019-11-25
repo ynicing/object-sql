@@ -168,6 +168,68 @@ public class SQLHelperCreator {
         return helper;
     }
 
+    public static SQLHelper updateTerms(Options option, Object obj, Terms terms, boolean updateNull, String [] nullColumns){
+        List<String> ncs = new ArrayList<String>();
+        if(nullColumns != null &&  nullColumns.length > 0){
+            ncs.addAll(Arrays.asList(nullColumns));
+        }
+        Class clazz = obj.getClass();
+
+        String tableName = ORMUtils.getTableName(clazz);
+
+        StringBuffer sql = new StringBuffer("UPDATE ");
+        sql.append(tableName);
+        sql.append(" SET ");
+        List<Pair> parameters = new ArrayList<Pair>();
+        List<String> sets = new ArrayList<String>();
+        Pair primaryKey = null;
+        List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
+        Assert.notNull(infoList, "Get columns cache is empty.");
+        String databaseType = DatabaseTypeHolder.get();
+        SQLHelper helper = new SQLHelper();
+        for(ColumnInfo info : infoList){
+            Object fo = ORMUtils.getFieldValue(obj, info);
+            if(info.getPrimaryKey()){// many updates when them had no ids
+                helper.setIdField(info.getField());
+                helper.setIdValue(fo);
+                primaryKey = new Pair(info, fo);
+            }
+            if(info.getPrimaryKey() && updateNull){
+                continue;
+            }
+            if(fo != null || updateNull || ncs.contains(info.getColumnName())){
+                if(databaseType != null && databaseType.contains("SERVER") && info.getColumnType() == ColumnType.TIMESTAMP){
+                    continue;
+                }
+                if(fo != null){
+                    sets.add(info.getColumnName() + " = ? ");
+                    Pair pair = new Pair(info, fo);
+                    parameters.add(pair);
+                }else{
+                    if(updateNull || ncs.contains(info.getColumnName())){
+                        sets.add(info.getColumnName() + " = NULL ");
+                    }
+                }
+            }
+        }
+        sql.append(ORMUtils.join(sets, ", "));
+        sql.append(" WHERE ");
+        String conditions = null;
+        if(terms != null) {
+            Condition condition = terms.getCondition();
+            conditions = QueryUtils.getConditions(option, clazz, ORMUtils.newList(condition), parameters);
+        }
+        if(StringUtils.isEmpty(conditions)) {
+            throw new RuntimeException("Update table terms is empty, Class[" + clazz.getName() + "], value[" + obj + "]");
+        }else{
+            sql.append(conditions);
+        }
+        helper.setPair(primaryKey);
+        helper.setSql(sql.toString());
+        helper.setParameters(parameters);
+        return helper;
+    }
+
     /**
      * 更新 只能使用id，否则初学者不填id 全部更新了。
      * @param obj
@@ -203,16 +265,16 @@ public class SQLHelperCreator {
             if(fo != null || updateNull || ncs.contains(info.getColumnName())){
                 if(info.getPrimaryKey()){
                     primaryKey = new Pair(info, fo);
-                }else{
-                    if(databaseType != null && databaseType.contains("SERVER") && info.getColumnType() == ColumnType.TIMESTAMP){
+                }else {
+                    if (databaseType != null && databaseType.contains("SERVER") && info.getColumnType() == ColumnType.TIMESTAMP) {
                         continue;
                     }
-                    if(fo != null){
+                    if (fo != null) {
                         sets.add(info.getColumnName() + " = ? ");
                         Pair pair = new Pair(info, fo);
                         parameters.add(pair);
-                    }else{
-                        if(updateNull || ncs.contains(info.getColumnName())){
+                    } else {
+                        if (updateNull || ncs.contains(info.getColumnName())) {
                             sets.add(info.getColumnName() + " = NULL ");
                         }
                     }
