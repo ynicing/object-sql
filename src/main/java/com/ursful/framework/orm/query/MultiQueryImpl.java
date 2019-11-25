@@ -199,6 +199,16 @@ public class MultiQueryImpl implements IMultiQuery {
     }
 
 
+    @Override
+    public IMultiQuery whereIn(Column left, Collection value) {
+        return where(left, value, ExpressionType.CDT_In);
+    }
+
+    @Override
+    public IMultiQuery whereNotIn(Column left, Collection value) {
+        return where(left, value, ExpressionType.CDT_NotIn);
+    }
+
     public AliasTable table(Class<?> clazz){
         String alias = generateUniqueAlias(clazz);
         return table(clazz, alias);
@@ -238,6 +248,7 @@ public class MultiQueryImpl implements IMultiQuery {
         conditions.add(new Condition().and(new Expression(left, ExpressionType.CDT_IS_NOT_NULL)));
         return this;
     }
+
 
     public IMultiQuery where(Column left, Object value, ExpressionType type) {
         if(ORMUtils.isEmpty(value)){

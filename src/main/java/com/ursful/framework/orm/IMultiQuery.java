@@ -18,6 +18,7 @@ package com.ursful.framework.orm;
 
 import com.ursful.framework.orm.support.*;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface IMultiQuery extends IQuery{
@@ -53,6 +54,10 @@ public interface IMultiQuery extends IQuery{
 //    IMultiQuery where(Column left, ExpressionType type);
     IMultiQuery whereIsNull(Column left);
     IMultiQuery whereIsNotNull(Column left);
+
+    IMultiQuery whereIn(Column left, Collection value);
+    IMultiQuery whereNotIn(Column left, Collection value);
+
     IMultiQuery where(Column left, Object value, ExpressionType type);
     IMultiQuery where(Column left, Column value);
     IMultiQuery where(Column left, Column value, ExpressionType type);

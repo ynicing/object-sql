@@ -17,6 +17,7 @@ package com.ursful.framework.orm;
 
 import com.ursful.framework.orm.support.*;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface IBaseQuery extends IQuery{
@@ -37,6 +38,9 @@ public interface IBaseQuery extends IQuery{
 	IBaseQuery whereLessEqual(String name, Object value);
 	IBaseQuery whereMore(String name, Object value);
 	IBaseQuery whereMoreEqual(String name, Object value);
+
+	IBaseQuery whereIn(String name, Collection value);
+	IBaseQuery whereNotIn(String name, Collection value);
 
 	IBaseQuery whereIsNull(String name);
     IBaseQuery whereIsNotNull(String name);

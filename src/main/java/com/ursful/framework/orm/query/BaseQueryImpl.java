@@ -23,6 +23,7 @@ import com.ursful.framework.orm.utils.ORMUtils;
 import org.springframework.core.annotation.AnnotationUtils;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -109,6 +110,16 @@ public class BaseQueryImpl implements IBaseQuery {
     @Override
     public IBaseQuery whereMoreEqual(String name, Object value) {
         return where(name, value, ExpressionType.CDT_MoreEqual);
+    }
+
+    @Override
+    public IBaseQuery whereIn(String name, Collection value) {
+        return where(name, value, ExpressionType.CDT_In);
+    }
+
+    @Override
+    public IBaseQuery whereNotIn(String name, Collection value) {
+        return where(name, value, ExpressionType.CDT_NotIn);
     }
 
     public IBaseQuery where(String name, Object value, ExpressionType type){
