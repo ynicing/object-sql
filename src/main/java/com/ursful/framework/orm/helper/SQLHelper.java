@@ -55,7 +55,9 @@ public class SQLHelper {
 			return;
 		}
 		try {
-			idField.setAccessible(true);
+			if(!idField.isAccessible()) {
+				idField.setAccessible(true);
+			}
 			DataBinder binder = new DataBinder(idField, idField.getName());
 			Object result = binder.convertIfNecessary(value.toString(), idField.getType());
 			idField.set(object, result);
@@ -81,31 +83,6 @@ public class SQLHelper {
 	}
 	
 	public String toString(){
-//        if(sql.startsWith("SELECT")){
-//            String tmp = new String(sql);
-//            if(parameters != null) {
-//                for (Pair pair : parameters) {//Integer/String/Date
-//                    ClassType classType = ClassType.getClassType(pair.getValue().getClass().getSimpleName());
-//                    switch (classType) {
-//                        case INTEGER:
-//                        case FLOAT:
-//                        case BYTE:
-//                        case LONG:
-//                        case DOUBLE:
-//                            tmp = tmp.replaceFirst("\\?", pair.getValue() + "");
-//                            break;
-//                        case DATE:
-//                        case TIMESTAMP:
-//                            tmp = tmp.replaceFirst("\\?", "'" + DateUtils.getDate((Date) pair.getValue()) + "'");
-//                            break;
-//                        default:
-//                            tmp = tmp.replaceFirst("\\?", "'" + pair.getValue() + "'");
-//                    }
-//                }
-//            }
-//            return "\n**********************************************************\n" +
-//                    "SQL: " + tmp;
-//        }
 		return "\n**********************************************************\nSQL: " + sql + " : " + parameters;
 	}
 	

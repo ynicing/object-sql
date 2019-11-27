@@ -246,8 +246,12 @@ public class H2Options extends MySQLOptions{
                 }
                 sql.append(ORMUtils.join(columnSQL, ","));
                 sql.append(")");
-                if(!StringUtils.isEmpty(table.title())){
-                    sql.append(" COMMENT='" + table.title() + "' ");
+                String comment = table.comment();
+                if(StringUtils.isEmpty(comment)){
+                    comment = table.title();
+                }
+                if(!StringUtils.isEmpty(comment)){
+                    sql.append(" COMMENT='" + comment + "' ");
                 }
                 sql.append(";");
                 sqls.add(sql.toString());

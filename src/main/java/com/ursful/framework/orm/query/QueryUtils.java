@@ -453,6 +453,20 @@ public class QueryUtils {
         }
 
         String conditionName = parseColumn(options, expression.getLeft());
+        switch (expression.getType()) {
+            case CDT_IS_NULL:
+                sqlPair = new SQLPair(" "+ conditionName + " IS NULL ");
+                break;
+            case CDT_IS_NOT_NULL:
+                sqlPair = new SQLPair(" "+ conditionName + " IS NOT NULL ");
+                break;
+            default:
+                break;
+        }
+        if(sqlPair != null){
+            return sqlPair;
+        }
+
         Object conditionValue = expression.getValue();
 
         boolean isTrim = ORMUtils.isTrim();
@@ -486,36 +500,12 @@ public class QueryUtils {
                             break;
                     }
                 }
-                return sqlPair;
-            }
-            if(sqlPair == null){
-                switch (expression.getType()) {
-                    case CDT_IS_NULL:
-                        sqlPair = new SQLPair(" "+ conditionName + " IS NULL ");
-                        break;
-                    case CDT_IS_NOT_NULL:
-                        sqlPair = new SQLPair(" "+ conditionName + " IS NOT NULL ");
-                        break;
-                    default:
-                        break;
-                }
                 if(sqlPair != null){
                     return sqlPair;
                 }
             }
         }
-        if(ORMUtils.isEmpty(conditionValue)){
-            switch (expression.getType()) {
-                case CDT_IS_NULL:
-                    sqlPair = new SQLPair(" "+ conditionName + " IS NULL ");
-                    break;
-                case CDT_IS_NOT_NULL:
-                    sqlPair = new SQLPair(" "+ conditionName + " IS NOT NULL ");
-                    break;
-                default:
-                    break;
-            }
-        }else{
+        if(!ORMUtils.isEmpty(conditionValue)){
             switch (expression.getType()) {
                 case CDT_Equal:
                     sqlPair = new SQLPair(" " + conditionName + " = ?", new Pair(conditionValue,columnType));

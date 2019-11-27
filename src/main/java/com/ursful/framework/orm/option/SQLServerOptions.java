@@ -445,9 +445,13 @@ public class SQLServerOptions extends AbstractOptions{
                 sql.append(")");
                 sql.append(";");
                 sqls.add(sql.toString());
-                if(!StringUtils.isEmpty(table.title())){
+                String comment = table.comment();
+                if(StringUtils.isEmpty(comment)){
+                    comment = table.title();
+                }
+                if(!StringUtils.isEmpty(comment)){
                     sqls.add(String.format("EXECUTE sp_addextendedproperty N'MS_Description',N'%s',N'user',N'dbo',N'table',N'%s',NULL,NULL",
-                            table.title(), tableName));
+                            comment, tableName));
                 }
                 sqls.addAll(comments);
 

@@ -581,8 +581,12 @@ public class OracleOptions extends AbstractOptions{
                 sql.append(ORMUtils.join(columnSQL, ","));
                 sql.append(")");
                 sqls.add(sql.toString());
-                if(!StringUtils.isEmpty(table.title())){
-                    sqls.add(String.format("COMMENT ON TABLE %s IS '%s'", tableName, table.title()));
+                String comment = table.comment();
+                if(StringUtils.isEmpty(comment)){
+                    comment = table.title();
+                }
+                if(!StringUtils.isEmpty(comment)){
+                    sqls.add(String.format("COMMENT ON TABLE %s IS '%s'", tableName, comment));
                 }
                 sqls.addAll(comments);
 

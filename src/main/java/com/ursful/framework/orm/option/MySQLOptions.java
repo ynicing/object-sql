@@ -354,8 +354,12 @@ public class MySQLOptions extends AbstractOptions{
                 }
                 sql.append(ORMUtils.join(columnSQL, ","));
                 sql.append(")");
-                if(!StringUtils.isEmpty(table.title())){
-                    sql.append(" COMMENT='" + table.title() + "' ");
+                String comment = table.comment();
+                if(StringUtils.isEmpty(comment)){
+                    comment = table.title();
+                }
+                if(!StringUtils.isEmpty(comment)){
+                    sql.append(" COMMENT='" + comment + "' ");
                 }
                 if(!StringUtils.isEmpty(table.collate())){
                     sql.append(" COLLATE='" + table.collate() + "'");

@@ -31,6 +31,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 类名：ORMUtils
@@ -220,6 +222,19 @@ public class ORMUtils {
             if(patterns != null){
                 for(String pattern : patterns){
                     if (thisClass.getName().startsWith(pattern)) {
+                        return true;
+                    }
+                    Pattern p = Pattern.compile(pattern);
+                    Matcher matcher = p.matcher(thisClass.getName());
+                    if (matcher.find()) {
+                        return true;
+                    }
+                }
+            }
+            String [] prefixes = object.prefixes();
+            if(prefixes != null){
+                for(String prefix : prefixes){
+                    if (thisClass.getName().startsWith(prefix)) {
                         return true;
                     }
                 }

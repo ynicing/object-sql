@@ -46,8 +46,6 @@ public class SQLHelperCreator {
 
         Class clazz = obj.getClass();
 
-
-
         String tableName = ORMUtils.getTableName(clazz);
 
         StringBuffer sql = new StringBuffer("DELETE FROM ");
@@ -56,7 +54,7 @@ public class SQLHelperCreator {
 
         Pair primaryKey = null;
         List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
-        Assert.notNull(infoList, "Get columns cache is empty.");
+        Assert.notEmpty(infoList, "Get columns cache is empty.");
         for(ColumnInfo info : infoList){
             if(info.getPrimaryKey()){
                 Object fo = null;
@@ -135,6 +133,7 @@ public class SQLHelperCreator {
         StringBuffer sql = new StringBuffer("DELETE FROM " + tableName + " WHERE ");
         List<Pair> pairs = new ArrayList<Pair>();
         List<String> terms = new ArrayList<String>();
+        boolean hasExpress = false;
         for(Express express : expresses){
             if(express == null){
                 continue;
@@ -142,6 +141,10 @@ public class SQLHelperCreator {
             SQLPair pair = QueryUtils.parseExpression(options, clazz, express.getExpression());
             terms.add(pair.getSql());
             pairs.addAll(pair.getPairs());
+            hasExpress = true;
+        }
+        if(!hasExpress){
+            throw new RuntimeException("Delete table without expresses, Table[" + clazz.getName() + "]");
         }
         sql.append(ORMUtils.join(terms, " AND "));
         SQLHelper helper = new SQLHelper();

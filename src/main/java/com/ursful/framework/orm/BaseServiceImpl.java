@@ -147,13 +147,13 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         }
     }
 
-    private void triggerORMListener(Object t, ORMType type){
+    private void triggerORMListener(T t, ORMType type){
         for (IORMListener listener : listeners) {
             try {
                 if(type == ORMType.INSERT) {
-                    listener.insert((T)t);
+                    listener.insert(t);
                 }else if(type == ORMType.UPDATE){
-                    listener.update((T)t);
+                    listener.update(t);
                 }else if(type == ORMType.DELETE){
                     listener.delete(t);
                 }else{
@@ -494,7 +494,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
             boolean result = ps.executeUpdate() > 0;
             if(result && enableListener) {
-                triggerORMListener(t, ORMType.DELETE);
+                triggerORMListener(now, ORMType.DELETE);
                 triggerChangeListener(now, null, conn);
             }
             return result;

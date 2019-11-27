@@ -22,4 +22,5 @@ import java.lang.annotation.*;
 public @interface RdObject {
 	Class<?> [] classes() default {};
 	String [] patterns() default {};
+	String [] prefixes() default {};
 }

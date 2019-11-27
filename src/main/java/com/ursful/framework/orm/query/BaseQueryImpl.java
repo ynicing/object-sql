@@ -123,12 +123,6 @@ public class BaseQueryImpl implements IBaseQuery {
     }
 
     public IBaseQuery where(String name, Object value, ExpressionType type){
-        if(ORMUtils.isEmpty(value)){
-            if(type == ExpressionType.CDT_IS_NULL || type == ExpressionType.CDT_IS_NOT_NULL){
-                conditions.add(new Condition().and(new Expression(new Column(name), type)));
-            }
-            return this;
-        }
         conditions.add(new Condition().and(new Expression(new Column(name), value, type)));
 		return this;
 	}
