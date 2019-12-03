@@ -315,6 +315,56 @@ public class SQLHelperCreator {
         return helper;
     }
 
+    public static SQLHelper updateExpress(Class<?> clazz, Options options, Express [] values, Express [] conditions){
+
+        String tableName = ORMUtils.getTableName(clazz);
+
+        StringBuffer sql = new StringBuffer("UPDATE ");
+        sql.append(tableName);
+        sql.append(" SET ");
+        List<Pair> parameters = new ArrayList<Pair>();
+        List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
+        Assert.notNull(infoList, "Get columns cache is empty.");
+        SQLHelper helper = new SQLHelper();
+
+        if(values != null) {
+            List<String> terms = new ArrayList<String>();
+            for(Express express : values){
+                if(express == null){
+                    continue;
+                }
+                SQLPair pair = QueryUtils.parseExpression(options, clazz, express.getExpression());
+                terms.add(pair.getSql());
+                parameters.addAll(pair.getPairs());
+            }
+            if(!terms.isEmpty()) {
+                sql.append(ORMUtils.join(terms, " , "));
+            }else{
+                throw new RuntimeException("Update values is empty, Class[" + clazz.getName() + "]");
+            }
+        }
+        if(conditions != null) {
+            List<String> terms = new ArrayList<String>();
+            for(Express express : conditions){
+                if(express == null){
+                    continue;
+                }
+                SQLPair pair = QueryUtils.parseExpression(options, clazz, express.getExpression());
+                terms.add(pair.getSql());
+                parameters.addAll(pair.getPairs());
+            }
+            if(!terms.isEmpty()) {
+                sql.append(" WHERE ");
+                sql.append(ORMUtils.join(terms, " AND "));
+            }
+        }
+
+        helper.setSql(sql.toString());
+        helper.setParameters(parameters);
+        return helper;
+    }
+
+
     public static SQLHelper insert(Object obj){
 
         Class clazz = obj.getClass();

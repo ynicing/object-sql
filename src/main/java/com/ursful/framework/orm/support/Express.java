@@ -29,6 +29,16 @@ public class Express implements Serializable {
         this.type = type;
     }
 
+    public Express(String left, Object value){
+        this.left = new Column(left);
+        if(value instanceof ExpressionType){
+            this.type = type;
+        }else {
+            this.type = ExpressionType.CDT_Equal;
+            this.value = value;
+        }
+    }
+
     //solo.
     public Express(String left, Object value, ExpressionType type){
         this.left = new Column(left);

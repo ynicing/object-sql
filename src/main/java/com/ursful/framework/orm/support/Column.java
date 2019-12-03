@@ -187,6 +187,11 @@ public class Column implements Serializable {
         return this;
     }
 
+    public Column formatValues(Object ... values){
+        this.value = values;
+        return this;
+    }
+
     public Column field(String field){
         if(field == null || field.length() == 0){
             return this;

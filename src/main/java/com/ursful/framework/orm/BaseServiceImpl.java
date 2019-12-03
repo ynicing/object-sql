@@ -415,6 +415,38 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         return updates(t, terms, false, false, forNullColumns);
     }
 
+
+    public boolean updatesWithoutListener(Express [] values, Express [] conditions){
+        PreparedStatement ps = null;
+
+        Connection conn = null;
+        SQLHelper helper = null;
+        try {
+            //triggerDefaultListener(t, true);
+            conn = getConnection();
+            helper = SQLHelperCreator.updateExpress(thisClass, getOptions(), values, conditions);
+            if(ORMUtils.getDebug()) {
+                logger.info("UPDATE : " + helper);
+            }
+            logger.debug("connection :" + conn);
+            ps = conn.prepareStatement(helper.getSql());
+            SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
+            boolean result = ps.executeUpdate() > 0;
+            return result;
+        } catch (SQLException e) {
+            logger.error("SQL : " + helper, e);
+            throw new RuntimeException("updatesWithoutListener, UPDATES: " +  e.getMessage());
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.error("SQL : " + helper, e);
+            throw new RuntimeException("updatesWithoutListener, UPDATES Listener : " + e.getMessage());
+        } finally{
+            closeConnection(null, ps, conn);
+            logger.debug("close connection :" + conn);
+        }
+    }
+
     private boolean updates(T t, Terms terms, boolean updateNull, boolean enableListener, String [] forNullColumns) {
         PreparedStatement ps = null;
 

@@ -101,6 +101,9 @@ public interface IBaseService<T> extends IServiceChangedListener<T>, ISQLService
     boolean updatesNull(T t, Terms terms);
     boolean updatesNullWithoutListener(T t, Terms terms);
 
+//    boolean updates(Express [] values, Express [] conditions);
+    boolean updatesWithoutListener(Express [] values, Express [] conditions);
+
     boolean updatesNull(T t, String [] forNullColumns,  Terms terms);
     boolean updatesNullWithoutListener(T t, String [] forNullColumns, Terms terms);
 

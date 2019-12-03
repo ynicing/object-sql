@@ -218,7 +218,22 @@ public class QueryUtils {
                 if(StringUtils.isEmpty(column.getFormat())){
                     sb.append(aliasName);
                 }else{
-                    sb.append(String.format(column.getFormat(), aliasName));
+                    if(column.getValue() != null && column.getValue().getClass().isArray()){
+                        Object [] objectList = (Object[])column.getValue();
+                        List<Object> objects = new ArrayList<Object>();
+                        for(Object obj : objectList){
+                            if(obj == column) {
+                                objects.add(aliasName);
+                            }else if(obj instanceof Column){
+                                objects.add(parseColumn(options, (Column) obj));
+                            }else{
+                                objects.add(obj);
+                            }
+                        }
+                        sb.append(String.format(column.getFormat(), objects.toArray(new Object[objects.size()])));
+                    }else {
+                        sb.append(String.format(column.getFormat(), aliasName));
+                    }
                 }
             }
         }
