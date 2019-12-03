@@ -658,14 +658,15 @@ public class SQLHelperCreator {
                     Object value = rs.getObject(label);
                     String tmp = QueryUtils.displayNameOrAsName(label, name);
                     temp.put(tmp, value);
+                    temp.put(tmp.toLowerCase(Locale.ROOT), value);
                     temp.put(label, value);
-                    temp.put(label.toUpperCase(), value);
+                    temp.put(label.toUpperCase(Locale.ROOT), value);
                 }
                 List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
                 for(ColumnInfo info : infoList){
                     Object obj = temp.get(info.getColumnName());
                     if(obj == null){
-                        obj = temp.get(info.getColumnName().toUpperCase());
+                        obj = temp.get(info.getColumnName().toUpperCase(Locale.ROOT));
                     }
                     if(obj == null) {
                         obj = temp.get(info.getName());
@@ -678,7 +679,10 @@ public class SQLHelperCreator {
                 for (ColumnInfo info : fields){
                     Object obj = temp.get(info.getName());
                     if(obj == null){
-                        obj = temp.get(info.getName().toUpperCase());
+                        obj = temp.get(info.getName().toUpperCase(Locale.ROOT));
+                    }
+                    if(obj == null){
+                        obj = temp.get(info.getName().toLowerCase(Locale.ROOT));
                     }
                     if(obj != null){
                         setFieldValue(t, info, obj);

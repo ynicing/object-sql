@@ -42,6 +42,9 @@ public interface IBaseQuery extends IQuery{
 	IBaseQuery whereIn(String name, Collection value);
 	IBaseQuery whereNotIn(String name, Collection value);
 
+	IBaseQuery whereInValues(String name, Object ... values);
+	IBaseQuery whereNotInValues(String name, Object ... values);
+
 	IBaseQuery whereIsNull(String name);
     IBaseQuery whereIsNotNull(String name);
 	IBaseQuery where(String name, Object value, ExpressionType type);

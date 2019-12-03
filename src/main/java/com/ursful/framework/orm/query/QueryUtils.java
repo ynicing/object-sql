@@ -130,28 +130,28 @@ public class QueryUtils {
     }
 
     public static String displayNameOrAsName(String displayName, String columnName){
-        if(displayName.toUpperCase().equals(columnName.toUpperCase())){
+        if(displayName.toUpperCase(Locale.ROOT).equals(columnName.toUpperCase(Locale.ROOT))){
             String [] names = columnName.split("_");
             if(names.length == 1){
                 if(isUpperOrLowerCase(columnName)){
                     return columnName;
                 }
             }
-            StringBuffer sb = new StringBuffer(names[0].toLowerCase());
+            StringBuffer sb = new StringBuffer(names[0].toLowerCase(Locale.ROOT));
             for(int i = 1; i < names.length; i++){
                 String n = names[i];
-                sb.append(n.substring(0,1).toUpperCase());
-                sb.append(n.substring(1).toLowerCase());
+                sb.append(n.substring(0,1).toUpperCase(Locale.ROOT));
+                sb.append(n.substring(1).toLowerCase(Locale.ROOT));
             }
             return sb.toString();
         }else{
             if(displayName.contains("_")){
                 String [] names = displayName.split("_");
-                StringBuffer sb = new StringBuffer(names[0].toLowerCase());
+                StringBuffer sb = new StringBuffer(names[0].toLowerCase(Locale.ROOT));
                 for(int i = 1; i < names.length; i++){
                     String n = names[i];
-                    sb.append(n.substring(0,1).toUpperCase());
-                    sb.append(n.substring(1).toLowerCase());
+                    sb.append(n.substring(0,1).toUpperCase(Locale.ROOT));
+                    sb.append(n.substring(1).toLowerCase(Locale.ROOT));
                 }
                 return sb.toString();
             }else {
@@ -551,17 +551,18 @@ public class QueryUtils {
                         Iterator iterator = ((Collection) conditionValue).iterator();
                         while (iterator.hasNext()){
                             Object obj = iterator.next();
-                            if(isTrim && (obj instanceof String)){
-                                String obj2 = ((String) obj).trim();
-                                if(!"".equals(obj2)) {
+                            if(obj != null){
+                                if(isTrim && (obj instanceof String)){
+                                    String obj2 = ((String) obj).trim();
+                                    if(!"".equals(obj2)) {
+                                        names.add("?");
+                                        values.add(new Pair(obj, columnType));
+                                    }
+                                }else{
                                     names.add("?");
                                     values.add(new Pair(obj, columnType));
                                 }
-                            }else{
-                                names.add("?");
-                                values.add(new Pair(obj, columnType));
                             }
-
                         }
                         if(!names.isEmpty()) {
                             if (expression.getType() == ExpressionType.CDT_In) {

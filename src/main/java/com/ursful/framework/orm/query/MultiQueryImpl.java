@@ -93,7 +93,7 @@ public class MultiQueryImpl implements IMultiQuery {
         if(object instanceof IQuery){
             prefixAlias = "q";
         }else if(object instanceof Class){
-            prefixAlias = ((Class<?>)object).getSimpleName().substring(0, 1).toLowerCase();
+            prefixAlias = ((Class<?>)object).getSimpleName().substring(0, 1).toLowerCase(Locale.ROOT);
         }else{
             prefixAlias = "unknown";
         }
@@ -202,6 +202,26 @@ public class MultiQueryImpl implements IMultiQuery {
     @Override
     public IMultiQuery whereIn(Column left, Collection value) {
         return where(left, value, ExpressionType.CDT_In);
+    }
+
+
+    public IMultiQuery whereInValues(Column left, Object ... values){
+        List<Object> temp = null;
+        if(values != null){
+            temp = Arrays.asList(values);
+        }else{
+            temp = new ArrayList<Object>();
+        }
+        return where(left, temp, ExpressionType.CDT_In);
+    }
+    public IMultiQuery whereNotInValues(Column left, Object ... values){
+        List<Object> temp = null;
+        if(values != null){
+            temp = Arrays.asList(values);
+        }else{
+            temp = new ArrayList<Object>();
+        }
+        return where(left, temp, ExpressionType.CDT_NotIn);
     }
 
     @Override

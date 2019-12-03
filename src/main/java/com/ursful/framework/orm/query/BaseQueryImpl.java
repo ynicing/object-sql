@@ -22,10 +22,7 @@ import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
 import org.springframework.core.annotation.AnnotationUtils;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class BaseQueryImpl implements IBaseQuery {
 	
@@ -120,6 +117,28 @@ public class BaseQueryImpl implements IBaseQuery {
     @Override
     public IBaseQuery whereNotIn(String name, Collection value) {
         return where(name, value, ExpressionType.CDT_NotIn);
+    }
+
+    @Override
+    public IBaseQuery whereInValues(String name, Object... values) {
+        List<Object> temp = null;
+        if(values != null){
+            temp = Arrays.asList(values);
+        }else{
+            temp = new ArrayList<Object>();
+        }
+        return where(name, temp, ExpressionType.CDT_In);
+    }
+
+    @Override
+    public IBaseQuery whereNotInValues(String name, Object... values) {
+        List<Object> temp = null;
+        if(values != null){
+            temp = Arrays.asList(values);
+        }else{
+            temp = new ArrayList<Object>();
+        }
+        return where(name, temp, ExpressionType.CDT_NotIn);
     }
 
     public IBaseQuery where(String name, Object value, ExpressionType type){

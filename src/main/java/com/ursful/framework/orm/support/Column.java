@@ -198,7 +198,7 @@ public class Column implements Serializable {
             char c = field.charAt(i);
             if('A' <= c && c <= 'Z'){
                 sb.append("_");
-                sb.append((c+"").toLowerCase());
+                sb.append((c+"").toLowerCase(Locale.ROOT));
             }else{
                 sb.append(c);
             }
