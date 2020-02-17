@@ -49,6 +49,10 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         serviceClass = this.getClass();
     }
 
+//    public Class getBaseClass(){
+//        return thisClass;
+//    }
+
     private List<IORMListener> listeners = new ArrayList<IORMListener>();
 
     private List<IDefaultListener> defaultListeners = new ArrayList<IDefaultListener>();

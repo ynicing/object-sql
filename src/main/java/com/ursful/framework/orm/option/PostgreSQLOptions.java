@@ -85,6 +85,11 @@ public class PostgreSQLOptions extends MySQLOptions{
         ResultSet rs = null;
         try {
             String sql = "select relname as TABLE_NAME,cast(obj_description(relfilenode,'pg_class') as varchar) as COMMENT from pg_class c where  (relname = ? OR relname = ?) ";
+            if(ORMUtils.isLowerCaseSql()){
+                sql = sql.toLowerCase(Locale.ROOT);
+            }else{
+                sql = sql.toUpperCase(Locale.ROOT);
+            }
             ps = connection.prepareStatement(sql);
             ps.setString(1, tableName.toUpperCase(Locale.ROOT));
             ps.setString(2, tableName.toLowerCase(Locale.ROOT));
@@ -248,9 +253,13 @@ public class PostgreSQLOptions extends MySQLOptions{
                             // int, bigint(忽略精度), decimal(精度）， varchar， char 判断长度， 其他判断类型，+ 默认值
                             String temp = columnString(info, rdColumn, true);
                             sqls.add(String.format("ALTER TABLE %s ADD %s", tableName, temp));
-                            if (rdColumn.unique() && !info.getPrimaryKey()) {
+                            if(!info.getPrimaryKey() && rdColumn.unique()) {
                                 String uniqueSQL = getUniqueSQL(table, rdColumn);
                                 sqls.add("ALTER TABLE " + tableName + " ADD " + uniqueSQL);
+                            }
+                            if(!StringUtils.isEmpty(rdColumn.foreignKey())){
+                                String foreignSQL = getForeignSQL(table, rdColumn);
+                                sqls.add(ORMUtils.convertSQL("ALTER TABLE " + tableName + " ADD " + foreignSQL));
                             }
                             if (!StringUtils.isEmpty(comment)) {
                                 sqls.add(String.format("COMMENT ON COLUMN %s.%s IS '%s'", tableName, columnName, comment));
@@ -273,10 +282,14 @@ public class PostgreSQLOptions extends MySQLOptions{
                         comments.add(String.format("COMMENT ON COLUMN %s.%s IS '%s'", tableName, columnName, comment));
                     }
                     columnSQL.add(temp.toString());
-                    if(rdColumn.unique() && !info.getPrimaryKey()) {
+                    if(!info.getPrimaryKey() && rdColumn.unique()) {
                         //	CONSTRAINT `SYS_RESOURCE_URL_METHOD` UNIQUE(`URL`, `REQUEST_METHOD`)
                         String uniqueSQL = getUniqueSQL(table, rdColumn);
                         columnSQL.add(uniqueSQL);
+                    }
+                    if(!StringUtils.isEmpty(rdColumn.foreignKey())){
+                        String foreignSQL = getForeignSQL(table, rdColumn);
+                        columnSQL.add(foreignSQL);
                     }
                 }
                 sql.append(ORMUtils.join(columnSQL, ","));

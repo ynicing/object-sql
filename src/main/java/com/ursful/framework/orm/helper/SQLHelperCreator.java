@@ -709,7 +709,8 @@ public class SQLHelperCreator {
                     String tmp = QueryUtils.displayNameOrAsName(label, name);
                     temp.put(tmp, value);
                     temp.put(tmp.toLowerCase(Locale.ROOT), value);
-                    temp.put(label, value);
+                    temp.put(tmp.toUpperCase(Locale.ROOT), value);
+                    temp.put(label.toLowerCase(Locale.ROOT), value);
                     temp.put(label.toUpperCase(Locale.ROOT), value);
                 }
                 List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);

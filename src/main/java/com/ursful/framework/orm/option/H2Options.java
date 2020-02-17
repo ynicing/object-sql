@@ -32,6 +32,7 @@ public class H2Options extends MySQLOptions{
         try {
             String dbName = connection.getCatalog();
             String sql = "SELECT * FROM information_schema.TABLES WHERE (TABLE_NAME = ? OR TABLE_NAME = ?) AND (TABLE_CATALOG = ? OR TABLE_CATALOG = ?)";
+            sql = ORMUtils.convertSQL(sql);
             ps = connection.prepareStatement(sql);
             ps.setString(1, tableName.toUpperCase(Locale.ROOT));
             ps.setString(2, tableName.toLowerCase(Locale.ROOT));
@@ -67,6 +68,7 @@ public class H2Options extends MySQLOptions{
         try {
             String dbName = connection.getCatalog();
             String sql = "SELECT * FROM information_schema.TABLES WHERE (TABLE_NAME = ? OR TABLE_NAME = ?) AND (TABLE_CATALOG = ? OR TABLE_CATALOG = ?)";
+            sql = ORMUtils.convertSQL(sql);
             ps = connection.prepareStatement(sql);
             ps.setString(1, tableName.toUpperCase(Locale.ROOT));
             ps.setString(2, tableName.toLowerCase(Locale.ROOT));
@@ -103,6 +105,7 @@ public class H2Options extends MySQLOptions{
         try {
             String dbName = connection.getCatalog();
             String sql = "SELECT * FROM information_schema.COLUMNS WHERE (TABLE_NAME = ? OR TABLE_NAME = ?) AND (TABLE_CATALOG = ? OR TABLE_CATALOG = ?)";
+            sql = ORMUtils.convertSQL(sql);
             ps = connection.prepareStatement(sql);
             ps.setString(1, tableName.toUpperCase(Locale.ROOT));
             ps.setString(2, tableName.toLowerCase(Locale.ROOT));
@@ -146,7 +149,7 @@ public class H2Options extends MySQLOptions{
         List<String> sqls = new ArrayList<String>();
         if(table.dropped()){
             if(tableExisted){
-                sqls.add(String.format("DROP TABLE %s", table.name().toUpperCase(Locale.ROOT)));
+                sqls.add(ORMUtils.convertSQL(String.format("DROP TABLE %s", table.name().toUpperCase(Locale.ROOT))));
             }
         }else{
             String tableName = table.name().toUpperCase(Locale.ROOT);
@@ -162,7 +165,7 @@ public class H2Options extends MySQLOptions{
                     RdColumn rdColumn = info.getField().getAnnotation(RdColumn.class);
                     if(tableColumn != null){
                         if(rdColumn.dropped()){
-                            sqls.add(String.format("ALTER TABLE %s DROP COLUMN %s", table.name().toUpperCase(Locale.ROOT), rdColumn.name().toUpperCase(Locale.ROOT)));
+                            sqls.add(ORMUtils.convertSQL(String.format("ALTER TABLE %s DROP COLUMN %s", table.name().toUpperCase(Locale.ROOT), rdColumn.name().toUpperCase(Locale.ROOT))));
                         }else{
                             boolean needUpdate = false;
                             if("VARCHAR".equalsIgnoreCase(tableColumn.getType()) || "CHAR".equalsIgnoreCase(tableColumn.getType())){
@@ -206,7 +209,7 @@ public class H2Options extends MySQLOptions{
                                 if (!StringUtils.isEmpty(comment)) {
                                     temp += " COMMENT'" + comment + "'";
                                 }
-                                sqls.add(String.format("ALTER TABLE %s MODIFY COLUMN %s", table.name().toUpperCase(Locale.ROOT), temp));
+                                sqls.add(ORMUtils.convertSQL(String.format("ALTER TABLE %s MODIFY COLUMN %s", table.name().toUpperCase(Locale.ROOT), temp)));
                             }
                         }
                     }else{
@@ -217,10 +220,14 @@ public class H2Options extends MySQLOptions{
                             if (!StringUtils.isEmpty(comment)) {
                                 temp += " COMMENT '" + comment + "'";
                             }
-                            sqls.add(String.format("ALTER TABLE %s ADD COLUMN %s", tableName, temp));
-                            if (rdColumn.unique() && !info.getPrimaryKey()) {
+                            sqls.add(ORMUtils.convertSQL(String.format("ALTER TABLE %s ADD COLUMN %s", tableName, temp)));
+                            if(!rdColumn.name().equalsIgnoreCase(info.getColumnName()) && rdColumn.unique()) {
                                 String uniqueSQL = getUniqueSQL(table, rdColumn);
-                                sqls.add("ALTER TABLE " + tableName + " ADD " + uniqueSQL);
+                                sqls.add(ORMUtils.convertSQL("ALTER TABLE " + tableName + " ADD " + uniqueSQL));
+                            }
+                            if(!StringUtils.isEmpty(rdColumn.foreignKey())){
+                                String foreignSQL = getForeignSQL(table, rdColumn);
+                                sqls.add(ORMUtils.convertSQL("ALTER TABLE " + tableName + " ADD " + foreignSQL));
                             }
                         }
                     }
@@ -238,10 +245,14 @@ public class H2Options extends MySQLOptions{
                         temp += " COMMENT '" + comment + "'";
                     }
                     columnSQL.add(temp.toString());
-                    if(rdColumn.unique() && !info.getPrimaryKey()) {
+                    if(!info.getPrimaryKey() && rdColumn.unique()) {
                         //	CONSTRAINT `SYS_RESOURCE_URL_METHOD` UNIQUE(`URL`, `REQUEST_METHOD`)
                         String uniqueSQL = getUniqueSQL(table, rdColumn);
                         columnSQL.add(uniqueSQL);
+                    }
+                    if(!StringUtils.isEmpty(rdColumn.foreignKey())){
+                        String foreignSQL = getForeignSQL(table, rdColumn);
+                        columnSQL.add(foreignSQL);
                     }
                 }
                 sql.append(ORMUtils.join(columnSQL, ","));
@@ -253,8 +264,8 @@ public class H2Options extends MySQLOptions{
                 if(!StringUtils.isEmpty(comment)){
                     sql.append(" COMMENT='" + comment + "' ");
                 }
-                sql.append(";");
-                sqls.add(sql.toString());
+//                sql.append(";");
+                sqls.add(ORMUtils.convertSQL(sql.toString()));
             }
         }
         return sqls;

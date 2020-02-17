@@ -36,6 +36,8 @@ public interface IBaseService<T> extends IServiceChangedListener<T>, ISQLService
     void addORMListener(IORMListener listener);
     void removeORMListener(IORMListener listener);
 
+//    Class getBaseClass();
+
     /*  查询一个对象 方式一 :  取条件第一个值
         Test tmp = new Test();
         tmp.setId(1);//主键查询

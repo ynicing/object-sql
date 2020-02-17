@@ -69,7 +69,7 @@ public class MySQLOptions extends AbstractOptions{
 
     @Override
     public String nanoTimeSQL() {
-        return "SELECT NOW(3)";
+        return ORMUtils.convertSQL("SELECT NOW(3)");
     }
 
     @Override
@@ -143,12 +143,24 @@ public class MySQLOptions extends AbstractOptions{
         ResultSet rs = null;
         try {
             String dbName = connection.getCatalog();
-            String sql = "SELECT * FROM information_schema.TABLES WHERE (TABLE_NAME = ? OR TABLE_NAME = ?) AND (TABLE_SCHEMA = ? OR TABLE_SCHEMA = ?)";
+            String sql = "SELECT * FROM information_schema.TABLES WHERE TABLE_NAME = ? AND (TABLE_SCHEMA = ? OR TABLE_SCHEMA = ?)";
+            sql = ORMUtils.convertSQL(sql);
+            ps = connection.prepareStatement(sql);
+            ps.setString(1, tableName.toLowerCase(Locale.ROOT));
+            ps.setString(2, dbName.toUpperCase(Locale.ROOT));
+            ps.setString(3, dbName.toLowerCase(Locale.ROOT));
+            rs = ps.executeQuery();
+            if(rs.next()) {
+                return true;
+            }
+            rs.close();
+            ps.close();
+            sql = "SELECT * FROM information_schema.TABLES WHERE  TABLE_NAME = ?  AND (TABLE_SCHEMA = ? OR TABLE_SCHEMA = ?)";
+            sql = ORMUtils.convertSQL(sql);
             ps = connection.prepareStatement(sql);
             ps.setString(1, tableName.toUpperCase(Locale.ROOT));
-            ps.setString(2, tableName.toLowerCase(Locale.ROOT));
-            ps.setString(3, dbName.toUpperCase(Locale.ROOT));
-            ps.setString(4, dbName.toLowerCase(Locale.ROOT));
+            ps.setString(2, dbName.toUpperCase(Locale.ROOT));
+            ps.setString(3, dbName.toLowerCase(Locale.ROOT));
             rs = ps.executeQuery();
             if(rs.next()) {
                 return true;
@@ -179,6 +191,7 @@ public class MySQLOptions extends AbstractOptions{
         try {
             String dbName = connection.getCatalog();
             String sql = "SELECT * FROM information_schema.TABLES WHERE (TABLE_NAME = ? OR TABLE_NAME = ?) AND (TABLE_SCHEMA = ? OR TABLE_SCHEMA = ?)";
+            sql = ORMUtils.convertSQL(sql);
             ps = connection.prepareStatement(sql);
             ps.setString(1, tableName.toUpperCase(Locale.ROOT));
             ps.setString(2, tableName.toLowerCase(Locale.ROOT));
@@ -215,6 +228,7 @@ public class MySQLOptions extends AbstractOptions{
         try {
             String dbName = connection.getCatalog();
             String sql = "SELECT * FROM information_schema.COLUMNS WHERE (TABLE_NAME = ? OR TABLE_NAME = ?) AND (TABLE_SCHEMA = ? OR TABLE_SCHEMA = ?)";
+            sql = ORMUtils.convertSQL(sql);
             ps = connection.prepareStatement(sql);
             ps.setString(1, tableName.toUpperCase(Locale.ROOT));
             ps.setString(2, tableName.toLowerCase(Locale.ROOT));
@@ -258,7 +272,7 @@ public class MySQLOptions extends AbstractOptions{
         List<String> sqls = new ArrayList<String>();
         if(table.dropped()){
             if(tableExisted){
-                sqls.add(String.format("DROP TABLE %s", table.name().toUpperCase(Locale.ROOT)));
+                sqls.add(ORMUtils.convertSQL(String.format("DROP TABLE %s", table.name().toUpperCase(Locale.ROOT))));
             }
         }else{
             String tableName = table.name().toUpperCase(Locale.ROOT);
@@ -274,7 +288,7 @@ public class MySQLOptions extends AbstractOptions{
                     RdColumn rdColumn = info.getField().getAnnotation(RdColumn.class);
                     if(tableColumn != null){
                         if(rdColumn.dropped()){
-                            sqls.add(String.format("ALTER TABLE %s DROP COLUMN %s", table.name().toUpperCase(Locale.ROOT), rdColumn.name().toUpperCase(Locale.ROOT)));
+                            sqls.add(ORMUtils.convertSQL(String.format("ALTER TABLE %s DROP COLUMN %s", table.name().toUpperCase(Locale.ROOT), rdColumn.name().toUpperCase(Locale.ROOT))));
                         }else{
                             boolean needUpdate = false;
                             if("VARCHAR".equalsIgnoreCase(tableColumn.getType()) || "CHAR".equalsIgnoreCase(tableColumn.getType())){
@@ -314,7 +328,7 @@ public class MySQLOptions extends AbstractOptions{
                                 if (!StringUtils.isEmpty(comment)) {
                                     temp += " COMMENT'" + comment + "'";
                                 }
-                                sqls.add(String.format("ALTER TABLE %s MODIFY COLUMN %s", table.name().toUpperCase(Locale.ROOT), temp));
+                                sqls.add(ORMUtils.convertSQL(String.format("ALTER TABLE %s MODIFY COLUMN %s", table.name().toUpperCase(Locale.ROOT), temp)));
                             }
                         }
                     }else{
@@ -325,10 +339,14 @@ public class MySQLOptions extends AbstractOptions{
                             if (!StringUtils.isEmpty(comment)) {
                                 temp += " COMMENT'" + comment + "'";
                             }
-                            sqls.add(String.format("ALTER TABLE %s ADD COLUMN %s", tableName, temp));
-                            if (rdColumn.unique() && !info.getPrimaryKey()) {
+                            sqls.add(ORMUtils.convertSQL(String.format("ALTER TABLE %s ADD COLUMN %s", tableName, temp)));
+                            if(!info.getPrimaryKey() && rdColumn.unique()) {
                                 String uniqueSQL = getUniqueSQL(table, rdColumn);
-                                sqls.add("ALTER TABLE " + tableName + " ADD " + uniqueSQL);
+                                sqls.add(ORMUtils.convertSQL("ALTER TABLE " + tableName + " ADD " + uniqueSQL));
+                            }
+                            if(!StringUtils.isEmpty(rdColumn.foreignKey())){
+                                String foreignSQL = getForeignSQL(table, rdColumn);
+                                sqls.add(ORMUtils.convertSQL("ALTER TABLE " + tableName + " ADD " + foreignSQL));
                             }
                         }
                     }
@@ -346,10 +364,14 @@ public class MySQLOptions extends AbstractOptions{
                         temp += " COMMENT '" + comment + "'";
                     }
                     columnSQL.add(temp.toString());
-                    if(rdColumn.unique() && !info.getPrimaryKey()) {
+                    if(!info.getPrimaryKey() && rdColumn.unique()) {
                         //	CONSTRAINT `SYS_RESOURCE_URL_METHOD` UNIQUE(`URL`, `REQUEST_METHOD`)
                         String uniqueSQL = getUniqueSQL(table, rdColumn);
                         columnSQL.add(uniqueSQL);
+                    }
+                    if(!StringUtils.isEmpty(rdColumn.foreignKey())){
+                        String foreignSQL = getForeignSQL(table, rdColumn);
+                        columnSQL.add(foreignSQL);
                     }
                 }
                 sql.append(ORMUtils.join(columnSQL, ","));
@@ -368,7 +390,7 @@ public class MySQLOptions extends AbstractOptions{
                     sql.append(" ENGINE='" + table.engine() + "'");
                 }
                 sql.append(";");
-                sqls.add(sql.toString());
+                sqls.add(ORMUtils.convertSQL(sql.toString()));
             }
         }
         return sqls;

@@ -90,7 +90,7 @@ public class SQLServerOptions extends AbstractOptions{
 
     @Override
     public String nanoTimeSQL() {
-        return "SELECT GETDATE()";
+        return ORMUtils.convertSQL("SELECT GETDATE()");
     }
 
     @Override
@@ -203,6 +203,7 @@ public class SQLServerOptions extends AbstractOptions{
         try {
             String schemaName = connection.getSchema();
             String sql = String.format("select * from %s.sysobjects where (id = object_id('%s') or id = object_id('%s')) and type = 'U'", schemaName,tableName.toUpperCase(Locale.ROOT),tableName.toLowerCase(Locale.ROOT));
+            sql = ORMUtils.convertSQL(sql);
             ps = connection.prepareStatement(sql);
             rs = ps.executeQuery();
             if(rs.next()){
@@ -236,6 +237,7 @@ public class SQLServerOptions extends AbstractOptions{
         try {
             String schemaName = connection.getSchema();
             String sql = String.format("select * from %s.sysobjects where (id = object_id('%s') or id = object_id('%s')) and type = 'U'", schemaName,tableName.toUpperCase(Locale.ROOT),tableName.toLowerCase(Locale.ROOT));
+            sql = ORMUtils.convertSQL(sql);
             ps = connection.prepareStatement(sql);
             rs = ps.executeQuery();
             if(rs.next()){
@@ -263,6 +265,7 @@ public class SQLServerOptions extends AbstractOptions{
                 String sql = String.format(" SELECT o.name, p.value FROM sys.extended_properties p " +
                         "        LEFT JOIN sysobjects o ON p.major_id= o.id" +
                         "        WHERE  p.minor_id=0 and (o.name= '%s' OR o.name= '%s')", schemaName, tableName.toUpperCase(Locale.ROOT), tableName.toLowerCase(Locale.ROOT));
+                sql = ORMUtils.convertSQL(sql);
                 ps = connection.prepareStatement(sql);
                 rs = ps.executeQuery();
                 if(rs.next()){
@@ -301,6 +304,7 @@ public class SQLServerOptions extends AbstractOptions{
                     "left join syscomments e on a.cdefault=e.id " +
                     "left join systypes b on a.xusertype=b.xusertype " +
                     "where (a.id = object_id('%s') or a.id = object_id('%s')) ", schemaName,tableName.toUpperCase(Locale.ROOT),tableName.toLowerCase(Locale.ROOT));
+            sql = ORMUtils.convertSQL(sql);
             ps = connection.prepareStatement(sql);
             rs = ps.executeQuery();
             while (rs.next()){
@@ -339,7 +343,7 @@ public class SQLServerOptions extends AbstractOptions{
         List<String> sqls = new ArrayList<String>();
         if(table.dropped()){
             if(tableExisted){
-                sqls.add(String.format("DROP TABLE %s", table.name().toUpperCase(Locale.ROOT)));
+                sqls.add(ORMUtils.convertSQL(String.format("DROP TABLE %s", table.name().toUpperCase(Locale.ROOT))));
             }
         }else{
             String tableName = table.name().toUpperCase(Locale.ROOT);
@@ -356,7 +360,7 @@ public class SQLServerOptions extends AbstractOptions{
                     String comment = columnComment(rdColumn);
                     if(tableColumn != null){
                         if(rdColumn.dropped()){
-                            sqls.add(String.format("ALTER TABLE %s DROP COLUMN %s", tableName, rdColumn.name().toUpperCase(Locale.ROOT)));
+                            sqls.add(ORMUtils.convertSQL(String.format("ALTER TABLE %s DROP COLUMN %s", tableName, rdColumn.name().toUpperCase(Locale.ROOT))));
                         }else{
 
                             boolean needUpdate = false;
@@ -397,8 +401,9 @@ public class SQLServerOptions extends AbstractOptions{
                             }
                             if(needUpdate) {
                                 String temp = columnString(info, rdColumn, false);
-                                sqls.add(String.format("ALTER TABLE %s ALTER COLUMN %s", tableName, temp));
+                                sqls.add(ORMUtils.convertSQL(String.format("ALTER TABLE %s ALTER COLUMN %s", tableName, temp)));
                                 if (!StringUtils.isEmpty(comment) && !comment.equals(tableColumn.getComment())) {
+                                    // MS_Description
                                     sqls.add(String.format("EXECUTE sp_addextendedproperty N'MS_Description',N'%s',N'user',N'dbo',N'table',N'%s',N'column',N'%s'",
                                             comment, tableName, rdColumn.name().toUpperCase(Locale.ROOT)));
                                 }
@@ -408,12 +413,17 @@ public class SQLServerOptions extends AbstractOptions{
                         if(!rdColumn.dropped()){
                             // int, bigint(忽略精度), decimal(精度）， varchar， char 判断长度， 其他判断类型，+ 默认值
                             String temp = columnString(info, rdColumn, true);
-                            sqls.add(String.format("ALTER TABLE %s ADD %s", tableName, temp));
-                            if (rdColumn.unique() && !info.getPrimaryKey()) {
+                            sqls.add(ORMUtils.convertSQL(String.format("ALTER TABLE %s ADD %s", tableName, temp)));
+                            if(!info.getPrimaryKey() && rdColumn.unique()) {
                                 String uniqueSQL = getUniqueSQL(table, rdColumn);
-                                sqls.add("ALTER TABLE " + tableName + " ADD " + uniqueSQL);
+                                sqls.add(ORMUtils.convertSQL("ALTER TABLE " + tableName + " ADD " + uniqueSQL));
+                            }
+                            if(!StringUtils.isEmpty(rdColumn.foreignKey())){
+                                String foreignSQL = getForeignSQL(table, rdColumn);
+                                sqls.add(ORMUtils.convertSQL("ALTER TABLE " + tableName + " ADD " + foreignSQL));
                             }
                             if (!StringUtils.isEmpty(comment)) {
+                                //MS_Description
                                 sqls.add(String.format("EXECUTE sp_addextendedproperty N'MS_Description',N'%s',N'user',N'dbo',N'table',N'%s',N'column',N'%s'",
                                         comment, tableName, rdColumn.name().toUpperCase(Locale.ROOT)));
                             }
@@ -435,16 +445,20 @@ public class SQLServerOptions extends AbstractOptions{
                                 comment, tableName, rdColumn.name().toUpperCase(Locale.ROOT)));
                     }
                     columnSQL.add(temp.toString());
-                    if(rdColumn.unique() && !info.getPrimaryKey()) {
+                    if(!info.getPrimaryKey() && rdColumn.unique()) {
                         //	CONSTRAINT `SYS_RESOURCE_URL_METHOD` UNIQUE(`URL`, `REQUEST_METHOD`)
                         String uniqueSQL = getUniqueSQL(table, rdColumn);
                         columnSQL.add(uniqueSQL);
+                    }
+                    if(!StringUtils.isEmpty(rdColumn.foreignKey())){
+                        String foreignSQL = getForeignSQL(table, rdColumn);
+                        columnSQL.add(foreignSQL);
                     }
                 }
                 sql.append(ORMUtils.join(columnSQL, ","));
                 sql.append(")");
                 sql.append(";");
-                sqls.add(sql.toString());
+                sqls.add(ORMUtils.convertSQL(sql.toString()));
                 String comment = table.comment();
                 if(StringUtils.isEmpty(comment)){
                     comment = table.title();

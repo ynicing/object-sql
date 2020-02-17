@@ -189,7 +189,7 @@ public class OracleOptions extends AbstractOptions{
 
     @Override
     public String nanoTimeSQL() {
-        return "SELECT SYSTIMESTAMP FROM DUAL";
+        return ORMUtils.convertSQL("SELECT SYSTIMESTAMP FROM DUAL");
     }
 
     @Override
@@ -305,6 +305,7 @@ public class OracleOptions extends AbstractOptions{
         ResultSet rs = null;
         try {
             String sql = "SELECT * FROM USER_TABLES WHERE  (TABLE_NAME = ? OR TABLE_NAME = ?) ";
+            sql = ORMUtils.convertSQL(sql);
             ps = connection.prepareStatement(sql);
             ps.setString(1, tableName.toUpperCase(Locale.ROOT));
             ps.setString(2, tableName.toLowerCase(Locale.ROOT));
@@ -338,6 +339,7 @@ public class OracleOptions extends AbstractOptions{
         Table table = null;
         try {
             String sql = "SELECT * FROM USER_TABLES WHERE  (TABLE_NAME = ? OR TABLE_NAME = ?) ";
+            sql = ORMUtils.convertSQL(sql);
             ps = connection.prepareStatement(sql);
             ps.setString(1, tableName.toUpperCase(Locale.ROOT));
             ps.setString(2, tableName.toLowerCase(Locale.ROOT));
@@ -365,6 +367,7 @@ public class OracleOptions extends AbstractOptions{
         if(table != null){
             try {
                 String sql = "SELECT * FROM USER_TAB_COMMENTS WHERE  (TABLE_NAME = ? OR TABLE_NAME = ?) ";
+                sql = ORMUtils.convertSQL(sql);
                 ps = connection.prepareStatement(sql);
                 ps.setString(1, tableName.toUpperCase(Locale.ROOT));
                 ps.setString(2, tableName.toLowerCase(Locale.ROOT));
@@ -400,6 +403,7 @@ public class OracleOptions extends AbstractOptions{
         Map<String, String> columnComment = new HashMap<String, String>();
         try {
             String sql = "SELECT * FROM USER_COL_COMMENTS WHERE (TABLE_NAME = ? OR TABLE_NAME = ?) ";
+            sql = ORMUtils.convertSQL(sql);
             ps = connection.prepareStatement(sql);
             ps.setString(1, tableName.toUpperCase(Locale.ROOT));
             ps.setString(2, tableName.toLowerCase(Locale.ROOT));
@@ -425,6 +429,7 @@ public class OracleOptions extends AbstractOptions{
         }
         try {
             String sql = " SELECT * FROM USER_TAB_COLUMNS WHERE (TABLE_NAME = ? OR TABLE_NAME = ?) ";
+            sql = ORMUtils.convertSQL(sql);
             ps = connection.prepareStatement(sql);
             ps.setString(1, tableName.toUpperCase(Locale.ROOT));
             ps.setString(2, tableName.toLowerCase(Locale.ROOT));
@@ -473,7 +478,7 @@ public class OracleOptions extends AbstractOptions{
         List<String> sqls = new ArrayList<String>();
         if(table.dropped()){
             if(tableExisted){
-                sqls.add(String.format("DROP TABLE %s", table.name().toUpperCase(Locale.ROOT)));
+                sqls.add(ORMUtils.convertSQL(String.format("DROP TABLE %s", table.name().toUpperCase(Locale.ROOT))));
             }
         }else{
             String tableName = table.name().toUpperCase(Locale.ROOT);
@@ -490,7 +495,7 @@ public class OracleOptions extends AbstractOptions{
                     String comment = columnComment(rdColumn);
                     if(tableColumn != null){
                         if(rdColumn.dropped()){
-                            sqls.add(String.format("ALTER TABLE %s DROP COLUMN %s", tableName, rdColumn.name().toUpperCase(Locale.ROOT)));
+                            sqls.add(ORMUtils.convertSQL(String.format("ALTER TABLE %s DROP COLUMN %s", tableName, rdColumn.name().toUpperCase(Locale.ROOT))));
                         }else{
 
                             boolean needUpdate = false;
@@ -537,9 +542,9 @@ public class OracleOptions extends AbstractOptions{
                             }
                             if(needUpdate) {
                                 String temp = columnString(info, rdColumn, false);
-                                sqls.add(String.format("ALTER TABLE %s MODIFY %s", tableName, temp));
+                                sqls.add(ORMUtils.convertSQL(String.format("ALTER TABLE %s MODIFY %s", tableName, temp)));
                                 if (!StringUtils.isEmpty(comment) && !comment.equals(tableColumn.getComment())) {
-                                    sqls.add(String.format("COMMENT ON COLUMN %s.%s IS '%s'", tableName, rdColumn.name().toUpperCase(Locale.ROOT), comment));
+                                    sqls.add(ORMUtils.convertSQL(String.format("COMMENT ON COLUMN %s.%s IS '%s'", tableName, rdColumn.name().toUpperCase(Locale.ROOT), comment)));
                                 }
                             }
                         }
@@ -547,13 +552,17 @@ public class OracleOptions extends AbstractOptions{
                         if(!rdColumn.dropped()){
                             // int, bigint(忽略精度), decimal(精度）， varchar， char 判断长度， 其他判断类型，+ 默认值
                             String temp = columnString(info, rdColumn, true);
-                            sqls.add(String.format("ALTER TABLE %s ADD %s", tableName, temp));
-                            if (rdColumn.unique() && !info.getPrimaryKey()) {
+                            sqls.add(ORMUtils.convertSQL(String.format("ALTER TABLE %s ADD %s", tableName, temp)));
+                            if(!info.getPrimaryKey() && rdColumn.unique()) {
                                 String uniqueSQL = getUniqueSQL(table, rdColumn);
-                                sqls.add("ALTER TABLE " + tableName + " ADD " + uniqueSQL);
+                                sqls.add(ORMUtils.convertSQL("ALTER TABLE " + tableName + " ADD " + uniqueSQL));
+                            }
+                            if(!StringUtils.isEmpty(rdColumn.foreignKey())){
+                                String foreignSQL = getForeignSQL(table, rdColumn);
+                                sqls.add(ORMUtils.convertSQL("ALTER TABLE " + tableName + " ADD " + foreignSQL));
                             }
                             if (!StringUtils.isEmpty(comment)) {
-                                sqls.add(String.format("COMMENT ON COLUMN %s.%s IS '%s'", tableName, rdColumn.name().toUpperCase(Locale.ROOT), comment));
+                                sqls.add(ORMUtils.convertSQL(String.format("COMMENT ON COLUMN %s.%s IS '%s'", tableName, rdColumn.name().toUpperCase(Locale.ROOT), comment)));
                             }
                         }
                     }
@@ -572,21 +581,25 @@ public class OracleOptions extends AbstractOptions{
                         comments.add(String.format("COMMENT ON COLUMN %s.%s IS '%s'", tableName, rdColumn.name().toUpperCase(Locale.ROOT), comment));
                     }
                     columnSQL.add(temp.toString());
-                    if(rdColumn.unique() && !info.getPrimaryKey()) {
+                    if(!info.getPrimaryKey() && rdColumn.unique()) {
                         //	CONSTRAINT `SYS_RESOURCE_URL_METHOD` UNIQUE(`URL`, `REQUEST_METHOD`)
                         String uniqueSQL = getUniqueSQL(table, rdColumn);
                         columnSQL.add(uniqueSQL);
                     }
+                    if(!StringUtils.isEmpty(rdColumn.foreignKey())){
+                        String foreignSQL = getForeignSQL(table, rdColumn);
+                        columnSQL.add(foreignSQL);
+                    }
                 }
                 sql.append(ORMUtils.join(columnSQL, ","));
                 sql.append(")");
-                sqls.add(sql.toString());
+                sqls.add(ORMUtils.convertSQL(sql.toString()));
                 String comment = table.comment();
                 if(StringUtils.isEmpty(comment)){
                     comment = table.title();
                 }
                 if(!StringUtils.isEmpty(comment)){
-                    sqls.add(String.format("COMMENT ON TABLE %s IS '%s'", tableName, comment));
+                    sqls.add(ORMUtils.convertSQL(String.format("COMMENT ON TABLE %s IS '%s'", tableName, comment)));
                 }
                 sqls.addAll(comments);
 

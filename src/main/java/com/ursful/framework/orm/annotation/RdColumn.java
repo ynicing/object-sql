@@ -39,4 +39,7 @@ public @interface RdColumn {
 	int precision() default 0;
 	int scale() default 0;
 	String defaultValue() default "";
+	String foreignKey() default "";
+	String foreignTable() default "";
+	String foreignColumn() default "";
 }

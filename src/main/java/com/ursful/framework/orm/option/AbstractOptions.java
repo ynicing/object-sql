@@ -6,6 +6,7 @@ import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
+import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import javax.sql.rowset.serial.SerialClob;
@@ -313,9 +314,21 @@ public abstract class AbstractOptions implements Options{
         return sb.toString();
     }
 
+    protected String getForeignSQL(RdTable table, RdColumn rdColumn) {
+        String foreignKey = rdColumn.foreignKey();
+        String foreignTable= rdColumn.foreignTable();
+        String foreignColumn = rdColumn.foreignColumn();
+        Assert.isTrue(!StringUtils.isEmpty(foreignKey), "Foreign Key Name Should Not Be Empty.");
+        Assert.isTrue(!StringUtils.isEmpty(foreignTable), "Foreign Table Should Not Be Empty.");
+        Assert.isTrue(!StringUtils.isEmpty(foreignColumn), "Foreign Column Should Not Be Empty.");
+//        constraint JOB_INST_EXEC_FK foreign key (JOB_INSTANCE_ID)
+//                references BATCH_JOB_INSTANCE(JOB_INSTANCE_ID)
+        return String.format("CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s(%s)", foreignKey, rdColumn.name(), foreignTable, foreignColumn);
+    }
+
 
     protected String getUniqueSQL(RdTable table, RdColumn rdColumn) {
-        String uniqueName = rdColumn.uniqueName();
+        String uniqueName = null;
         if(StringUtils.isEmpty(uniqueName)){
             String [] tabs = table.name().split("_");
             StringBuffer names = new StringBuffer();
@@ -324,8 +337,18 @@ public abstract class AbstractOptions implements Options{
                     names.append(tab.charAt(0));
                 }
             }
-            names.append("_" + rdColumn.name());
-            uniqueName = names.toString();
+            if(rdColumn.uniqueKeys() != null && rdColumn.uniqueKeys().length > 0){
+                for(String key : rdColumn.uniqueKeys()){
+                    if(key.length() > 0) {
+                        names.append("_" + key.charAt(0));
+                    }
+                }
+            }else{
+                names.append("_" + rdColumn.name().charAt(0));
+            }
+            uniqueName = names.toString().toUpperCase(Locale.ROOT);
+        }else{
+            uniqueName = rdColumn.uniqueName();
         }
         String uniqueKeys = ORMUtils.join(rdColumn.uniqueKeys(), ",");
         if(StringUtils.isEmpty(uniqueKeys)){

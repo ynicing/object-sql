@@ -16,10 +16,13 @@
 package com.ursful.framework.orm.helper;
 
 import com.ursful.framework.orm.support.Pair;
+import com.ursful.framework.orm.utils.ORMUtils;
+import org.springframework.util.Assert;
 import org.springframework.validation.DataBinder;
 
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Locale;
 
 public class SQLHelper {
 
@@ -73,7 +76,8 @@ public class SQLHelper {
 		return sql;
 	}
 	public void setSql(String sql) {
-		this.sql = sql;
+		Assert.notNull(sql, "SQL is null.");
+		this.sql = ORMUtils.convertSQL(sql);
 	}
 	public List<Pair> getParameters() {
 		return parameters;

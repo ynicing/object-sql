@@ -46,6 +46,26 @@ public class ORMUtils {
     //开启debug模式，
     private static boolean debug = false;
     private static boolean isTrim = false;
+    private static boolean lowerCaseSql = false;
+
+    public static void enableLowerCaseSql(boolean lowerCase){
+        lowerCaseSql = lowerCase;
+    }
+
+    public static boolean isLowerCaseSql(){
+        return lowerCaseSql;
+    }
+
+    public static String convertSQL(String sql){
+        if(sql != null){
+            if(lowerCaseSql){
+                return sql.toLowerCase(Locale.ROOT);
+            }else{
+                return sql.toUpperCase(Locale.ROOT);
+            }
+        }
+        return sql;
+    }
 
     public static boolean isTrim(){
         return isTrim;
