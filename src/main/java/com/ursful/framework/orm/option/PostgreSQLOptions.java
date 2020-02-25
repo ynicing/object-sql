@@ -316,7 +316,7 @@ public class PostgreSQLOptions extends MySQLOptions{
         String infoType = info.getField().getType().getName();
         if(String.class.getName().equals(infoType)){
             if(info.getColumnType() == ColumnType.TEXT){
-                type = "BYTEA";
+                type = "TEXT";
             }else if(info.getColumnType() == ColumnType.BLOB){
                 type = "BYTEA";
             }else if(info.getColumnType() == ColumnType.CLOB) {

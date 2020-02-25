@@ -614,7 +614,7 @@ public class OracleOptions extends AbstractOptions{
         String infoType = info.getField().getType().getName();
         if(String.class.getName().equals(infoType)){
             if(info.getColumnType() == ColumnType.TEXT){
-                type = "TEXT";
+                type = "CLOB";
             }else if(info.getColumnType() == ColumnType.BLOB){
                 type = "BLOB";
             }else if(info.getColumnType() == ColumnType.CLOB) {
