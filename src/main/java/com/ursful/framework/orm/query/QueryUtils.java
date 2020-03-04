@@ -475,6 +475,12 @@ public class QueryUtils {
             case CDT_IS_NOT_NULL:
                 sqlPair = new SQLPair(" "+ conditionName + " IS NOT NULL ");
                 break;
+            case CDT_IS_EMPTY:
+                sqlPair = new SQLPair(" "+ conditionName + " = '' ");
+                break;
+            case CDT_IS_NOT_EMPTY:
+                sqlPair = new SQLPair(" "+ conditionName + " != '' ");
+                break;
             default:
                 break;
         }

@@ -33,6 +33,8 @@ public enum ExpressionType {
     CDT_NotIn,
     CDT_IS_NULL,
     CDT_IS_NOT_NULL,
+    CDT_IS_EMPTY,
+    CDT_IS_NOT_EMPTY,
     CDT_EXISTS,
     CDT_NOT_EXISTS;
 
