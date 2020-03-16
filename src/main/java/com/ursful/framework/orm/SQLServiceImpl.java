@@ -1,11 +1,29 @@
+/*
+ * Copyright 2017 @ursful.com
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.ursful.framework.orm;
 
-import com.ursful.framework.orm.annotation.RdColumn;
+import com.ursful.framework.orm.exception.CreateOrUpdateTableException;
+import com.ursful.framework.orm.exception.TableAnnotationNotFoundException;
+import com.ursful.framework.orm.exception.TableNameNotFoundException;
+import com.ursful.framework.orm.handler.IResultSetHandler;
+import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.annotation.RdTable;
+import com.ursful.framework.orm.handler.DefaultResultSetHandler;
 import com.ursful.framework.orm.helper.SQLHelper;
 import com.ursful.framework.orm.helper.SQLHelperCreator;
-import com.ursful.framework.orm.query.QueryUtils;
-import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +50,15 @@ public class SQLServiceImpl implements ISQLService{
 
     protected Class<?> thisClass;
     protected Class<?> serviceClass;
+    protected IResultSetHandler resultSetHandler = new DefaultResultSetHandler();
+
+    public IResultSetHandler getResultSetHandler() {
+        return resultSetHandler;
+    }
+
+    public void setResultSetHandler(IResultSetHandler resultSetHandler) {
+        this.resultSetHandler = resultSetHandler;
+    }
 
     public DataSourceManager getDataSourceManager() {
         return dataSourceManager;
@@ -160,7 +187,7 @@ public class SQLServiceImpl implements ISQLService{
             }
             rs = ps.executeQuery();
             if (rs.next()) {
-                temp = SQLHelperCreator.newClass(clazz, rs);
+                temp = SQLHelperCreator.newClass(clazz, rs, resultSetHandler);
             }
         } catch (SQLException e) {
             logger.error("SQL : " + sql, e);
@@ -193,7 +220,7 @@ public class SQLServiceImpl implements ISQLService{
             }
             rs = ps.executeQuery();
             while (rs.next()) {
-                T tmp = SQLHelperCreator.newClass(clazz, rs);
+                T tmp = SQLHelperCreator.newClass(clazz, rs, resultSetHandler);
                 temp.add(tmp);
             }
         } catch (SQLException e) {
@@ -224,15 +251,9 @@ public class SQLServiceImpl implements ISQLService{
                 tempMap = new HashMap<String, Object>();
                 for(int i = 1; i <= metaMap.getColumnCount(); i++){
                     Object obj = rs.getObject(i);
-                    if(obj != null) {
-                        if (obj instanceof Timestamp) {
-                            obj = new java.util.Date(((Timestamp) obj).getTime());
-                        }
-                        if((obj instanceof  Long) && metaMap.getPrecision(i) == 15) {
-                            obj = new java.util.Date((Long)obj);
-                        }
-                        String key = QueryUtils.displayNameOrAsName(metaMap.getColumnLabel(i), metaMap.getColumnName(i));
-                        tempMap.put(key, obj);
+                    KV kv = resultSetHandler.parse(metaMap, i, obj);
+                    if(kv != null) {
+                        tempMap.put(kv.getKey(), kv.getValue());
                     }
                 }
             }
@@ -260,15 +281,9 @@ public class SQLServiceImpl implements ISQLService{
                 Map<String, Object> tempMap = new HashMap<String, Object>();
                 for(int i = 1; i <= metaMap.getColumnCount(); i++){
                     Object obj = rs.getObject(i);
-                    if(obj != null) {
-                        if (obj instanceof Timestamp) {
-                            obj = new java.util.Date(((Timestamp) obj).getTime());
-                        }
-                        if((obj instanceof  Long) && metaMap.getPrecision(i) == 15) {
-                            obj = new java.util.Date((Long)obj);
-                        }
-                        String key = QueryUtils.displayNameOrAsName(metaMap.getColumnLabel(i), metaMap.getColumnName(i));
-                        tempMap.put(key, obj);
+                    KV kv = resultSetHandler.parse(metaMap, i, obj);
+                    if(kv != null) {
+                        tempMap.put(kv.getKey(), kv.getValue());
                     }
                 }
                 temp.add(tempMap);
@@ -527,9 +542,11 @@ public class SQLServiceImpl implements ISQLService{
     //connection.getCatalog() connection.getSchema() com.microsoft.sqlserver.jdbc.SQLServerConnection
 
     @Override
-    public void createOrUpdate(Class<?> table) {
+    public void createOrUpdate(Class<?> table) throws TableAnnotationNotFoundException, TableNameNotFoundException{
         RdTable rdTable = ORMUtils.getRdTable(table);
-        Assert.notNull(rdTable, "Error Entity, it must contain RdTable");
+        if(rdTable == null){
+            throw new TableAnnotationNotFoundException();
+        }
         Options options = getOptions();
         if(options == null){
             logger.warn("Create Or update Not Support.");
@@ -538,11 +555,11 @@ public class SQLServiceImpl implements ISQLService{
         Connection temp = getConnection();
         try{
             Connection connection = getRealConnection(temp);
-            Table queryTable  = options.table(connection, rdTable.name());
+            Table queryTable  = options.table(connection, rdTable);
             List<ColumnInfo> columnInfoList = ORMUtils.getColumnInfo(table);
             List<TableColumn> columns = null;
             if(queryTable != null  &&  !rdTable.dropped()){//judge Columns
-                columns = options.columns(connection, rdTable.name());
+                columns = options.columns(connection, rdTable);
             }
             List<String> sqls = options.manageTable(rdTable, columnInfoList, queryTable != null, columns);
             if(sqls != null && !sqls.isEmpty()){
@@ -559,8 +576,6 @@ public class SQLServiceImpl implements ISQLService{
                     }
                 }
             }
-        }catch (Exception e){
-            e.printStackTrace();
         }finally{
             closeConnection(null, null, temp);
         }
@@ -584,11 +599,19 @@ public class SQLServiceImpl implements ISQLService{
         }
         return false;
     }
-
     @Override
-    public Table table(Class<?> clazz) {
+    public String getTableName(Class<?> clazz) throws TableAnnotationNotFoundException, TableNameNotFoundException{
         RdTable rdTable = ORMUtils.getRdTable(clazz);
-        Assert.notNull(rdTable, "Error Entity, it must contain RdTable");
+        Options options = getOptions();
+        if(options == null){
+            logger.warn("Query table Not Support.");
+            return null;
+        }
+        return options.getTableName(rdTable);
+    }
+    @Override
+    public Table table(Class<?> clazz) throws TableAnnotationNotFoundException{
+        RdTable rdTable = ORMUtils.getRdTable(clazz);
         Options options = getOptions();
         if(options == null){
             logger.warn("Query table Not Support.");
@@ -597,7 +620,7 @@ public class SQLServiceImpl implements ISQLService{
         Connection temp = getConnection();
         try{
             Connection connection = getRealConnection(temp);
-            return options.table(connection, rdTable.name());
+            return options.table(connection, rdTable);
         }catch (Exception e){
             e.printStackTrace();
         }finally{
@@ -607,9 +630,9 @@ public class SQLServiceImpl implements ISQLService{
     }
 
     @Override
-    public List<TableColumn> columns(Class<?> clazz) {
+    public List<TableColumn> columns(Class<?> clazz) throws TableAnnotationNotFoundException, TableNameNotFoundException{
         RdTable rdTable = ORMUtils.getRdTable(clazz);
-        Assert.notNull(rdTable, "Error Entity, it must contain RdTable");
+//        Assert.notNull(rdTable, "Error Entity, it must contain RdTable");
         Options options = getOptions();
         if(options == null){
             logger.warn("Create Or update Not Support.");
@@ -618,10 +641,10 @@ public class SQLServiceImpl implements ISQLService{
         Connection temp = getConnection();
         try{
             Connection connection = getRealConnection(temp);
-            Table queryTable  = options.table(connection, rdTable.name());
+            Table queryTable  = options.table(connection, rdTable);
             List<TableColumn> columns = null;
             if(queryTable != null  &&  !rdTable.dropped()){//judge Columns
-                columns = options.columns(connection, rdTable.name());
+                columns = options.columns(connection, rdTable);
             }
             return columns;
         }catch (Exception e){

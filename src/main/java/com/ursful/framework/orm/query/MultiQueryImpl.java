@@ -16,10 +16,10 @@
 package com.ursful.framework.orm.query;
 
 import com.ursful.framework.orm.IMultiQuery;
-import com.ursful.framework.orm.IQuery;
-import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
+import com.ursful.framework.orm.IQuery;
+import com.ursful.framework.orm.annotation.RdTable;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.util.Assert;
 
@@ -269,10 +269,22 @@ public class MultiQueryImpl implements IMultiQuery {
         return this;
     }
 
+    public IMultiQuery whereIsEmpty(Column left) {
+        conditions.add(new Condition().and(new Expression(left, ExpressionType.CDT_IS_EMPTY)));
+        return this;
+    }
+
+    public IMultiQuery whereIsNotEmpty(Column left) {
+        conditions.add(new Condition().and(new Expression(left, ExpressionType.CDT_IS_NOT_EMPTY)));
+        return this;
+    }
 
     public IMultiQuery where(Column left, Object value, ExpressionType type) {
         if(ORMUtils.isEmpty(value)){
-            if(type == ExpressionType.CDT_IS_NULL || type == ExpressionType.CDT_IS_NOT_NULL){
+            if(type == ExpressionType.CDT_IS_NULL
+                    || type == ExpressionType.CDT_IS_NOT_NULL
+                    || type == ExpressionType.CDT_IS_EMPTY
+                    || type == ExpressionType.CDT_IS_NOT_EMPTY){
                 conditions.add(new Condition().and(new Expression(left, type)));
             }
             return this;
@@ -283,11 +295,6 @@ public class MultiQueryImpl implements IMultiQuery {
 
     public IMultiQuery where(Column left, Column value) {
         conditions.add(new Condition().and(new Expression(left, value)));
-        return this;
-    }
-
-    public IMultiQuery where(Column left, Column value, ExpressionType type) {
-        conditions.add(new Condition().and(new Expression(left, value, type)));
         return this;
     }
 

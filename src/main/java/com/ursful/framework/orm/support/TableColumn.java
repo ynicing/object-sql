@@ -1,13 +1,20 @@
+/*
+ * Copyright 2017 @ursful.com
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.ursful.framework.orm.support;
 
-/**
- * <p>项目名称: ursful </p>
- * <p>描述: Table Column </p>
- * <p>创建时间:2019/10/16 16:42 </p>
- * <p>公司信息:厦门海迈科技股份有限公司&gt;研发中心&gt;框架组</p>
- *
- * @author huangyonghua, jlis@qq.com
- */
 public class TableColumn {
 
     private String table;
@@ -19,6 +26,8 @@ public class TableColumn {
     private Integer precision;
     private Integer scale;
     private String comment;
+
+//    private Integer sensitive = -1;//mysql
 
     public String getDefaultValue() {
         return defaultValue;
@@ -33,6 +42,7 @@ public class TableColumn {
     public TableColumn(){}
 
     public TableColumn(String table, String column){
+        this.table = table;
         this.column = column;
     }
 
@@ -111,7 +121,27 @@ public class TableColumn {
     @Override
     public String toString() {
         return "TableColumn{" +
+                "table='" + table + '\'' +
                 "column='" + column + '\'' +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        TableColumn column1 = (TableColumn) o;
+
+        if (!table.equals(column1.table)) return false;
+        return column.equals(column1.column);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = table.hashCode();
+        result = 31 * result + column.hashCode();
+        return result;
     }
 }

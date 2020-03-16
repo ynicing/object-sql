@@ -1,3 +1,18 @@
+/*
+ * Copyright 2017 @ursful.com
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.ursful.framework.orm.support;
 
 import javax.sql.DataSource;
@@ -8,14 +23,6 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.logging.Logger;
 
-/**
- * <p>项目名称: ursful </p>
- * <p>描述: Simple dataSource </p>
- * <p>创建时间:2019/10/23 18:43 </p>
- * <p>公司信息:厦门海迈科技股份有限公司&gt;研发中心&gt;框架组</p>
- *
- * @author huangyonghua, jlis@qq.com
- */
 public class SimpleDataSource implements DataSource {
 
     private String username;

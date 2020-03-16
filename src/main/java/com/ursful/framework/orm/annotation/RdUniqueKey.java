@@ -13,8 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ursful.framework.orm.support;
 
-public enum ORMType{
-        INSERT, UPDATE, DELETE;
-    }
+package com.ursful.framework.orm.annotation;
+
+public @interface RdUniqueKey {
+    String name() default "";
+    String [] columns() default {};
+}

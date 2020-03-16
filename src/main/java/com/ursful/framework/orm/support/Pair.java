@@ -15,7 +15,11 @@
  */
 package com.ursful.framework.orm.support;
 
+import com.ursful.framework.orm.annotation.RdColumn;
+
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
 //name,type,value,fieldName
 //
@@ -32,6 +36,16 @@ public class Pair implements Serializable{
     private String column;//column_names
 
     private ColumnType columnType;
+
+    private Map<String, Object> metadata;
+
+    public Map<String, Object> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, Object> metadata) {
+        this.metadata = metadata;
+    }
 
     public ColumnType getColumnType() {
         return columnType;
@@ -55,6 +69,18 @@ public class Pair implements Serializable{
         this.type = info.getType();
         this.value = value;
         this.column = info.getColumnName();
+
+        if(info.getField() != null) {
+            RdColumn column = info.getField().getAnnotation(RdColumn.class);
+            if(column != null) {
+                Map<String, Object> data = new HashMap<String, Object>();
+                data.put("runningMode", column.runningMode());
+                data.put("scale", column.scale());
+                data.put("precision", column.precision());
+                data.put("coding", column.coding());
+                this.metadata = data;
+            }
+        }
     }
 
     public Pair(String name, Object value){

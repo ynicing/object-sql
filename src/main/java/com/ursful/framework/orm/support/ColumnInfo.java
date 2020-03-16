@@ -85,4 +85,23 @@ public class ColumnInfo implements Serializable {
 	public void setPrimaryKey(Boolean primaryKey) {
 		this.primaryKey = primaryKey;
 	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+
+		ColumnInfo info = (ColumnInfo) o;
+
+		if (!name.equals(info.name)) return false;
+		return columnName.equals(info.columnName);
+
+	}
+
+	@Override
+	public int hashCode() {
+		int result = name.hashCode();
+		result = 31 * result + columnName.hashCode();
+		return result;
+	}
 }

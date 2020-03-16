@@ -15,13 +15,14 @@
  */
 package com.ursful.framework.orm.utils;
 
+import com.ursful.framework.orm.annotation.RdColumn;
 import com.ursful.framework.orm.annotation.RdId;
+import com.ursful.framework.orm.exception.TableAnnotationNotFoundException;
+import com.ursful.framework.orm.support.DebugHolder;
 import com.ursful.framework.orm.annotation.RdObject;
 import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.support.ColumnInfo;
 import com.ursful.framework.orm.support.ColumnType;
-import com.ursful.framework.orm.support.DebugHolder;
-import com.ursful.framework.orm.annotation.RdColumn;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.util.Assert;
 import org.springframework.util.ConcurrentReferenceHashMap;
@@ -34,13 +35,6 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * 类名：ORMUtils
- * 创建者：huangyonghua
- * 日期：2017-11-11 15:14
- * 版权：ursful.com Copyright(c) 2017
- * 说明：[类说明必填内容，请修改]
- */
 public class ORMUtils {
 
     //开启debug模式，
@@ -116,7 +110,7 @@ public class ORMUtils {
         }
         RdTable table = AnnotationUtils.findAnnotation(clazz, RdTable.class);
         if(table == null){
-            throw new RuntimeException("Table not found Class(" + clazz.getName() + ")");
+            return null;
         }
         String tableName = table.name();
         rdTableCache.put(clazz, table);

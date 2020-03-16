@@ -15,14 +15,6 @@
  */
 package com.ursful.framework.orm.support;
 
-/**
- * 枚举：LargeString
- * 创建者：huangyonghua
- * 日期：2017-10-20 18:24
- * 版权：ursful.com Copyright(c) 2017
- * 说明：[类说明必填内容，请修改]
- */
-
 public enum ColumnType {
     NULL,//空，默认选项
     CHAR,//短文本

@@ -15,11 +15,10 @@
  */
 package com.ursful.framework.orm;
 
-
+import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.listener.IChangeListener;
 import com.ursful.framework.orm.listener.IChangedListener;
 import com.ursful.framework.orm.listener.IDefaultListener;
-import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
 import com.ursful.framework.orm.helper.SQLHelperCreator;
 import com.ursful.framework.orm.listener.IORMListener;
@@ -334,7 +333,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
     }
 
 
-    public boolean updates(T t, Express ... expresses){
+    public boolean updates(T t, Express... expresses){
         return updates(t, expresses, false, true, null);
     }
     public boolean updatesWithoutListener(T t, Express ... expresses){
@@ -671,7 +670,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             ps = conn.prepareStatement(helper.getSql());
             rs = ps.executeQuery();
             while (rs.next()) {
-                T tmp = SQLHelperCreator.newClass(thisClass, rs);
+                T tmp = SQLHelperCreator.newClass(thisClass, rs, getResultSetHandler());
                 temp.add(tmp);
             }
         } catch (SQLException e) {
@@ -702,7 +701,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             ps = conn.prepareStatement(helper.getSql());
             rs = ps.executeQuery();
             while (rs.next()) {
-                T tmp = SQLHelperCreator.newClass(thisClass, rs);
+                T tmp = SQLHelperCreator.newClass(thisClass, rs,getResultSetHandler());
                 temp.add(tmp);
             }
         } catch (SQLException e) {
@@ -734,7 +733,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
             rs = ps.executeQuery();
             while (rs.next()) {
-                T tmp = SQLHelperCreator.newClass(thisClass, rs);
+                T tmp = SQLHelperCreator.newClass(thisClass, rs, getResultSetHandler());
                 temp.add(tmp);
             }
         } catch (SQLException e) {
@@ -766,7 +765,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
             rs = ps.executeQuery();
             while (rs.next()) {
-                T tmp = SQLHelperCreator.newClass(thisClass, rs);
+                T tmp = SQLHelperCreator.newClass(thisClass, rs, getResultSetHandler());
                 temp.add(tmp);
             }
         } catch (SQLException e) {
@@ -823,7 +822,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
             rs = ps.executeQuery();
             while (rs.next()) {
-                T tmp = SQLHelperCreator.newClass(thisClass, rs);
+                T tmp = SQLHelperCreator.newClass(thisClass, rs, getResultSetHandler());
                 temp.add(tmp);
             }
         } catch (SQLException e) {
@@ -949,7 +948,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             rs = ps.executeQuery();
 
             if(rs.next()){
-                s = SQLHelperCreator.newClass(qinfo.getClazz(), rs);
+                s = SQLHelperCreator.newClass(qinfo.getClazz(), rs, getResultSetHandler());
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -1001,7 +1000,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
             rs = ps.executeQuery();
             if (rs.next()) {
-                temp = SQLHelperCreator.newClass(thisClass, rs);
+                temp = SQLHelperCreator.newClass(thisClass, rs, getResultSetHandler());
             }
         } catch (SQLException e) {
             logger.error("SQL : " + helper, e);
@@ -1050,7 +1049,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             rs = ps.executeQuery();
 
             while(rs.next()){
-                S t = SQLHelperCreator.newClass(qinfo.getClazz(), rs);
+                S t = SQLHelperCreator.newClass(qinfo.getClazz(), rs, getResultSetHandler());
                 temp.add(t);
             }
         } catch (SQLException e) {
@@ -1098,7 +1097,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             rs = ps.executeQuery();
 
             while(rs.next()){
-                S t = SQLHelperCreator.newClass(qinfo.getClazz(), rs);
+                S t = SQLHelperCreator.newClass(qinfo.getClazz(), rs, getResultSetHandler());
                 temp.add(t);
             }
         } catch (SQLException e) {

@@ -15,11 +15,10 @@
  */
 package com.ursful.framework.orm.query;
 
+import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.IBaseQuery;
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.annotation.RdTable;
-import com.ursful.framework.orm.support.*;
-import com.ursful.framework.orm.utils.ORMUtils;
 import org.springframework.core.annotation.AnnotationUtils;
 
 import java.util.*;
@@ -52,8 +51,22 @@ public class BaseQueryImpl implements IBaseQuery {
         return this;
     }
 
+    public IBaseQuery whereIsEmpty(String name){
+        conditions.add(new Condition().and(new Expression(new Column(name), ExpressionType.CDT_IS_EMPTY)));
+        return this;
+    }
+
+    public IBaseQuery whereIsNotEmpty(String name){
+        conditions.add(new Condition().and(new Expression(new Column(name), ExpressionType.CDT_IS_NOT_EMPTY)));
+        return this;
+    }
+
     public IBaseQuery where(String name, ExpressionType type){
-        if(ExpressionType.CDT_IS_NULL == type || ExpressionType.CDT_IS_NOT_NULL == type) {
+        if(ExpressionType.CDT_IS_NULL == type
+                || ExpressionType.CDT_IS_NOT_NULL == type
+                || ExpressionType.CDT_IS_EMPTY == type
+                || ExpressionType.CDT_IS_NOT_EMPTY == type
+                ) {
             conditions.add(new Condition().and(new Expression(new Column(name), type)));
         }
         return this;
@@ -347,7 +360,7 @@ public class BaseQueryImpl implements IBaseQuery {
         this.pageable = pageable;
     }
 
-    private  Options options;
+    private Options options;
 
     @Override
     public void setOptions(Options options) {

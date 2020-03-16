@@ -15,20 +15,16 @@
  */
 package com.ursful.framework.orm.helper;
 
+import com.ursful.framework.orm.handler.IResultSetHandler;
 import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.validation.DataBinder;
 
-import java.io.*;
 import java.lang.reflect.Field;
-import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
-import java.util.Date;
-
 
 /**
  * 数据库表工具类
@@ -138,7 +134,7 @@ public class SQLHelperCreator {
             if(express == null){
                 continue;
             }
-            SQLPair pair = QueryUtils.parseExpression(options, clazz, express.getExpression());
+            SQLPair pair = options.parseExpression(clazz, express.getExpression());
             terms.add(pair.getSql());
             pairs.addAll(pair.getPairs());
             hasExpress = true;
@@ -158,7 +154,7 @@ public class SQLHelperCreator {
         String conditions = null;
         if(terms != null) {
             Condition condition = terms.getCondition();
-            conditions = QueryUtils.getConditions(options, clazz, ORMUtils.newList(condition), pairs);
+            conditions = options.getConditions(clazz, ORMUtils.newList(condition), pairs);
         }
         String tableName = ORMUtils.getTableName(clazz);
         if(StringUtils.isEmpty(conditions)){
@@ -220,7 +216,7 @@ public class SQLHelperCreator {
         String conditions = null;
         if(terms != null) {
             Condition condition = terms.getCondition();
-            conditions = QueryUtils.getConditions(option, clazz, ORMUtils.newList(condition), parameters);
+            conditions = option.getConditions(clazz, ORMUtils.newList(condition), parameters);
         }
         if(StringUtils.isEmpty(conditions)) {
             throw new RuntimeException("Update table terms is empty, Class[" + clazz.getName() + "], value[" + obj + "]");
@@ -301,7 +297,7 @@ public class SQLHelperCreator {
                     if(express == null){
                         continue;
                     }
-                    SQLPair pair = QueryUtils.parseExpression(option, clazz, express.getExpression());
+                    SQLPair pair = option.parseExpression(clazz, express.getExpression());
                     terms.add(pair.getSql());
                     parameters.addAll(pair.getPairs());
                 }
@@ -333,7 +329,7 @@ public class SQLHelperCreator {
                 if(express == null){
                     continue;
                 }
-                SQLPair pair = QueryUtils.parseExpression(options, clazz, express.getExpression());
+                SQLPair pair = options.parseExpression(clazz, express.getExpression());
                 terms.add(pair.getSql());
                 parameters.addAll(pair.getPairs());
             }
@@ -349,7 +345,7 @@ public class SQLHelperCreator {
                 if(express == null){
                     continue;
                 }
-                SQLPair pair = QueryUtils.parseExpression(options, clazz, express.getExpression());
+                SQLPair pair = options.parseExpression(clazz, express.getExpression());
                 terms.add(pair.getSql());
                 parameters.addAll(pair.getPairs());
             }
@@ -543,7 +539,7 @@ public class SQLHelperCreator {
         String tableName = ORMUtils.getTableName(clazz);
         StringBuffer sql = new StringBuffer("SELECT * FROM " + tableName);
         List<Pair> values = new ArrayList<Pair>();
-        String conditions = QueryUtils.getConditions(options, clazz, expresses, values);
+        String conditions = options.getConditions(clazz, expresses, values);
         if (!StringUtils.isEmpty(conditions)) {
             sql.append(" WHERE " + conditions);
         }
@@ -559,7 +555,7 @@ public class SQLHelperCreator {
         String tableName = ORMUtils.getTableName(clazz);
         StringBuffer sql = new StringBuffer("SELECT COUNT(*) FROM " + tableName);
         List<Pair> values = new ArrayList<Pair>();
-        String conditions = QueryUtils.getConditions(options, clazz, expresses, values);
+        String conditions = options.getConditions(clazz, expresses, values);
         if (!StringUtils.isEmpty(conditions)) {
             sql.append(" WHERE " + conditions);
         }
@@ -573,7 +569,7 @@ public class SQLHelperCreator {
         String tableName = ORMUtils.getTableName(clazz);
         StringBuffer sql = new StringBuffer("SELECT COUNT(*) FROM " + tableName);
         List<Pair> values = new ArrayList<Pair>();
-        String conditions = QueryUtils.getConditions(options, clazz, ORMUtils.newList(terms.getCondition()), values);
+        String conditions = options.getConditions(clazz, ORMUtils.newList(terms.getCondition()), values);
         if (!StringUtils.isEmpty(conditions)) {
             sql.append(" WHERE " + conditions);
         }
@@ -618,9 +614,10 @@ public class SQLHelperCreator {
         return helper;
     }
 
-    public static <T> T newClass(Class clazz, ResultSet rs)
-            throws IllegalAccessException, SQLException {
 
+    public static <T> T newClass(Class clazz, ResultSet rs, IResultSetHandler resultSetHandler)
+            throws IllegalAccessException, SQLException {
+        ResultSetMetaData metaMap = rs.getMetaData();
         T t = null;
         DataType type = DataType.getDataType(clazz.getSimpleName());
         //String, Map, Bean
@@ -631,68 +628,39 @@ public class SQLHelperCreator {
                     t = (T) object.toString();
                 }
                 break;
+            case INTEGER:
+                t = (T)new Integer(rs.getInt(1));
+                break;
+            case LONG:
+                t = (T)new Long(rs.getLong(1));
+                break;
+            case FLOAT:
+                t = (T)new Float(rs.getFloat(1));
+                break;
+            case DOUBLE:
+                t = (T)new Double(rs.getDouble(1));
+                break;
+            case SHORT:
+                t = (T)new Short(rs.getShort(1));
+                break;
+            case BYTE:
+                t = (T)new Byte(rs.getByte(1));
+                break;
+            case BOOLEAN:
+                t = (T)new Boolean(rs.getBoolean(1));
+                break;
             case MAP :
-                ResultSetMetaData metaMap = rs.getMetaData();
                 Map<String, Object> tempMap = new HashMap<String, Object>();
                 for(int i = 1; i <= metaMap.getColumnCount(); i++){
                     Object obj = rs.getObject(i);
-                    if(obj != null) {
-                        if (obj instanceof Timestamp) {
-                            obj = new Date(((Timestamp) obj).getTime());
-                        }else if(obj instanceof java.sql.Date){
-                            obj = new Date(((java.sql.Date)obj).getTime());
-                        }else if(metaMap.getPrecision(i) == 15) {
-                            if((obj instanceof  Long) ){
-                                obj = new Date((Long)obj);
-                            }else if(obj instanceof BigDecimal){
-                                obj = new Date(((BigDecimal)obj).longValue());
-                            }
-                        }if(obj instanceof Clob){
-                            StringBuffer sb = new StringBuffer();
-                            Clob clob = (Clob) obj;
-                            if(clob != null){
-                                Reader reader = clob.getCharacterStream();
-                                BufferedReader br = new BufferedReader(reader);
-                                String s = null;
-                                try {
-                                    while((s = br.readLine()) != null){
-                                        sb.append(s);
-                                    }
-                                } catch (Exception e) {
-                                }
-                            }
-                            obj = sb.toString();
-                        }else if(obj instanceof Blob){
-                            Blob blob = (Blob) obj;
-                            InputStream stream = blob.getBinaryStream();
-                            try {
-                                byte[] temp = new byte[(int)blob.length()];
-                                stream.read(temp);
-                                stream.close();
-                                obj = new String(temp, "utf-8");
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-
-                        }else if(obj instanceof byte[]){
-                            try {
-                                obj = new String((byte[])obj, "utf-8");
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-
-                        }else if(obj instanceof BigDecimal){
-                            obj = ((BigDecimal) obj).toPlainString();
-                        }else if(obj instanceof Double || obj instanceof Long || obj instanceof Float){
-                            obj = new BigDecimal(obj.toString()).toPlainString();
-                        }
+                    KV kv = resultSetHandler.parse(metaMap, i, obj);
+                    if(kv != null) {
+                        tempMap.put(kv.getKey(), kv.getValue());
                     }
-                    String key = QueryUtils.displayNameOrAsName(metaMap.getColumnLabel(i), metaMap.getColumnName(i));
-                    tempMap.put(key, obj);
                 }
                 t = (T)tempMap;
                 break;
-            case UNKNOWN:
+            case UNKNOWN:// Object.
                 try {
                     t = (T)clazz.newInstance();
                 }catch (Exception e){
@@ -719,11 +687,14 @@ public class SQLHelperCreator {
                     if(obj == null){
                         obj = temp.get(info.getColumnName().toUpperCase(Locale.ROOT));
                     }
+                    if(obj == null){
+                        obj = temp.get(info.getColumnName().toLowerCase(Locale.ROOT));
+                    }
                     if(obj == null) {
                         obj = temp.get(info.getName());
                     }
                     if(obj != null){
-                        setFieldValue(t, info, obj);
+                        resultSetHandler.handle(t, info, obj);
                     }
                 }
                 List<ColumnInfo> fields = ORMUtils.getExtendFields(clazz);
@@ -736,121 +707,18 @@ public class SQLHelperCreator {
                         obj = temp.get(info.getName().toLowerCase(Locale.ROOT));
                     }
                     if(obj != null){
-                        setFieldValue(t, info, obj);
+                        resultSetHandler.handle(t, info, obj);
                     }
                 }
                 break;
-            case INTEGER:
-                t = (T)new Integer(rs.getInt(1));
+            default:
+                break;
         }
 
         return t;
 
     }
 
-
-    public static void setFieldValue(Object object, ColumnInfo info, Object value) throws IllegalAccessException, SQLException {
-        Object obj = null;
-        DataType type = DataType.getDataType(info.getType());
-        if(value != null){
-            switch (type) {
-                case BINARY:
-                    if(value instanceof byte[]){
-                        obj = value;
-                    }else if(value instanceof Blob){
-                        Blob blob = (Blob) value;
-                        InputStream stream = blob.getBinaryStream();
-                        byte[] temp = null;
-                        try {
-                            temp = new byte[(int)blob.length()];
-                            stream.read(temp);
-                            stream.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                        obj = temp;
-                    }else{
-                        obj = value;
-                    }
-                    break;
-                case STRING:
-                    if(value instanceof Clob){
-                        StringBuffer sb = new StringBuffer();
-                        Clob clob = (Clob) value;
-                        if(clob != null){
-                            Reader reader = clob.getCharacterStream();
-                            BufferedReader br = new BufferedReader(reader);
-                            String s = null;
-                            try {
-                                while((s = br.readLine()) != null){
-                                    sb.append(s);
-                                }
-                            } catch (Exception e) {
-                            }
-                        }
-                        obj = sb.toString();
-                    }else if(value instanceof Blob){
-                        Blob blob = (Blob) value;
-                        InputStream stream = blob.getBinaryStream();
-                        try {
-                            byte[] temp = new byte[(int)blob.length()];
-                            stream.read(temp);
-                            stream.close();
-                            obj = new String(temp, "utf-8");
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-
-                    }else if(value instanceof byte[]){
-                        try {
-                            obj = new String((byte[])value, "utf-8");
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-
-                    }else{
-                        obj = value;
-                    }
-                    break;
-                case DATE:
-                    if(value instanceof Long) {
-                        Long ts = (Long) value;
-                        if (ts != null && ts.longValue() > 0) {
-                            obj = new Date(ts);
-                        }
-                    }else if(value instanceof java.sql.Date){
-                        java.sql.Date tmp = (java.sql.Date) value;
-                        obj = new Date(tmp.getTime());
-                    }else if(value instanceof java.sql.Timestamp){
-                        Timestamp ts =  (Timestamp)value;
-                        if(ts != null) {
-                            obj = new Date(ts.getTime());
-                        }
-                    }else if(value instanceof BigDecimal){
-                        BigDecimal ts =  (BigDecimal)value;
-                        if(ts != null) {
-                            obj = new Date(ts.longValue());
-                        }
-                    }else{
-                        //  throw new RuntimeException("not support");
-                    }
-                    break;
-                default:
-                    if(value instanceof BigDecimal){
-                        value = ((BigDecimal) value).toPlainString();
-                    }else if(value instanceof Double || value instanceof Long || value instanceof Float){
-                        value = new BigDecimal(value.toString()).toPlainString();
-                    }
-                    DataBinder binder = new DataBinder(info.getField(), info.getName());
-                    obj = binder.convertIfNecessary(value.toString(), info.getField().getType());
-            }
-        }
-        if(obj != null){
-            info.getField().setAccessible(true);
-            info.getField().set(object, obj);
-        }
-
-    }
 
     public static void setParameter(Options options, PreparedStatement ps, List<Pair> objects, Connection connection) throws SQLException{
         if(options == null){
@@ -860,10 +728,7 @@ public class SQLHelperCreator {
         //ps.setObject(); 是否可以统一使用
         for(int i = 0; i < objects.size(); i++){
             Pair pair = objects.get(i);
-            Object obj = pair.getValue();
-            ColumnType columnType = pair.getColumnType();
-            DataType type =  DataType.getDataType(pair.getType());
-            options.setParameter(ps, connection, databaseType, i, obj, columnType, type);
+            options.setParameter(ps, connection, databaseType, i, pair);
         }
     }
 

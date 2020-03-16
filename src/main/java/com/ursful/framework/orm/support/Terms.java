@@ -19,13 +19,6 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 类名：Condition
- * 创建者：huangyonghua
- * 日期：2017-10-19 18:11
- * 版权：ursful.com Copyright(c) 2017
- * 说明：[类说明必填内容，请修改]
- */
 public class Terms  implements Serializable {
 
     private List<ConditionObject> conditions = new ArrayList<ConditionObject>();

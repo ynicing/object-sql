@@ -16,11 +16,11 @@
 package com.ursful.framework.orm;
 
 
-import com.ursful.framework.orm.listener.IChangeListener;
 import com.ursful.framework.orm.listener.IDefaultListener;
 import com.ursful.framework.orm.listener.IORMListener;
 import com.ursful.framework.orm.listener.IServiceChangedListener;
 import com.ursful.framework.orm.support.*;
+import com.ursful.framework.orm.listener.IChangeListener;
 import com.ursful.framework.orm.support.Terms;
 
 import java.util.List;
@@ -87,7 +87,7 @@ public interface IBaseService<T> extends IServiceChangedListener<T>, ISQLService
     boolean updateNull(T t, String ...forNullColumns);
     boolean updateNullWithoutListener(T t, String ...forNullColumns);
 
-    boolean updates(T t, Express ... expresses);
+    boolean updates(T t, Express... expresses);
     boolean updatesWithoutListener(T t, Express ... expresses);
 
     boolean updatesNull(T t, Express ... expresses);

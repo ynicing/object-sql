@@ -1,17 +1,34 @@
+/*
+ * Copyright 2017 @ursful.com
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.ursful.framework.orm.option;
 
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.annotation.RdColumn;
+import com.ursful.framework.orm.annotation.RdForeignKey;
 import com.ursful.framework.orm.annotation.RdTable;
+import com.ursful.framework.orm.annotation.RdUniqueKey;
+import com.ursful.framework.orm.exception.TableAnnotationNotFoundException;
+import com.ursful.framework.orm.exception.TableNameNotFoundException;
 import com.ursful.framework.orm.helper.SQLHelper;
-import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.sql.*;
-import java.sql.Date;
 import java.util.*;
 
 public class SQLServerOptions extends AbstractOptions{
@@ -21,7 +38,10 @@ public class SQLServerOptions extends AbstractOptions{
             return "server";
     }
 
-    public boolean preSetParameter(PreparedStatement ps, Connection connection, String databaseType, int i, Object obj, ColumnType columnType, DataType type) throws SQLException {
+    public boolean preSetParameter(PreparedStatement ps, Connection connection, String databaseType, int i, Pair pair) throws SQLException {
+        Object obj = pair.getValue();
+        ColumnType columnType = pair.getColumnType();
+        DataType type =  DataType.getDataType(pair.getType());
         if((type == DataType.DATE) && (columnType != ColumnType.LONG) && (columnType != ColumnType.DATETIME) && (obj != null)){
             ps.setTimestamp(i + 1, null);
             return true;
@@ -90,7 +110,7 @@ public class SQLServerOptions extends AbstractOptions{
 
     @Override
     public String nanoTimeSQL() {
-        return ORMUtils.convertSQL("SELECT GETDATE()");
+        return "SELECT GETDATE()";
     }
 
     @Override
@@ -146,7 +166,7 @@ public class SQLServerOptions extends AbstractOptions{
         if(start != null && size != null){
             String byOrders = null;
             if(multiOrder != null) {
-                String orders = QueryUtils.getOrders(this, multiOrder.getOrders());
+                String orders = getOrders(multiOrder.getOrders());
                 if (!StringUtils.isEmpty(orders)) {
                     byOrders = " ORDER BY " + orders;
                 }
@@ -161,7 +181,7 @@ public class SQLServerOptions extends AbstractOptions{
         List<Pair> values = new ArrayList<Pair>();
         if(terms != null) {
             Condition condition = terms.getCondition();
-            String conditions = QueryUtils.getConditions(this, clazz, ORMUtils.newList(condition), values);
+            String conditions = getConditions(clazz, ORMUtils.newList(condition), values);
             if (!StringUtils.isEmpty(conditions)) {
                 sql.append(" WHERE " + conditions);
             }
@@ -179,7 +199,7 @@ public class SQLServerOptions extends AbstractOptions{
         }else{
             String byOrders = null;
             if(multiOrder != null) {
-                String orders = QueryUtils.getOrders(this, multiOrder.getOrders());
+                String orders = getOrders(multiOrder.getOrders());
                 if (!StringUtils.isEmpty(orders)) {
                     byOrders = " ORDER BY " + orders;
                 }
@@ -202,8 +222,8 @@ public class SQLServerOptions extends AbstractOptions{
         ResultSet rs = null;
         try {
             String schemaName = connection.getSchema();
-            String sql = String.format("select * from %s.sysobjects where (id = object_id('%s') or id = object_id('%s')) and type = 'U'", schemaName,tableName.toUpperCase(Locale.ROOT),tableName.toLowerCase(Locale.ROOT));
-            sql = ORMUtils.convertSQL(sql);
+            //sysobjects 必须小写
+            String sql = String.format("select * from %s.sysobjects where id = object_id('%s') and type = 'U'", schemaName, tableName);
             ps = connection.prepareStatement(sql);
             rs = ps.executeQuery();
             if(rs.next()){
@@ -230,18 +250,26 @@ public class SQLServerOptions extends AbstractOptions{
 
 
     @Override
-    public Table table(Connection connection, String tableName) {
+    public Table table(Connection connection, RdTable rdTable) throws TableAnnotationNotFoundException, TableNameNotFoundException{
+        if(rdTable == null){
+            throw new TableAnnotationNotFoundException();
+        }
+        String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
+        if (StringUtils.isEmpty(tableName)){
+            throw new TableNameNotFoundException();
+        }
         PreparedStatement ps = null;
         ResultSet rs = null;
         Table table = null;
         try {
             String schemaName = connection.getSchema();
-            String sql = String.format("select * from %s.sysobjects where (id = object_id('%s') or id = object_id('%s')) and type = 'U'", schemaName,tableName.toUpperCase(Locale.ROOT),tableName.toLowerCase(Locale.ROOT));
-            sql = ORMUtils.convertSQL(sql);
+            //写入大写就是大写，小写就是小写
+            //不区分大小写同样（区别于查询条件，如 TULIP 与 tulip等价
+            String sql = String.format("select name from %s.sysobjects where id = object_id('%s') and type = 'U'", schemaName, tableName);
             ps = connection.prepareStatement(sql);
             rs = ps.executeQuery();
             if(rs.next()){
-                table = new Table(rs.getString("NAME"));
+                table = new Table(rs.getString(1));
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -261,15 +289,13 @@ public class SQLServerOptions extends AbstractOptions{
         }
         if(table != null) {
             try {
-                String schemaName = connection.getSchema();
                 String sql = String.format(" SELECT o.name, p.value FROM sys.extended_properties p " +
                         "        LEFT JOIN sysobjects o ON p.major_id= o.id" +
-                        "        WHERE  p.minor_id=0 and (o.name= '%s' OR o.name= '%s')", schemaName, tableName.toUpperCase(Locale.ROOT), tableName.toLowerCase(Locale.ROOT));
-                sql = ORMUtils.convertSQL(sql);
+                        "        WHERE  p.minor_id=0 and o.name= '%s'", tableName);
                 ps = connection.prepareStatement(sql);
                 rs = ps.executeQuery();
                 if(rs.next()){
-                    table.setComment(rs.getString("VALUE"));
+                    table.setComment(rs.getString(2));
                 }
             } catch (SQLException e) {
                 throw new RuntimeException(e);
@@ -292,23 +318,23 @@ public class SQLServerOptions extends AbstractOptions{
     }
 
     @Override
-    public List<TableColumn> columns(Connection connection, String tableName) {
+    public List<TableColumn> columns(Connection connection, RdTable rdTable) {
+        String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
         List<TableColumn> columns = new ArrayList<TableColumn>();
         PreparedStatement ps = null;
         ResultSet rs = null;
         try {
-//            String dbName = connection.getCatalog();
+            // 查询列的时候，是大写就是大写，小写就是小写
             String schemaName = connection.getSchema();
             String sql = String.format("select g.value AS COMMENT,e.text as VALUE,b.name AS TYPE, a.colorder, a.name,a.prec, a.scale, a.isnullable, a.xprec, a.xscale from dbo.syscolumns a " +
                     "left join sys.extended_properties g on a.id=g.major_id and a.colid=g.minor_id " +
                     "left join syscomments e on a.cdefault=e.id " +
                     "left join systypes b on a.xusertype=b.xusertype " +
-                    "where (a.id = object_id('%s') or a.id = object_id('%s')) ", schemaName,tableName.toUpperCase(Locale.ROOT),tableName.toLowerCase(Locale.ROOT));
-            sql = ORMUtils.convertSQL(sql);
+                    "where a.id = object_id('%s') ", tableName);
             ps = connection.prepareStatement(sql);
             rs = ps.executeQuery();
             while (rs.next()){
-                TableColumn tableColumn = new TableColumn(tableName.toUpperCase(Locale.ROOT), rs.getString("NAME").toUpperCase(Locale.ROOT));
+                TableColumn tableColumn = new TableColumn(tableName, rs.getString("NAME"));
                 tableColumn.setType(rs.getString("TYPE"));
                 tableColumn.setLength(rs.getInt("PREC"));
                 tableColumn.setPrecision(rs.getInt("XPREC"));
@@ -340,27 +366,28 @@ public class SQLServerOptions extends AbstractOptions{
 
     @Override
     public List<String> manageTable(RdTable table, List<ColumnInfo> infos, boolean tableExisted, List<TableColumn> tableColumns) {
+        String tableName = getCaseSensitive(table.name(), table.sensitive());
         List<String> sqls = new ArrayList<String>();
         if(table.dropped()){
             if(tableExisted){
-                sqls.add(ORMUtils.convertSQL(String.format("DROP TABLE %s", table.name().toUpperCase(Locale.ROOT))));
+                sqls.add(String.format("DROP TABLE %s", tableName));
             }
         }else{
-            String tableName = table.name().toUpperCase(Locale.ROOT);
             //create table
             if(tableExisted){
                 Map<String, TableColumn> columnMap = new HashMap<String, TableColumn>();
                 for (TableColumn column : tableColumns){
-                    columnMap.put(column.getColumn().toUpperCase(Locale.ROOT), column);
+                    columnMap.put(column.getColumn(), column);
                 }
                 // add or drop, next version modify.
                 for(ColumnInfo info : infos){
-                    TableColumn tableColumn = columnMap.get(info.getColumnName().toUpperCase(Locale.ROOT));
+                    String columnName = getCaseSensitive(info.getColumnName(), table.sensitive());
+                    TableColumn tableColumn = columnMap.get(columnName);
                     RdColumn rdColumn = info.getField().getAnnotation(RdColumn.class);
                     String comment = columnComment(rdColumn);
                     if(tableColumn != null){
                         if(rdColumn.dropped()){
-                            sqls.add(ORMUtils.convertSQL(String.format("ALTER TABLE %s DROP COLUMN %s", tableName, rdColumn.name().toUpperCase(Locale.ROOT))));
+                            sqls.add(String.format("ALTER TABLE %s DROP COLUMN %s", tableName, columnName));
                         }else{
 
                             boolean needUpdate = false;
@@ -400,32 +427,37 @@ public class SQLServerOptions extends AbstractOptions{
                                 }
                             }
                             if(needUpdate) {
-                                String temp = columnString(info, rdColumn, false);
-                                sqls.add(ORMUtils.convertSQL(String.format("ALTER TABLE %s ALTER COLUMN %s", tableName, temp)));
+                                String temp = columnString(info, table.sensitive(), rdColumn, false);
+                                sqls.add(String.format("ALTER TABLE %s ALTER COLUMN %s", tableName, temp));
                                 if (!StringUtils.isEmpty(comment) && !comment.equals(tableColumn.getComment())) {
                                     // MS_Description
                                     sqls.add(String.format("EXECUTE sp_addextendedproperty N'MS_Description',N'%s',N'user',N'dbo',N'table',N'%s',N'column',N'%s'",
-                                            comment, tableName, rdColumn.name().toUpperCase(Locale.ROOT)));
+                                            comment, tableName, columnName));
                                 }
                             }
                         }
                     }else{
                         if(!rdColumn.dropped()){
+                            RdUniqueKey uniqueKey = info.getField().getAnnotation(RdUniqueKey.class);
+                            RdForeignKey foreignKey = info.getField().getAnnotation(RdForeignKey.class);
                             // int, bigint(忽略精度), decimal(精度）， varchar， char 判断长度， 其他判断类型，+ 默认值
-                            String temp = columnString(info, rdColumn, true);
-                            sqls.add(ORMUtils.convertSQL(String.format("ALTER TABLE %s ADD %s", tableName, temp)));
-                            if(!info.getPrimaryKey() && rdColumn.unique()) {
-                                String uniqueSQL = getUniqueSQL(table, rdColumn);
-                                sqls.add(ORMUtils.convertSQL("ALTER TABLE " + tableName + " ADD " + uniqueSQL));
+                            String temp = columnString(info, table.sensitive(), rdColumn, true);
+                            sqls.add(String.format("ALTER TABLE %s ADD %s", tableName, temp));
+                            if(!info.getPrimaryKey()) {
+                                String uniqueSQL = getUniqueSQL(table, rdColumn, uniqueKey);
+                                if(uniqueSQL != null) {
+                                    sqls.add("ALTER TABLE " + tableName + " ADD " + uniqueSQL);
+                                }
                             }
-                            if(!StringUtils.isEmpty(rdColumn.foreignKey())){
-                                String foreignSQL = getForeignSQL(table, rdColumn);
-                                sqls.add(ORMUtils.convertSQL("ALTER TABLE " + tableName + " ADD " + foreignSQL));
+                            String foreignSQL = getForeignSQL(table, rdColumn, foreignKey);
+                            if(foreignSQL != null) {
+                                sqls.add("ALTER TABLE " + tableName + " ADD " + foreignSQL);
                             }
+
                             if (!StringUtils.isEmpty(comment)) {
                                 //MS_Description
                                 sqls.add(String.format("EXECUTE sp_addextendedproperty N'MS_Description',N'%s',N'user',N'dbo',N'table',N'%s',N'column',N'%s'",
-                                        comment, tableName, rdColumn.name().toUpperCase(Locale.ROOT)));
+                                        comment, tableName, columnName));
                             }
                         }
                     }
@@ -438,27 +470,31 @@ public class SQLServerOptions extends AbstractOptions{
                 for(int i = 0; i < infos.size(); i++){
                     ColumnInfo info = infos.get(i);
                     RdColumn rdColumn = info.getField().getAnnotation(RdColumn.class);
-                    String temp = columnString(info, rdColumn, true);
+                    RdUniqueKey uniqueKey = info.getField().getAnnotation(RdUniqueKey.class);
+                    RdForeignKey foreignKey = info.getField().getAnnotation(RdForeignKey.class);
+                    String temp = columnString(info, table.sensitive(), rdColumn, true);
                     String comment = columnComment(rdColumn);
+                    String columnName = getCaseSensitive(rdColumn.name(), table.sensitive());
                     if(!StringUtils.isEmpty(comment)){
                         comments.add(String.format("EXECUTE sp_addextendedproperty N'MS_Description',N'%s',N'user',N'dbo',N'table',N'%s',N'column',N'%s'",
-                                comment, tableName, rdColumn.name().toUpperCase(Locale.ROOT)));
+                                comment, tableName, columnName));
                     }
                     columnSQL.add(temp.toString());
-                    if(!info.getPrimaryKey() && rdColumn.unique()) {
-                        //	CONSTRAINT `SYS_RESOURCE_URL_METHOD` UNIQUE(`URL`, `REQUEST_METHOD`)
-                        String uniqueSQL = getUniqueSQL(table, rdColumn);
-                        columnSQL.add(uniqueSQL);
+                    if(!info.getPrimaryKey()) {
+                        String uniqueSQL = getUniqueSQL(table, rdColumn, uniqueKey);
+                        if(uniqueSQL != null) {
+                            columnSQL.add(uniqueSQL);
+                        }
                     }
-                    if(!StringUtils.isEmpty(rdColumn.foreignKey())){
-                        String foreignSQL = getForeignSQL(table, rdColumn);
+                    String foreignSQL = getForeignSQL(table, rdColumn, foreignKey);
+                    if(foreignSQL != null){
                         columnSQL.add(foreignSQL);
                     }
                 }
                 sql.append(ORMUtils.join(columnSQL, ","));
                 sql.append(")");
                 sql.append(";");
-                sqls.add(ORMUtils.convertSQL(sql.toString()));
+                sqls.add(sql.toString());
                 String comment = table.comment();
                 if(StringUtils.isEmpty(comment)){
                     comment = table.title();
@@ -472,6 +508,27 @@ public class SQLServerOptions extends AbstractOptions{
             }
         }
         return sqls;
+    }
+
+    protected String columnString(ColumnInfo info, int sensitive, RdColumn rdColumn, boolean addKey) {
+        StringBuffer temp = new StringBuffer();
+        String cname = getCaseSensitive(info.getColumnName(), sensitive);
+        temp.append(cname);
+        temp.append(" ");
+
+        String type = getColumnType(info, rdColumn);
+        if(!StringUtils.isEmpty(rdColumn.defaultValue())){
+            type += " DEFAULT '" +  rdColumn.defaultValue() + "'";
+        }
+        if(!rdColumn.nullable()){
+            type += " NOT NULL";
+        }
+        temp.append(type);
+        if(info.getPrimaryKey() && addKey){
+            temp.append(" ");
+            temp.append("PRIMARY KEY");
+        }
+        return temp.toString();
     }
 
     @Override
@@ -522,5 +579,16 @@ public class SQLServerOptions extends AbstractOptions{
             throw new RuntimeException("Not support type : " + infoType + "," + info.getColumnType().name());
         }
         return type;
+    }
+
+    public String getTableName(RdTable rdTable) throws TableAnnotationNotFoundException, TableNameNotFoundException{
+        if(rdTable == null){
+            throw new TableAnnotationNotFoundException();
+        }
+        String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
+        if (StringUtils.isEmpty(tableName)){
+            throw new TableNameNotFoundException();
+        }
+        return tableName;
     }
 }

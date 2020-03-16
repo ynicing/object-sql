@@ -2,13 +2,6 @@ package com.ursful.framework.orm.support;
 
 import java.io.Serializable;
 
-/**
- * 类名：ConditionObject
- * 创建者：huangyonghua
- * 日期：2018/11/30 11:13
- * 版权：Hymake Copyright(c) 2017
- * 说明：[类说明必填内容，请修改]
- */
 public class ConditionObject implements Serializable{
 
     private Object object;

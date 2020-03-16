@@ -13,8 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ursful.framework.orm.support;
+package com.ursful.framework.orm.handler;
 
-public enum ORMType{
-        INSERT, UPDATE, DELETE;
-    }
+import com.ursful.framework.orm.support.ColumnInfo;
+import com.ursful.framework.orm.support.KV;
+
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+
+public interface IResultSetHandler {
+    String decode(Class clazz, ColumnInfo info, Object value);
+    KV parse(ResultSetMetaData metaData, int index, Object value) throws SQLException;
+    void handle(Object object, ColumnInfo info, Object value) throws SQLException;
+}

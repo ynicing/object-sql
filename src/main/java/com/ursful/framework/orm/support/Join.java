@@ -15,19 +15,10 @@
  */
 package com.ursful.framework.orm.support;
 
-import com.ursful.framework.orm.IQuery;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 类名：Join
- * 创建者：huangyonghua
- * 日期：2017-10-19 9:20
- * 版权：ursful.com Copyright(c) 2017
- * 说明：[类说明必填内容，请修改]
- */
 public class Join implements Serializable {
 
     private JoinType type;

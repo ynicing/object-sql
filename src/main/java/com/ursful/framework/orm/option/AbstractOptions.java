@@ -1,10 +1,30 @@
+/*
+ * Copyright 2017 @ursful.com
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.ursful.framework.orm.option;
 
-import com.ursful.framework.orm.IQuery;
+import com.ursful.framework.orm.IMultiQuery;
 import com.ursful.framework.orm.annotation.RdColumn;
-import com.ursful.framework.orm.annotation.RdTable;
-import com.ursful.framework.orm.query.QueryUtils;
+import com.ursful.framework.orm.annotation.RdForeignKey;
+import com.ursful.framework.orm.exception.TableAnnotationNotFoundException;
+import com.ursful.framework.orm.exception.TableNameNotFoundException;
 import com.ursful.framework.orm.support.*;
+import com.ursful.framework.orm.IQuery;
+import com.ursful.framework.orm.annotation.RdTable;
+import com.ursful.framework.orm.annotation.RdUniqueKey;
+import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.utils.ORMUtils;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -19,10 +39,35 @@ import java.util.Date;
 
 public abstract class AbstractOptions implements Options{
 
-    public abstract boolean preSetParameter(PreparedStatement ps, Connection connection, String databaseType, int i, Object obj, ColumnType columnType, DataType type) throws SQLException;
+    public abstract boolean preSetParameter(PreparedStatement ps, Connection connection, String databaseType, int i, Pair pair) throws SQLException;
 
-    public void setParameter(PreparedStatement ps, Connection connection, String databaseType, int i, Object obj, ColumnType columnType, DataType type) throws SQLException {
-        boolean hasSet = preSetParameter(ps, connection, databaseType, i, obj, columnType, type);
+    public boolean tableExists(Connection connection, RdTable rdTable)  throws TableAnnotationNotFoundException, TableNameNotFoundException {
+        if(rdTable == null){
+            throw new TableAnnotationNotFoundException();
+        }
+        String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
+        return tableExists(connection, tableName);
+    }
+
+    protected String getCoding(Pair pair){
+        String defaultCoding = "UTF-8";
+        if(pair == null){
+            return defaultCoding;
+        }
+        Map<String, Object> metadata = pair.getMetadata();
+        if(metadata != null && metadata.containsKey("coding")){
+            defaultCoding = (String) metadata.get("coding");
+        }
+        return defaultCoding;
+    }
+
+    public void setParameter(PreparedStatement ps, Connection connection, String databaseType, int i,Pair pair) throws SQLException {
+
+        Object obj = pair.getValue();
+        ColumnType columnType = pair.getColumnType();
+        DataType type =  DataType.getDataType(pair.getType());
+
+        boolean hasSet = preSetParameter(ps, connection, databaseType, i, pair);
         if(hasSet){
             return;
         }
@@ -33,7 +78,7 @@ public abstract class AbstractOptions implements Options{
                         ps.setBinaryStream(i + 1, new ByteArrayInputStream((byte[]) obj));
                     }else{
                         try {
-                            ps.setBinaryStream(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
+                            ps.setBinaryStream(i + 1, new ByteArrayInputStream(obj.toString().getBytes(getCoding(pair))));
                         } catch (UnsupportedEncodingException e) {
                             e.printStackTrace();
                         }
@@ -46,7 +91,7 @@ public abstract class AbstractOptions implements Options{
                 if(columnType == ColumnType.BINARY){
                     if(obj != null) {
                         try {
-                            ps.setBinaryStream(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
+                            ps.setBinaryStream(i + 1, new ByteArrayInputStream(obj.toString().getBytes(getCoding(pair))));
                         } catch (UnsupportedEncodingException e) {
                             e.printStackTrace();
                         }
@@ -56,7 +101,7 @@ public abstract class AbstractOptions implements Options{
                 }else if(columnType == ColumnType.BLOB){
                     if(obj != null) {
                         try {
-                            ps.setBlob(i + 1, new ByteArrayInputStream(obj.toString().getBytes("utf-8")));
+                            ps.setBlob(i + 1, new ByteArrayInputStream(obj.toString().getBytes(getCoding(pair))));
                         } catch (UnsupportedEncodingException e) {
                             e.printStackTrace();
                         }
@@ -92,7 +137,20 @@ public abstract class AbstractOptions implements Options{
                 break;
             case DECIMAL:
                 BigDecimal decimal = (BigDecimal) obj;
-                BigDecimal setScale = decimal.setScale(5,BigDecimal.ROUND_HALF_DOWN);
+                Map<String, Object> metadata = pair.getMetadata();
+                int runningMode = BigDecimal.ROUND_HALF_DOWN;//默认采用四舍五入
+                int scale = decimal.scale();
+                if(metadata != null){
+                    Integer mode = (Integer)metadata.get("runningMode");
+                    if(mode != null && mode.intValue() > -1){
+                        runningMode = mode.intValue();
+                    }
+                    Integer scaleValue = (Integer) metadata.get("scale");
+                    if(scaleValue != null){//当scale为0时，才会使用 RdColumn中的scale, 不能使用上述 decimal中的scale, 有可能失去精度变成很大
+                        scale = scaleValue.intValue();
+                    }
+                }
+                BigDecimal setScale = decimal.setScale(scale, runningMode);
                 ps.setBigDecimal(i + 1, setScale);
                 break;
             case DOUBLE:
@@ -163,7 +221,7 @@ public abstract class AbstractOptions implements Options{
                     column.setAlias(alias);
                 }
                 inColumn.add(column.getAlias() + "." + column.getName());
-                temp.add(QueryUtils.parseColumn(this,column));
+                temp.add(parseColumn(column));
                 if(Expression.EXPRESSION_ALL.equals(column.getName())){
                     if(!StringUtils.isEmpty(column.getAlias()) && !allAlias.contains(column.getAlias())){
                         allAlias.add(column.getAlias());
@@ -180,7 +238,7 @@ public abstract class AbstractOptions implements Options{
                 QueryUtils.setColumnAlias(column, alias);
                 if (!StringUtils.isEmpty(column.getAlias()) && !allAlias.contains(column.getAlias())
                         && !inColumn.contains(column.getAlias() + "." + column.getName())) {
-                    String orderStr = QueryUtils.parseColumn(this,column);
+                    String orderStr = parseColumn(column);
                     temp.add(orderStr);
                 }
             }
@@ -200,7 +258,7 @@ public abstract class AbstractOptions implements Options{
         String result = "";
         List<Order> orders = query.getOrders();
         QueryUtils.setOrdersAlias(orders, alias);
-        String orderString = QueryUtils.getOrders(this, orders);
+        String orderString = getOrders(orders);
         if (orderString != null && !"".equals(orderString)) {
             result = " ORDER BY " + orderString;
         }
@@ -239,7 +297,7 @@ public abstract class AbstractOptions implements Options{
         String result = "";
         List<Condition> conditions = query.getConditions();
         QueryUtils.setConditionsAlias(conditions, tableAlias);
-        String whereCondition = QueryUtils.getConditions(this, query, conditions, values);
+        String whereCondition = getConditions(query, conditions, values);
         if(whereCondition != null && !"".equals(whereCondition)){
             result =" WHERE " + whereCondition;
         }
@@ -250,7 +308,7 @@ public abstract class AbstractOptions implements Options{
         String result = "";
         List<Column> columns = query.getGroups();
         QueryUtils.setColumnsAlias(columns, alias);
-        String groupString = QueryUtils.getGroups(this, columns);
+        String groupString = getGroups(columns);
         if(groupString != null && !"".equals(groupString)){
             result =" GROUP BY " + groupString;
         }
@@ -261,7 +319,7 @@ public abstract class AbstractOptions implements Options{
         String result = "";
         List<Condition> conditions = query.getHavings();
         QueryUtils.setConditionsAlias(conditions, alias);
-        String havingString = QueryUtils.getConditions(this, query, conditions, values);
+        String havingString = getConditions(query, conditions, values);
         if(havingString != null && !"".equals(havingString)){
             result = " HAVING " + havingString;
         }
@@ -305,7 +363,7 @@ public abstract class AbstractOptions implements Options{
 
             List<Condition> temp = join.getConditions();
 
-            String cdt = QueryUtils.getConditions(this, obj, temp, values);
+            String cdt = getConditions(obj, temp, values);
             if(cdt != null && !"".equals(cdt)) {
                 sb.append(" ON ");
                 sb.append(cdt);
@@ -314,21 +372,46 @@ public abstract class AbstractOptions implements Options{
         return sb.toString();
     }
 
-    protected String getForeignSQL(RdTable table, RdColumn rdColumn) {
-        String foreignKey = rdColumn.foreignKey();
-        String foreignTable= rdColumn.foreignTable();
-        String foreignColumn = rdColumn.foreignColumn();
+    protected String getForeignSQL(RdTable table, RdColumn rdColumn, RdForeignKey foreign) {
+        String foreignKey = null;
+        String foreignTable= null;
+        String foreignColumn = null;
+        if(foreign == null){
+            if(StringUtils.isEmpty(rdColumn.foreignKey())){
+                return null;
+            }
+            foreignKey = rdColumn.foreignKey();
+            foreignTable= rdColumn.foreignTable();
+            foreignColumn = rdColumn.foreignColumn();
+        }else{
+            foreignKey = foreign.name();
+            foreignTable= foreign.table();
+            foreignColumn = foreign.column();
+        }
         Assert.isTrue(!StringUtils.isEmpty(foreignKey), "Foreign Key Name Should Not Be Empty.");
         Assert.isTrue(!StringUtils.isEmpty(foreignTable), "Foreign Table Should Not Be Empty.");
         Assert.isTrue(!StringUtils.isEmpty(foreignColumn), "Foreign Column Should Not Be Empty.");
-//        constraint JOB_INST_EXEC_FK foreign key (JOB_INSTANCE_ID)
-//                references BATCH_JOB_INSTANCE(JOB_INSTANCE_ID)
+//        constraint JOB_INST_EXEC_FK foreign key (JOB_INSTANCE_ID) references BATCH_JOB_INSTANCE(JOB_INSTANCE_ID)
         return String.format("CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s(%s)", foreignKey, rdColumn.name(), foreignTable, foreignColumn);
     }
 
 
-    protected String getUniqueSQL(RdTable table, RdColumn rdColumn) {
+    protected String getUniqueSQL(RdTable table, RdColumn rdColumn, RdUniqueKey uniqueKey) {
+
+        if(!rdColumn.unique() && (uniqueKey == null)){
+            return null;
+        }
+
         String uniqueName = null;
+        String [] uniqueKeys = null;
+        if(uniqueKey != null){
+            uniqueName = uniqueKey.name();
+            uniqueKeys = uniqueKey.columns();
+        }else{
+            uniqueName = rdColumn.uniqueName();
+            uniqueKeys = rdColumn.uniqueKeys();
+        }
+
         if(StringUtils.isEmpty(uniqueName)){
             String [] tabs = table.name().split("_");
             StringBuffer names = new StringBuffer();
@@ -337,8 +420,8 @@ public abstract class AbstractOptions implements Options{
                     names.append(tab.charAt(0));
                 }
             }
-            if(rdColumn.uniqueKeys() != null && rdColumn.uniqueKeys().length > 0){
-                for(String key : rdColumn.uniqueKeys()){
+            if(uniqueKeys != null && uniqueKeys.length > 0){
+                for(String key : uniqueKeys){
                     if(key.length() > 0) {
                         names.append("_" + key.charAt(0));
                     }
@@ -347,14 +430,12 @@ public abstract class AbstractOptions implements Options{
                 names.append("_" + rdColumn.name().charAt(0));
             }
             uniqueName = names.toString().toUpperCase(Locale.ROOT);
-        }else{
-            uniqueName = rdColumn.uniqueName();
         }
-        String uniqueKeys = ORMUtils.join(rdColumn.uniqueKeys(), ",");
-        if(StringUtils.isEmpty(uniqueKeys)){
-            uniqueKeys =  rdColumn.name();
+        String uniqueKeysStr = ORMUtils.join(uniqueKeys, ",");
+        if(StringUtils.isEmpty(uniqueKeysStr)){
+            uniqueKeysStr =  rdColumn.name();
         }
-        return String.format("CONSTRAINT %s UNIQUE(%s)", uniqueName, uniqueKeys);
+        return String.format("CONSTRAINT %s UNIQUE(%s)", uniqueName, uniqueKeysStr);
     }
 
     protected String columnComment(RdColumn rdColumn){
@@ -369,26 +450,469 @@ public abstract class AbstractOptions implements Options{
     }
 
 
-    protected String columnString(ColumnInfo info, RdColumn rdColumn, boolean addKey) {
-        StringBuffer temp = new StringBuffer();
-        temp.append(info.getColumnName().toUpperCase(Locale.ROOT));
-        temp.append(" ");
+    abstract String getColumnType(ColumnInfo info, RdColumn column);
 
-        String type = getColumnType(info, rdColumn);
-        if(!StringUtils.isEmpty(rdColumn.defaultValue())){
-            type += " DEFAULT '" +  rdColumn.defaultValue() + "'";
+    public SQLPair parseExpression(Class clazz, Map<String,Class<?>> clazzes, Expression expression){
+
+        SQLPair sqlPair = null;
+        if(expression == null){
+            return sqlPair;
         }
-        if(!rdColumn.nullable()){
-            type += " NOT NULL";
+        if(expression.getLeft() == null){
+            if(expression.getValue() instanceof IMultiQuery){
+                IMultiQuery mq = (IMultiQuery)expression.getValue();
+                QueryInfo qinfo = mq.doQuery();
+                if(expression.getType() == ExpressionType.CDT_EXISTS) {
+                    sqlPair = new SQLPair("EXISTS(" + qinfo.getSql() + ")", qinfo.getValues());
+                }else  if(expression.getType() == ExpressionType.CDT_NOT_EXISTS) {
+                    sqlPair = new SQLPair("NOT EXISTS(" + qinfo.getSql() + ")", qinfo.getValues());
+                }
+            }
+            return sqlPair;
         }
-        temp.append(type);
-        if(info.getPrimaryKey() && addKey){
-            temp.append(" ");
-            temp.append("PRIMARY KEY");
+
+        String conditionName = parseColumn(expression.getLeft());
+        switch (expression.getType()) {
+            case CDT_IS_NULL:
+                sqlPair = new SQLPair(" "+ conditionName + " IS NULL ");
+                break;
+            case CDT_IS_NOT_NULL:
+                sqlPair = new SQLPair(" "+ conditionName + " IS NOT NULL ");
+                break;
+            case CDT_IS_EMPTY:
+                sqlPair = new SQLPair(" "+ conditionName + " = '' ");
+                break;
+            case CDT_IS_NOT_EMPTY:
+                sqlPair = new SQLPair(" "+ conditionName + " != '' ");
+                break;
+            default:
+                break;
         }
-        return temp.toString();
+        if(sqlPair != null){
+            return sqlPair;
+        }
+
+        Object conditionValue = expression.getValue();
+
+        boolean isTrim = ORMUtils.isTrim();
+        if(isTrim && (conditionValue instanceof String)){
+            conditionValue = ((String) conditionValue).trim();
+        }
+        if(conditionValue != null ) {
+            if (conditionValue instanceof Column) {
+                String valueSQL = parseColumn((Column) conditionValue);
+                if(expression.getType() == null){
+                    sqlPair = new SQLPair(conditionName + " = " + valueSQL);
+                }else{
+                    switch (expression.getType()) {
+                        case CDT_Equal:
+                            sqlPair = new SQLPair(" " + conditionName + " = " + valueSQL);
+                            break;
+                        case CDT_NotEqual:
+                            sqlPair = new SQLPair(" " + conditionName + " != " + valueSQL);
+                            break;
+                        case CDT_More:
+                            sqlPair = new SQLPair(" " + conditionName + " > " + valueSQL);
+                            break;
+                        case CDT_MoreEqual:
+                            sqlPair = new SQLPair(" " + conditionName + " >= " + valueSQL);
+                            break;
+                        case CDT_Less:
+                            sqlPair = new SQLPair(" " + conditionName + " < " + valueSQL);
+                            break;
+                        case CDT_LessEqual:
+                            sqlPair = new SQLPair(" " + conditionName + " <= " + valueSQL);
+                            break;
+                    }
+                }
+                if(sqlPair != null){
+                    return sqlPair;
+                }
+            }
+        }
+        if(!ORMUtils.isEmpty(conditionValue)){
+            Column column = expression.getLeft();
+            ColumnType columnType = null;
+            if(ORMUtils.isEmpty(column.getAlias())){
+                Map<String, ColumnType> pairMap = ORMUtils.getColumnType(clazz);
+                columnType = pairMap.get(column.getName());
+            }else{
+                if(clazzes != null && clazzes.containsKey(column.getAlias())){
+                    Map<String, ColumnType> pairMap = ORMUtils.getColumnType(clazzes.get(column.getAlias()));
+                    columnType = pairMap.get(column.getName());
+                }
+            }
+            switch (expression.getType()) {
+                case CDT_Equal:
+                    sqlPair = new SQLPair(" " + conditionName + " = ?", new Pair(conditionValue,columnType));
+                    break;
+                case CDT_NotEqual:
+                    sqlPair = new SQLPair(" " + conditionName + " != ?", new Pair(conditionValue,columnType));
+                    break;
+                case CDT_More:
+                    sqlPair = new SQLPair(" "+ conditionName + " > ?", new Pair(conditionValue,columnType));
+                    break;
+                case CDT_MoreEqual:
+                    sqlPair = new SQLPair(" "+ conditionName + " >= ?", new Pair(conditionValue,columnType));
+                    break;
+                case CDT_Less:
+                    sqlPair = new SQLPair(" "+ conditionName + " < ?", new Pair(conditionValue,columnType));
+                    break;
+                case CDT_LessEqual:
+                    sqlPair = new SQLPair(" "+ conditionName + " <= ?", new Pair(conditionValue,columnType));
+                    break;
+                case CDT_Like:
+                    sqlPair = new SQLPair(" "+ conditionName + " LIKE ?", new Pair("%" +conditionValue + "%"));
+                    break;
+                case CDT_NotLike:
+                    sqlPair = new SQLPair(" "+ conditionName + " NOT LIKE ?", new Pair("%" +conditionValue + "%"));
+                    break;
+                case CDT_EndWith:
+                    sqlPair = new SQLPair(" "+ conditionName + " LIKE ?", new Pair("%" +conditionValue));
+                    break;
+                case CDT_StartWith:
+                    sqlPair = new SQLPair(" "+ conditionName + " LIKE ?", new Pair(conditionValue + "%"));
+                    break;
+                case CDT_NotEndWith:
+                    sqlPair = new SQLPair(" "+ conditionName + " NOT LIKE ?", new Pair("%" +conditionValue));
+                    break;
+                case CDT_NotStartWith:
+                    sqlPair = new SQLPair(" "+ conditionName + " NOT LIKE ?", new Pair(conditionValue + "%"));
+                    break;
+                case CDT_In:
+                case CDT_NotIn:
+                    if(Collection.class.isAssignableFrom(conditionValue.getClass())){
+                        List<String> names = new ArrayList<String>();
+                        List<Pair> values = new ArrayList<Pair>();
+                        Iterator iterator = ((Collection) conditionValue).iterator();
+                        while (iterator.hasNext()){
+                            Object obj = iterator.next();
+                            if(obj != null){
+                                if(isTrim && (obj instanceof String)){
+                                    String obj2 = ((String) obj).trim();
+                                    if(!"".equals(obj2)) {
+                                        names.add("?");
+                                        values.add(new Pair(obj, columnType));
+                                    }
+                                }else{
+                                    names.add("?");
+                                    values.add(new Pair(obj, columnType));
+                                }
+                            }
+                        }
+                        if(!names.isEmpty()) {
+                            if (expression.getType() == ExpressionType.CDT_In) {
+                                sqlPair = new SQLPair(" " + conditionName + " IN (" + ORMUtils.join(names, ",") + ")", values);
+                            } else {
+                                sqlPair = new SQLPair(" " + conditionName + " NOT IN (" + ORMUtils.join(names, ",") + ")", values);
+                            }
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        return sqlPair;
     }
 
-    abstract String getColumnType(ColumnInfo info, RdColumn column);
+    public String parseColumn(Column column){
+
+        if(column == null){
+            throw new RuntimeException("QUERY_SQL_COLUMN_IS_NULL this column is null");
+        }
+        if(column.getName() == null){
+            throw new RuntimeException("QUERY_SQL_NAME_IS_NULL this column name is null.");
+        }
+
+        StringBuffer sb = new StringBuffer();
+
+        if(!ORMUtils.isEmpty(column.getFunction())){
+            if(!ORMUtils.isEmpty(column.getType())){
+                String result = getColumnWithOperatorAndFunction(column);
+                sb.append(result);
+            }else{
+                sb.append(column.getFunction());
+                sb.append("(");
+                if(!ORMUtils.isEmpty(column.getAlias())){
+                    sb.append(column.getAlias() + ".");
+                }
+                sb.append(column.getName());
+                sb.append(")");
+            }
+        }else{
+            if(!ORMUtils.isEmpty(column.getType())){
+                String result = getColumnWithOperator(column);
+                sb.append(result);
+            }else{
+                String aliasName = column.getName();
+                if(!ORMUtils.isEmpty(column.getAlias())){
+                    aliasName = column.getAlias() + "." + aliasName;
+                }
+                if(StringUtils.isEmpty(column.getFormat())){
+                    sb.append(aliasName);
+                }else{
+                    if(column.getValue() != null && column.getValue().getClass().isArray()){
+                        Object [] objectList = (Object[])column.getValue();
+                        List<Object> objects = new ArrayList<Object>();
+                        for(Object obj : objectList){
+                            if(obj == column) {
+                                objects.add(aliasName);
+                            }else if(obj instanceof Column){
+                                objects.add(parseColumn((Column) obj));
+                            }else{
+                                objects.add(obj);
+                            }
+                        }
+                        sb.append(String.format(column.getFormat(), objects.toArray(new Object[objects.size()])));
+                    }else {
+                        sb.append(String.format(column.getFormat(), aliasName));
+                    }
+                }
+            }
+        }
+        // operator out of function as name is invalid
+        if(!ORMUtils.isEmpty(column.getAsName())){
+            sb.append(" AS " + column.getAsName());
+        }
+        return sb.toString();
+    }
+
+
+    protected String getColumnWithOperator(Column column) {
+        String name = ORMUtils.isEmpty(column.getAlias())? column.getName():column.getAlias()  + "." + column.getName();
+        String value = null;
+        if(column.getValue() instanceof Column){
+            value = "(" + parseColumn((Column)column.getValue()) + ")";
+        }else{
+            if(column.getValue() != null) {
+                value = column.getValue().toString();
+            }
+        }
+        String result = getColumnWithOperator(column.getType(), name, value);
+
+        if(result == null){
+            result = name + column.getType().getOperator() + value;
+        }
+        return result;
+    }
+
+    public String getColumnWithOperatorAndFunction(Column column) {
+        boolean inFunction = column.getOperatorInFunction();
+        String name = ORMUtils.isEmpty(column.getAlias())? column.getName():column.getAlias()  + "." + column.getName();
+        String value = null;
+        if(column.getValue() instanceof Column){
+            value = "(" + parseColumn((Column)column.getValue()) + ")";
+        }else{
+            if(column.getValue() != null) {
+                value = column.getValue().toString();
+            }
+        }
+
+        String type = DatabaseTypeHolder.get();
+        String function = column.getFunction();
+        OperatorType operatorType = column.getType();
+        String result = getColumnWithOperatorAndFunction(function, inFunction, operatorType, name, value);
+        return result;
+    }
+
+
+    public String getOrders(List<Order> orders){
+        List<String> temp = new ArrayList<String>();
+        if(orders != null){
+            for(Order order : orders){
+                temp.add(parseColumn(order.getColumn()) + " " + order.getOrder());
+            }
+        }
+        String result = ORMUtils.join(temp, ",");
+        return result;
+    }
+
+
+    public String getGroups(List<Column> columns){
+        List<String> temp = new ArrayList<String>();
+        for(Column column : columns){
+            temp.add(parseColumn(column));
+        }
+        String result = ORMUtils.join(temp, ",");
+        return result;
+    }
+
+
+    public static String parseColumn(Options options, Column column){
+        return options.parseColumn(column);
+    }
+
+    //同一张表怎么半？ select * from test t1, test t2
+
+
+    // a and b or (c or d ) or (c and d)
+    public String getConditions(Object queryOrClass, List<Condition> cds, List<Pair> values){
+        StringBuffer sql = new StringBuffer();
+        if(cds != null) {
+            SQLPair sqlPair = null;
+            for (Condition condition : cds) {
+                if(condition == null){
+                    continue;
+                }
+                List<ConditionObject> exts = condition.getConditions();
+                for(ConditionObject ext : exts){
+                    Object extObject = ext.getObject();
+                    switch (ext.getType()){
+                        case AND:
+                            if(extObject instanceof Expression) {
+                                Expression and = (Expression) extObject;
+                                sqlPair = parseExpression(queryOrClass, and);
+                            }else if(extObject instanceof SQLPair){
+                                sqlPair = (SQLPair)extObject;
+                            }
+                            if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
+                                if (sql.length() == 0) {
+                                    sql.append(sqlPair.getSql());
+                                } else {
+                                    sql.append(" AND " + sqlPair.getSql());
+                                }
+                                if (sqlPair.getPairs() != null) {//column = column
+                                    values.addAll(sqlPair.getPairs());
+                                }
+                            }
+                            break;
+                        case OR:
+                            if(extObject instanceof Expression) {
+                                Expression or = (Expression)extObject;
+                                sqlPair = parseExpression(queryOrClass, or);
+                            }else if(extObject instanceof SQLPair){
+                                sqlPair = (SQLPair)extObject;
+                            }
+                            if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
+                                if (sql.length() == 0) {
+                                    sql.append(sqlPair.getSql());
+                                } else {
+                                    sql.append(" OR " + sqlPair.getSql());
+                                }
+                                if (sqlPair.getPairs() != null) {//column = column
+                                    values.addAll(sqlPair.getPairs());
+                                }
+                            }
+                            break;
+                        case AND_OR:
+                            Expression[] aor = (Expression[])extObject;
+                            List<String> aorStr = new ArrayList<String>();
+                            for(Expression orOr : aor){
+                                sqlPair = parseExpression(queryOrClass, orOr);
+                                if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
+                                    aorStr.add(sqlPair.getSql());
+                                    if (sqlPair.getPairs() != null) {//column = column
+                                        values.addAll(sqlPair.getPairs());
+                                    }
+                                }
+                            }
+                            if (aorStr.size() > 0) {
+                                if (sql.length() == 0) {
+                                    sql.append(" (" + ORMUtils.join(aorStr, " OR ") + ") ");
+                                } else {
+                                    sql.append(" AND (" + ORMUtils.join(aorStr, " OR ") + ") ");
+                                }
+                            }
+                            break;
+                        case OR_AND:
+                            Expression[] ands = (Expression[])extObject;
+                            List<String> andStr = new ArrayList<String>();
+                            for(Expression orAnd : ands){
+                                sqlPair = parseExpression(queryOrClass, orAnd);
+                                if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
+                                    andStr.add(sqlPair.getSql());
+                                    if (sqlPair.getPairs() != null) {//column = column
+                                        values.addAll(sqlPair.getPairs());
+                                    }
+                                }
+                            }
+                            if (andStr.size() > 0) {
+                                if (sql.length() == 0) {
+                                    sql.append(" (" + ORMUtils.join(andStr, " AND ") + ") ");
+                                } else {
+                                    sql.append(" OR (" + ORMUtils.join(andStr, " AND ") + ") ");
+                                }
+                            }
+                            break;
+                        case OR_OR:
+                            Expression[] ors = (Expression[])extObject;
+                            List<String> orStr = new ArrayList<String>();
+                            for(Expression orOr : ors){
+                                sqlPair = parseExpression(queryOrClass, orOr);
+                                if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
+                                    orStr.add(sqlPair.getSql());
+                                    if (sqlPair.getPairs() != null) {//column = column
+                                        values.addAll(sqlPair.getPairs());
+                                    }
+                                }
+                            }
+                            if (orStr.size() > 0) {
+                                if (sql.length() == 0) {
+                                    sql.append(" (" + ORMUtils.join(orStr, " OR ") + ") ");
+                                } else {
+                                    sql.append(" OR (" + ORMUtils.join(orStr, " OR ") + ") ");
+                                }
+                            }
+                            break;
+                    }
+                }
+            }
+        }
+        return sql.toString();
+    }
+
+    public String getConditions(Class clazz, Express [] expresses, List<Pair> values){
+        List<String> ands = new ArrayList<String>();
+        if(expresses != null) {
+            for (int i = 0; i < expresses.length; i++) {
+                Express express = expresses[i];
+                if(express == null){
+                    continue;
+                }
+                Expression expression = express.getExpression();
+                SQLPair sqlPair = parseExpression(clazz, expression);
+                if (sqlPair != null) {
+                    ands.add(sqlPair.getSql());
+                    if (sqlPair.getPairs() != null) {
+                        values.addAll(sqlPair.getPairs());
+                    }
+                }
+            }
+        }
+        return ORMUtils.join(ands, " AND ");
+    }
+
+    public SQLPair parseExpression(Object clazz, Expression expression){
+        if(clazz instanceof Class){
+            return parseExpression((Class)clazz, null, expression);
+        }else if(clazz instanceof IQuery){
+            IQuery query = (IQuery)clazz;
+            return parseExpression(query.getTable(), query.getAliasTable(), expression);
+        }else{
+            return parseExpression(null, null, expression);
+        }
+    }
+
+
+
+    public String getTableName(RdTable table)  throws TableAnnotationNotFoundException, TableNameNotFoundException{
+        return null;
+    }
+
+    public String getCaseSensitive(String name, int sensitive){
+        if(name == null){
+            return name;
+        }
+        if(RdTable.LOWER_CASE_SENSITIVE == sensitive){
+            return name.toLowerCase(Locale.ROOT);
+        }else if(RdTable.UPPER_CASE_SENSITIVE == sensitive){
+            return name.toUpperCase(Locale.ROOT);
+        }else if(RdTable.RESTRICT_CASE_SENSITIVE == sensitive){
+            return name;
+        }else{
+            return name;//默认
+        }
+    }
 
 }

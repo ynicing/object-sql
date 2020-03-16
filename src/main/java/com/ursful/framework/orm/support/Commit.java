@@ -20,13 +20,6 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
-/**
- * 类名：AutoCommit
- * 创建者：huangyonghua
- * 日期：2017-11-23 15:40
- * 版权：ursful.com Copyright(c) 2017
- * 说明：[类说明必填内容，请修改]
- */
 public class Commit {
 
     private PlatformTransactionManager transactionManager;

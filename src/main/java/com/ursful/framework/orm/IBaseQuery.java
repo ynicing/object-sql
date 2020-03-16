@@ -47,11 +47,13 @@ public interface IBaseQuery extends IQuery{
 
 	IBaseQuery whereIsNull(String name);
     IBaseQuery whereIsNotNull(String name);
+	IBaseQuery whereIsEmpty(String name);
+	IBaseQuery whereIsNotEmpty(String name);
 	IBaseQuery where(String name, Object value, ExpressionType type);
 	IBaseQuery where(Terms terms);//select * from test where (a = ? or b = ? ...)
 
-	IBaseQuery where(Express ... expresses);
-	IBaseQuery where(Expression ... expressions);
+	IBaseQuery where(Express... expresses);
+	IBaseQuery where(Expression... expressions);
 
 	IBaseQuery group(String name);
 	IBaseQuery having(String name, Object value, ExpressionType type);

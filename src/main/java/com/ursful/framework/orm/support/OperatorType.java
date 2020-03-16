@@ -15,8 +15,6 @@
  */
 package com.ursful.framework.orm.support;
 
-import java.math.BigInteger;
-
 public enum OperatorType {
     AND("&"), // &        BITAND(x, y)
     OR("|"),  // |        (x + y) - BITAND(x, y)

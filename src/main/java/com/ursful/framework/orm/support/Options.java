@@ -1,8 +1,24 @@
+/*
+ * Copyright 2017 @ursful.com
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.ursful.framework.orm.support;
 
 import com.ursful.framework.orm.IQuery;
-import com.ursful.framework.orm.annotation.RdColumn;
 import com.ursful.framework.orm.annotation.RdTable;
+import com.ursful.framework.orm.exception.TableAnnotationNotFoundException;
+import com.ursful.framework.orm.exception.TableNameNotFoundException;
 import com.ursful.framework.orm.helper.SQLHelper;
 
 import java.sql.Connection;
@@ -13,8 +29,7 @@ import java.util.List;
 public interface Options {
     String keyword();
     void setParameter(PreparedStatement ps, Connection connection,
-                      String databaseType, int i, Object obj,
-                      ColumnType columnType, DataType type) throws SQLException;
+                      String databaseType, int i, Pair pair) throws SQLException;
     String getColumnWithOperator(OperatorType operatorType, String name, String value);
     String getColumnWithOperatorAndFunction(String function, boolean inFunction,
                                 OperatorType operatorType, String name, String value);
@@ -24,9 +39,18 @@ public interface Options {
     QueryInfo doQuery(IQuery query, Pageable page);
     SQLHelper doQuery(Class<?> clazz, String[] names, Terms terms, MultiOrder multiOrder, Integer start, Integer size);
 
-    boolean tableExists(Connection connection, String tableName);
-    Table table(Connection connection, String tableName);
-    List<TableColumn> columns(Connection connection, String tableName);
+    boolean tableExists(Connection connection, String table);
+    boolean tableExists(Connection connection, RdTable table) throws TableAnnotationNotFoundException, TableNameNotFoundException;
+    Table table(Connection connection, RdTable table) throws TableAnnotationNotFoundException, TableNameNotFoundException;
+    List<TableColumn> columns(Connection connection, RdTable table) throws TableAnnotationNotFoundException, TableNameNotFoundException;
 
     List<String> manageTable(RdTable table, List<ColumnInfo> columnInfoList, boolean tableExisted, List<TableColumn> tableColumns);
+
+    SQLPair parseExpression(Object clazz, Expression expression);
+    String getConditions(Class clazz, Express [] expresses, List<Pair> values);
+    String getConditions(Object queryOrClass, List<Condition> cds, List<Pair> values);
+    String parseColumn(Column column);
+
+    String getCaseSensitive(String name, int sensitive);
+    String getTableName(RdTable table)  throws TableAnnotationNotFoundException, TableNameNotFoundException;
 }

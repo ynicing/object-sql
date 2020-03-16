@@ -20,6 +20,12 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface RdTable {
+
+	public static final int DEFAULT_SENSITIVE = 0;
+	public static final int UPPER_CASE_SENSITIVE = 1;
+	public static final int LOWER_CASE_SENSITIVE = 2;
+	public static final int RESTRICT_CASE_SENSITIVE = 3;
+
 	String name();//user/create  user
 	String schema() default "";
 	@Deprecated
@@ -29,4 +35,6 @@ public @interface RdTable {
 	//MySQL
 	String engine() default "InnoDB";
 	String collate() default "utf8mb4_bin";
+
+ 	int sensitive() default DEFAULT_SENSITIVE;
 }

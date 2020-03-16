@@ -51,9 +51,10 @@ public interface IMultiQuery extends IQuery{
     IMultiQuery whereMore(Column left, Object value);
     IMultiQuery whereMoreEqual(Column left, Object value);
 
-//    IMultiQuery where(Column left, ExpressionType type);
     IMultiQuery whereIsNull(Column left);
     IMultiQuery whereIsNotNull(Column left);
+    IMultiQuery whereIsEmpty(Column left);
+    IMultiQuery whereIsNotEmpty(Column left);
 
     IMultiQuery whereIn(Column left, Collection value);
     IMultiQuery whereNotIn(Column left, Collection value);
@@ -63,9 +64,8 @@ public interface IMultiQuery extends IQuery{
 
     IMultiQuery where(Column left, Object value, ExpressionType type);
     IMultiQuery where(Column left, Column value);
-    IMultiQuery where(Column left, Column value, ExpressionType type);
     IMultiQuery where(Condition condition);
-    IMultiQuery where(Expression ... expressions);
+    IMultiQuery where(Expression... expressions);
     IMultiQuery group(Column ...column);
     IMultiQuery group(Columns ...columns);
     IMultiQuery having(Column left, Object value, ExpressionType type);

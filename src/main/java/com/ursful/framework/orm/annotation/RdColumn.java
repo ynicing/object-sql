@@ -25,9 +25,6 @@ import java.lang.annotation.*;
 @Documented
 public @interface RdColumn {
 	String name() default "";
-	boolean unique() default false;
-	String uniqueName() default "";
-	String [] uniqueKeys() default {};
 	boolean nullable() default true;
 	boolean dropped() default false;
 	int length() default 255;//不限制
@@ -39,7 +36,19 @@ public @interface RdColumn {
 	int precision() default 0;
 	int scale() default 0;
 	String defaultValue() default "";
+	String coding() default "UTF-8";
+	int runningMode() default -1;//BigDecimal
+
+	@Deprecated
+	boolean unique() default false;
+	@Deprecated
+	String uniqueName() default "";
+	@Deprecated
+	String [] uniqueKeys() default {};
+	@Deprecated
 	String foreignKey() default "";
+	@Deprecated
 	String foreignTable() default "";
+	@Deprecated
 	String foreignColumn() default "";
 }
