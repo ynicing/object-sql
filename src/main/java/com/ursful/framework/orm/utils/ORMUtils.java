@@ -17,7 +17,6 @@ package com.ursful.framework.orm.utils;
 
 import com.ursful.framework.orm.annotation.RdColumn;
 import com.ursful.framework.orm.annotation.RdId;
-import com.ursful.framework.orm.exception.TableAnnotationNotFoundException;
 import com.ursful.framework.orm.support.DebugHolder;
 import com.ursful.framework.orm.annotation.RdObject;
 import com.ursful.framework.orm.annotation.RdTable;

@@ -15,8 +15,7 @@
  */
 package com.ursful.framework.orm;
 
-import com.ursful.framework.orm.exception.TableAnnotationNotFoundException;
-import com.ursful.framework.orm.exception.TableNameNotFoundException;
+import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.support.Table;
 import com.ursful.framework.orm.support.TableColumn;
 
@@ -64,10 +63,10 @@ public interface ISQLService {
 
     <S> List<S> batchSaves(List<S> ts, boolean rollback);
 
-    void createOrUpdate(Class<?> table) throws TableAnnotationNotFoundException, TableNameNotFoundException;
+    void createOrUpdate(Class<?> table) throws ORMException;
 
     boolean tableExists(String table);
-    Table table(Class<?> clazz)  throws TableAnnotationNotFoundException, TableNameNotFoundException;
-    String getTableName(Class<?> clazz) throws TableAnnotationNotFoundException, TableNameNotFoundException;
-    List<TableColumn> columns(Class<?> clazz) throws TableAnnotationNotFoundException, TableNameNotFoundException;
+    Table table(Class<?> clazz)  throws ORMException;
+    String getTableName(Class<?> clazz) throws ORMException;
+    List<TableColumn> columns(Class<?> clazz) throws ORMException;
 }

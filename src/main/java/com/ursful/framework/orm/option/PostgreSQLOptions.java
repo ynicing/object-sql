@@ -15,12 +15,8 @@
  */
 package com.ursful.framework.orm.option;
 
-import com.ursful.framework.orm.annotation.RdColumn;
-import com.ursful.framework.orm.annotation.RdForeignKey;
-import com.ursful.framework.orm.annotation.RdTable;
-import com.ursful.framework.orm.annotation.RdUniqueKey;
-import com.ursful.framework.orm.exception.TableAnnotationNotFoundException;
-import com.ursful.framework.orm.exception.TableNameNotFoundException;
+import com.ursful.framework.orm.annotation.*;
+import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
 import org.springframework.util.StringUtils;
@@ -66,14 +62,8 @@ public class PostgreSQLOptions extends MySQLOptions{
     }
 
     @Override
-    public Table table(Connection connection, RdTable rdTable) throws TableAnnotationNotFoundException, TableNameNotFoundException{
-        if(rdTable == null){
-            throw new TableAnnotationNotFoundException();
-        }
-        String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
-        if (StringUtils.isEmpty(tableName)){
-            throw new TableNameNotFoundException();
-        }
+    public Table table(Connection connection, RdTable rdTable) throws ORMException {
+        String tableName = getTableName(rdTable);
         PreparedStatement ps = null;
         ResultSet rs = null;
         Table table = null;
@@ -144,14 +134,8 @@ public class PostgreSQLOptions extends MySQLOptions{
     }
 
     @Override
-    public List<TableColumn> columns(Connection connection, RdTable rdTable) throws TableAnnotationNotFoundException, TableNameNotFoundException{
-        if(rdTable == null){
-            throw new TableAnnotationNotFoundException();
-        }
-        String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
-        if (StringUtils.isEmpty(tableName)){
-            throw new TableNameNotFoundException();
-        }
+    public List<TableColumn> columns(Connection connection, RdTable rdTable) throws ORMException{
+        String tableName = getTableName(rdTable);
         List<TableColumn> columns = new ArrayList<TableColumn>();
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -229,7 +213,7 @@ public class PostgreSQLOptions extends MySQLOptions{
     }
 
     @Override
-    public List<String> manageTable(RdTable table, List<ColumnInfo> infos, boolean tableExisted, List<TableColumn> tableColumns) {
+    public List<String> createOrUpdateSqls(Connection connection, RdTable table, List<ColumnInfo> infos, boolean tableExisted, List<TableColumn> tableColumns) {
         List<String> sqls = new ArrayList<String>();
         String tableName = getCaseSensitive(table.name(), table.sensitive());
         if(table.dropped()){
@@ -436,19 +420,21 @@ public class PostgreSQLOptions extends MySQLOptions{
         }else{
             temp.append(String.format("\"%s\"", cname));
         }
-        temp.append(" ");
-
-        String type = getColumnType(info, rdColumn);
+        RdId rdId = info.getField().getAnnotation(RdId.class);
+        if(rdId != null && rdId.autoIncrement() && !StringUtils.isEmpty(rdId.sequence())){
+            temp.append(" " + rdId.sequence());
+        }else{
+            String type = getColumnType(info, rdColumn);
+            temp.append(" " + type);
+        }
         if(!StringUtils.isEmpty(rdColumn.defaultValue())){
-            type += " DEFAULT '" +  rdColumn.defaultValue() + "'";
+            temp.append(" DEFAULT '" +  rdColumn.defaultValue() + "'");
         }
         if(!rdColumn.nullable()){
-            type += " NOT NULL";
+            temp.append(" NOT NULL");
         }
-        temp.append(type);
         if(info.getPrimaryKey() && addKey){
-            temp.append(" ");
-            temp.append("PRIMARY KEY");
+            temp.append(" PRIMARY KEY");
         }
         return temp.toString();
     }

@@ -15,7 +15,9 @@
  */
 package com.ursful.framework.orm.helper;
 
+import com.ursful.framework.orm.annotation.RdId;
 import com.ursful.framework.orm.handler.IResultSetHandler;
+import com.ursful.framework.orm.option.OracleOptions;
 import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
@@ -361,7 +363,7 @@ public class SQLHelperCreator {
     }
 
 
-    public static SQLHelper insert(Object obj){
+    public static SQLHelper insert(Object obj, Options options){
 
         Class clazz = obj.getClass();
         String tableName = ORMUtils.getTableName(clazz);
@@ -381,16 +383,25 @@ public class SQLHelperCreator {
                 continue;
             }
             if(info.getPrimaryKey()){
-                helper.setIdField(info.getField());
-                if(StringUtils.isEmpty(fo)){
-                    if(String.class.getSimpleName().equals(info.getType())){
+                if (StringUtils.isEmpty(fo)) {
+                    if (String.class.getSimpleName().equals(info.getType())) {
                         fo = UUID.randomUUID().toString();
                         ORMUtils.setFieldValue(obj, info, fo);
                         helper.setIdValue(fo);
+                    }else{
+                        helper.setIdField(info.getField());
+                        RdId rdId = info.getField().getAnnotation(RdId.class);
+                        // is oracle
+                        if(rdId.autoIncrement() && !StringUtils.isEmpty(rdId.sequence()) && (options instanceof OracleOptions)){
+                            ps.add(info.getColumnName());
+                            vs.add(rdId.sequence() + ".nextval");
+                            continue;
+                        }
                     }
-                }else{//值为空的时候，但是无id，需要自取了
+                } else {//值为空的时候，但是无id，需要自取了
                     helper.setIdValue(fo);
                 }
+
             }
             if(fo != null) {
                 ps.add(info.getColumnName());

@@ -18,8 +18,8 @@ package com.ursful.framework.orm.option;
 import com.ursful.framework.orm.IMultiQuery;
 import com.ursful.framework.orm.annotation.RdColumn;
 import com.ursful.framework.orm.annotation.RdForeignKey;
-import com.ursful.framework.orm.exception.TableAnnotationNotFoundException;
-import com.ursful.framework.orm.exception.TableNameNotFoundException;
+import com.ursful.framework.orm.exception.ORMError;
+import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.annotation.RdTable;
@@ -41,9 +41,9 @@ public abstract class AbstractOptions implements Options{
 
     public abstract boolean preSetParameter(PreparedStatement ps, Connection connection, String databaseType, int i, Pair pair) throws SQLException;
 
-    public boolean tableExists(Connection connection, RdTable rdTable)  throws TableAnnotationNotFoundException, TableNameNotFoundException {
+    public boolean tableExists(Connection connection, RdTable rdTable)  throws ORMException {
         if(rdTable == null){
-            throw new TableAnnotationNotFoundException();
+            throw new ORMException(ORMError.TABLE_ANNOTATION_IS_NULL);
         }
         String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
         return tableExists(connection, tableName);
@@ -894,25 +894,16 @@ public abstract class AbstractOptions implements Options{
         }
     }
 
+    public abstract String getCaseSensitive(String name, int sensitive);
 
-
-    public String getTableName(RdTable table)  throws TableAnnotationNotFoundException, TableNameNotFoundException{
-        return null;
-    }
-
-    public String getCaseSensitive(String name, int sensitive){
-        if(name == null){
-            return name;
+    public String getTableName(RdTable rdTable) throws ORMException{
+        if(rdTable == null){
+            throw new ORMException(ORMError.TABLE_ANNOTATION_IS_NULL);
         }
-        if(RdTable.LOWER_CASE_SENSITIVE == sensitive){
-            return name.toLowerCase(Locale.ROOT);
-        }else if(RdTable.UPPER_CASE_SENSITIVE == sensitive){
-            return name.toUpperCase(Locale.ROOT);
-        }else if(RdTable.RESTRICT_CASE_SENSITIVE == sensitive){
-            return name;
-        }else{
-            return name;//默认
+        String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
+        if (StringUtils.isEmpty(tableName)){
+            throw new ORMException(ORMError.TABLE_NAME_IS_EMPTY);
         }
+        return tableName;
     }
-
 }

@@ -16,18 +16,13 @@
 package com.ursful.framework.orm.option;
 
 import com.ursful.framework.orm.IQuery;
-import com.ursful.framework.orm.annotation.RdColumn;
-import com.ursful.framework.orm.annotation.RdForeignKey;
-import com.ursful.framework.orm.annotation.RdTable;
-import com.ursful.framework.orm.annotation.RdUniqueKey;
-import com.ursful.framework.orm.exception.TableAnnotationNotFoundException;
-import com.ursful.framework.orm.exception.TableNameNotFoundException;
+import com.ursful.framework.orm.annotation.*;
+import com.ursful.framework.orm.exception.ORMError;
+import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.helper.SQLHelper;
 import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
-import org.springframework.cglib.core.Local;
-import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
@@ -366,14 +361,8 @@ public class OracleOptions extends AbstractOptions{
     }
 
     @Override
-    public Table table(Connection connection, RdTable rdTable)  throws TableAnnotationNotFoundException, TableNameNotFoundException{
-        if(rdTable == null){
-            throw new TableAnnotationNotFoundException();
-        }
-        String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
-        if (StringUtils.isEmpty(tableName)){
-            throw new TableNameNotFoundException();
-        }
+    public Table table(Connection connection, RdTable rdTable)  throws ORMException{
+        String tableName = getTableName(rdTable);
         PreparedStatement ps = null;
         ResultSet rs = null;
         Table table = null;
@@ -435,8 +424,8 @@ public class OracleOptions extends AbstractOptions{
 
     //oracle 如果规避大小写表名呢？ 又如何允许大小写区别呢？
     @Override
-    public List<TableColumn> columns(Connection connection, RdTable rdTable) throws TableAnnotationNotFoundException, TableNameNotFoundException{
-        String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
+    public List<TableColumn> columns(Connection connection, RdTable rdTable) throws ORMException{
+        String tableName = getTableName(rdTable);
         List<TableColumn> columns = new ArrayList<TableColumn>();
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -511,7 +500,7 @@ public class OracleOptions extends AbstractOptions{
     }
 
     @Override
-    public List<String> manageTable(RdTable table, List<ColumnInfo> infos, boolean tableExisted, List<TableColumn> tableColumns) {
+    public List<String> createOrUpdateSqls(Connection connection, RdTable table, List<ColumnInfo> infos, boolean tableExisted, List<TableColumn> tableColumns) {
         List<String> sqls = new ArrayList<String>();
         String tableName = getCaseSensitive(table.name(), table.sensitive());
         if(table.dropped()){
@@ -657,6 +646,34 @@ public class OracleOptions extends AbstractOptions{
                     RdColumn rdColumn = info.getField().getAnnotation(RdColumn.class);
                     RdUniqueKey uniqueKey = info.getField().getAnnotation(RdUniqueKey.class);
                     RdForeignKey foreignKey = info.getField().getAnnotation(RdForeignKey.class);
+                    RdId rdId = info.getField().getAnnotation(RdId.class);
+                    if(rdId != null && rdId.autoIncrement() && !StringUtils.isEmpty(rdId.sequence())){
+                        //todo
+                        //create seq?
+                        String seqName = getCaseSensitive(rdId.sequence(), table.sensitive());
+                        PreparedStatement ps = null;
+                        ResultSet rs = null;
+                        boolean seqExist = false;
+                        try {
+                            ps = connection.prepareStatement("SELECT * FROM USER_SEQUENCES WHERE SEQUENCE_NAME = ? ");
+                            ps.setString(1, seqName);
+                            rs = ps.executeQuery();
+                            if(rs.next()){
+                                seqExist = true;
+                            }
+                            rs.close();
+                            ps.close();
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
+                        if(!seqExist){
+                            if(table.sensitive() == RdTable.DEFAULT_SENSITIVE){
+                                sql.append(String.format("CREATE SEQUENCE %s INCREMENT BY 1 START WITH 1", seqName));
+                            }else{
+                                sql.append(String.format("CREATE SEQUENCE \"%s\" INCREMENT BY 1 START WITH 1", seqName));
+                            }
+                        }
+                    }
                     String temp = columnString(info, table.sensitive(), rdColumn, true);
                     String comment = columnComment(rdColumn);
                     String columnName = getCaseSensitive(rdColumn.name(), table.sensitive());
@@ -808,14 +825,4 @@ public class OracleOptions extends AbstractOptions{
 
     }
 
-    public String getTableName(RdTable rdTable) throws TableAnnotationNotFoundException, TableNameNotFoundException{
-        if(rdTable == null){
-            throw new TableAnnotationNotFoundException();
-        }
-        String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
-        if (StringUtils.isEmpty(tableName)){
-            throw new TableNameNotFoundException();
-        }
-        return tableName;
-    }
 }

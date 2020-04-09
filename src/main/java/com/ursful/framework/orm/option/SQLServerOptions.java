@@ -16,12 +16,8 @@
 package com.ursful.framework.orm.option;
 
 import com.ursful.framework.orm.IQuery;
-import com.ursful.framework.orm.annotation.RdColumn;
-import com.ursful.framework.orm.annotation.RdForeignKey;
-import com.ursful.framework.orm.annotation.RdTable;
-import com.ursful.framework.orm.annotation.RdUniqueKey;
-import com.ursful.framework.orm.exception.TableAnnotationNotFoundException;
-import com.ursful.framework.orm.exception.TableNameNotFoundException;
+import com.ursful.framework.orm.annotation.*;
+import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.helper.SQLHelper;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
@@ -250,14 +246,8 @@ public class SQLServerOptions extends AbstractOptions{
 
 
     @Override
-    public Table table(Connection connection, RdTable rdTable) throws TableAnnotationNotFoundException, TableNameNotFoundException{
-        if(rdTable == null){
-            throw new TableAnnotationNotFoundException();
-        }
-        String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
-        if (StringUtils.isEmpty(tableName)){
-            throw new TableNameNotFoundException();
-        }
+    public Table table(Connection connection, RdTable rdTable) throws ORMException{
+        String tableName = getTableName(rdTable);
         PreparedStatement ps = null;
         ResultSet rs = null;
         Table table = null;
@@ -365,7 +355,7 @@ public class SQLServerOptions extends AbstractOptions{
     }
 
     @Override
-    public List<String> manageTable(RdTable table, List<ColumnInfo> infos, boolean tableExisted, List<TableColumn> tableColumns) {
+    public List<String> createOrUpdateSqls(Connection connection, RdTable table, List<ColumnInfo> infos, boolean tableExisted, List<TableColumn> tableColumns) {
         String tableName = getCaseSensitive(table.name(), table.sensitive());
         List<String> sqls = new ArrayList<String>();
         if(table.dropped()){
@@ -514,19 +504,20 @@ public class SQLServerOptions extends AbstractOptions{
         StringBuffer temp = new StringBuffer();
         String cname = getCaseSensitive(info.getColumnName(), sensitive);
         temp.append(cname);
-        temp.append(" ");
-
         String type = getColumnType(info, rdColumn);
+        temp.append(" " + type);
         if(!StringUtils.isEmpty(rdColumn.defaultValue())){
-            type += " DEFAULT '" +  rdColumn.defaultValue() + "'";
+            temp.append(" DEFAULT '" +  rdColumn.defaultValue() + "'");
         }
         if(!rdColumn.nullable()){
-            type += " NOT NULL";
+            temp.append(" NOT NULL");
         }
-        temp.append(type);
         if(info.getPrimaryKey() && addKey){
-            temp.append(" ");
-            temp.append("PRIMARY KEY");
+            temp.append(" PRIMARY KEY");
+        }
+        RdId rdId = info.getField().getAnnotation(RdId.class);
+        if(rdId != null && rdId.autoIncrement()){
+            temp.append(" IDENTITY");
         }
         return temp.toString();
     }
@@ -581,14 +572,20 @@ public class SQLServerOptions extends AbstractOptions{
         return type;
     }
 
-    public String getTableName(RdTable rdTable) throws TableAnnotationNotFoundException, TableNameNotFoundException{
-        if(rdTable == null){
-            throw new TableAnnotationNotFoundException();
+    @Override
+    public String getCaseSensitive(String name, int sensitive){
+        if(name == null){
+            return name;
         }
-        String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
-        if (StringUtils.isEmpty(tableName)){
-            throw new TableNameNotFoundException();
+        if(RdTable.LOWER_CASE_SENSITIVE == sensitive){
+            return name.toLowerCase(Locale.ROOT);
+        }else if(RdTable.UPPER_CASE_SENSITIVE == sensitive){
+            return name.toUpperCase(Locale.ROOT);
+        }else if(RdTable.RESTRICT_CASE_SENSITIVE == sensitive){
+            return name;
+        }else{
+            return name;//默认
         }
-        return tableName;
     }
+
 }

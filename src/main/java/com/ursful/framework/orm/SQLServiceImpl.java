@@ -15,9 +15,8 @@
  */
 package com.ursful.framework.orm;
 
-import com.ursful.framework.orm.exception.CreateOrUpdateTableException;
-import com.ursful.framework.orm.exception.TableAnnotationNotFoundException;
-import com.ursful.framework.orm.exception.TableNameNotFoundException;
+import com.ursful.framework.orm.exception.ORMError;
+import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.handler.IResultSetHandler;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.annotation.RdTable;
@@ -542,10 +541,13 @@ public class SQLServiceImpl implements ISQLService{
     //connection.getCatalog() connection.getSchema() com.microsoft.sqlserver.jdbc.SQLServerConnection
 
     @Override
-    public void createOrUpdate(Class<?> table) throws TableAnnotationNotFoundException, TableNameNotFoundException{
+    public void createOrUpdate(Class<?> table)   throws ORMException{
+        if(table == null){
+            return;
+        }
         RdTable rdTable = ORMUtils.getRdTable(table);
         if(rdTable == null){
-            throw new TableAnnotationNotFoundException();
+            throw new ORMException(ORMError.CLASS_TABLE_ANNOTATION_NOT_FOUND, table.getName());
         }
         Options options = getOptions();
         if(options == null){
@@ -557,11 +559,14 @@ public class SQLServiceImpl implements ISQLService{
             Connection connection = getRealConnection(temp);
             Table queryTable  = options.table(connection, rdTable);
             List<ColumnInfo> columnInfoList = ORMUtils.getColumnInfo(table);
+            if(queryTable == null && columnInfoList.isEmpty() && !rdTable.dropped()){
+                throw new ORMException(ORMError.CLASS_COLUMN_IS_EMPTY, table.getName(), rdTable.name());
+            }
             List<TableColumn> columns = null;
             if(queryTable != null  &&  !rdTable.dropped()){//judge Columns
                 columns = options.columns(connection, rdTable);
             }
-            List<String> sqls = options.manageTable(rdTable, columnInfoList, queryTable != null, columns);
+            List<String> sqls = options.createOrUpdateSqls(connection, rdTable, columnInfoList, queryTable != null, columns);
             if(sqls != null && !sqls.isEmpty()){
                 for(String sql : sqls){
                     PreparedStatement ps = null;
@@ -600,8 +605,14 @@ public class SQLServiceImpl implements ISQLService{
         return false;
     }
     @Override
-    public String getTableName(Class<?> clazz) throws TableAnnotationNotFoundException, TableNameNotFoundException{
+    public String getTableName(Class<?> clazz) throws ORMException{
+        if(clazz == null){
+            return null;
+        }
         RdTable rdTable = ORMUtils.getRdTable(clazz);
+        if(rdTable == null){
+            throw new ORMException(ORMError.CLASS_TABLE_ANNOTATION_NOT_FOUND, clazz.getName());
+        }
         Options options = getOptions();
         if(options == null){
             logger.warn("Query table Not Support.");
@@ -610,8 +621,14 @@ public class SQLServiceImpl implements ISQLService{
         return options.getTableName(rdTable);
     }
     @Override
-    public Table table(Class<?> clazz) throws TableAnnotationNotFoundException{
+    public Table table(Class<?> clazz) throws ORMException{
+        if(clazz == null){
+            return null;
+        }
         RdTable rdTable = ORMUtils.getRdTable(clazz);
+        if(rdTable == null){
+            throw new ORMException(ORMError.CLASS_TABLE_ANNOTATION_NOT_FOUND, clazz.getName());
+        }
         Options options = getOptions();
         if(options == null){
             logger.warn("Query table Not Support.");
@@ -630,9 +647,14 @@ public class SQLServiceImpl implements ISQLService{
     }
 
     @Override
-    public List<TableColumn> columns(Class<?> clazz) throws TableAnnotationNotFoundException, TableNameNotFoundException{
+    public List<TableColumn> columns(Class<?> clazz) throws ORMException{
+        if(clazz == null){
+            return null;
+        }
         RdTable rdTable = ORMUtils.getRdTable(clazz);
-//        Assert.notNull(rdTable, "Error Entity, it must contain RdTable");
+        if(rdTable == null){
+            throw new ORMException(ORMError.CLASS_TABLE_ANNOTATION_NOT_FOUND, clazz.getName());
+        }
         Options options = getOptions();
         if(options == null){
             logger.warn("Create Or update Not Support.");

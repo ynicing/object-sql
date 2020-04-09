@@ -35,6 +35,12 @@ public class Pageable<S> implements Serializable {
 	public List<? extends Object> rows;
 
 	public Integer getOffset(){
+		if(page == null){
+			page = 1;
+		}
+		if(size == null){
+			size = 10;
+		}
 		return (Math.max(1, page) - 1) * size;
 	}
 

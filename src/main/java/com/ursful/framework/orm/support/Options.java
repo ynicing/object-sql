@@ -17,8 +17,7 @@ package com.ursful.framework.orm.support;
 
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.annotation.RdTable;
-import com.ursful.framework.orm.exception.TableAnnotationNotFoundException;
-import com.ursful.framework.orm.exception.TableNameNotFoundException;
+import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.helper.SQLHelper;
 
 import java.sql.Connection;
@@ -40,11 +39,11 @@ public interface Options {
     SQLHelper doQuery(Class<?> clazz, String[] names, Terms terms, MultiOrder multiOrder, Integer start, Integer size);
 
     boolean tableExists(Connection connection, String table);
-    boolean tableExists(Connection connection, RdTable table) throws TableAnnotationNotFoundException, TableNameNotFoundException;
-    Table table(Connection connection, RdTable table) throws TableAnnotationNotFoundException, TableNameNotFoundException;
-    List<TableColumn> columns(Connection connection, RdTable table) throws TableAnnotationNotFoundException, TableNameNotFoundException;
+    boolean tableExists(Connection connection, RdTable table) throws ORMException;
+    Table table(Connection connection, RdTable table) throws ORMException;
+    List<TableColumn> columns(Connection connection, RdTable table) throws ORMException;
 
-    List<String> manageTable(RdTable table, List<ColumnInfo> columnInfoList, boolean tableExisted, List<TableColumn> tableColumns);
+    List<String> createOrUpdateSqls(Connection connection, RdTable table, List<ColumnInfo> columnInfoList, boolean tableExisted, List<TableColumn> tableColumns);
 
     SQLPair parseExpression(Object clazz, Expression expression);
     String getConditions(Class clazz, Express [] expresses, List<Pair> values);
@@ -52,5 +51,5 @@ public interface Options {
     String parseColumn(Column column);
 
     String getCaseSensitive(String name, int sensitive);
-    String getTableName(RdTable table)  throws TableAnnotationNotFoundException, TableNameNotFoundException;
+    String getTableName(RdTable table)  throws ORMException;
 }

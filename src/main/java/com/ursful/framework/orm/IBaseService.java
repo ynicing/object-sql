@@ -16,6 +16,7 @@
 package com.ursful.framework.orm;
 
 
+import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.listener.IDefaultListener;
 import com.ursful.framework.orm.listener.IORMListener;
 import com.ursful.framework.orm.listener.IServiceChangedListener;
@@ -146,5 +147,6 @@ public interface IBaseService<T> extends IServiceChangedListener<T>, ISQLService
     int queryCount(IQuery query);
     <S> Pageable<S> queryPage(IQuery query, Pageable page);
 
-
+    String tableName() throws ORMException;
+    void createOrUpdate() throws ORMException;
 }

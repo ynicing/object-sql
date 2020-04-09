@@ -16,15 +16,12 @@
 package com.ursful.framework.orm.option;
 
 import com.ursful.framework.orm.IQuery;
-import com.ursful.framework.orm.annotation.RdColumn;
-import com.ursful.framework.orm.annotation.RdForeignKey;
-import com.ursful.framework.orm.annotation.RdUniqueKey;
-import com.ursful.framework.orm.exception.TableAnnotationNotFoundException;
-import com.ursful.framework.orm.exception.TableNameNotFoundException;
+import com.ursful.framework.orm.annotation.*;
+import com.ursful.framework.orm.exception.ORMError;
+import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.helper.SQLHelper;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
-import com.ursful.framework.orm.annotation.RdTable;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
@@ -215,29 +212,13 @@ public class MySQLOptions extends AbstractOptions{
         }
     }
 
-    public String getTableName(RdTable rdTable) throws TableAnnotationNotFoundException, TableNameNotFoundException{
-        if(rdTable == null){
-            throw new TableAnnotationNotFoundException();
-        }
-        String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
-        if (StringUtils.isEmpty(tableName)){
-            throw new TableNameNotFoundException();
-        }
-        return tableName;
-    }
 
 //            lower_case_table_names= 1  表名存储在磁盘是小写的，但是比较的时候是不区分大小写
 //            lower_case_table_names=0  表名存储为给定的大小和比较是区分大小写的
 //            lower_case_table_names=2, 表名存储为给定的大小写但是比较的时候是小写的
     @Override
-    public Table table(Connection connection, RdTable rdTable) throws TableAnnotationNotFoundException, TableNameNotFoundException{
-        if(rdTable == null){
-            throw new TableAnnotationNotFoundException();
-        }
-        String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
-        if (StringUtils.isEmpty(tableName)){
-            throw new TableNameNotFoundException();
-        }
+    public Table table(Connection connection, RdTable rdTable) throws ORMException{
+        String tableName = getTableName(rdTable);
         PreparedStatement ps = null;
         ResultSet rs = null;
         try {
@@ -283,14 +264,8 @@ public class MySQLOptions extends AbstractOptions{
     }
 
     @Override
-    public List<TableColumn> columns(Connection connection, RdTable rdTable) throws TableAnnotationNotFoundException, TableNameNotFoundException{
-        if(rdTable == null){
-            throw new TableAnnotationNotFoundException();
-        }
-        String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
-        if (StringUtils.isEmpty(tableName)){
-            throw new TableNameNotFoundException();
-        }
+    public List<TableColumn> columns(Connection connection, RdTable rdTable) throws ORMException{
+        String tableName = getTableName(rdTable);
         List<TableColumn> columns = new ArrayList<TableColumn>();
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -336,7 +311,7 @@ public class MySQLOptions extends AbstractOptions{
 
 
     @Override
-    public List<String> manageTable(RdTable table, List<ColumnInfo> infos, boolean tableExisted, List<TableColumn> tableColumns) {
+    public List<String> createOrUpdateSqls(Connection connection, RdTable table, List<ColumnInfo> infos, boolean tableExisted, List<TableColumn> tableColumns) {
         String tableName = getCaseSensitive(table.name(), table.sensitive());
         List<String> sqls = new ArrayList<String>();
         if(table.dropped()){
@@ -511,9 +486,7 @@ public class MySQLOptions extends AbstractOptions{
         }else{
             temp.append(String.format("`%s`", cname));
         }
-        temp.append(" ");
-
-        String type = getColumnType(info, rdColumn);
+        String type = " " + getColumnType(info, rdColumn);
         if(!StringUtils.isEmpty(rdColumn.defaultValue())){
             type += " DEFAULT '" +  rdColumn.defaultValue() + "'";
         }
@@ -522,8 +495,11 @@ public class MySQLOptions extends AbstractOptions{
         }
         temp.append(type);
         if(info.getPrimaryKey() && addKey){
-            temp.append(" ");
-            temp.append("PRIMARY KEY");
+            temp.append(" PRIMARY KEY");
+        }
+        RdId rdId = info.getField().getAnnotation(RdId.class);
+        if(rdId != null && rdId.autoIncrement()){
+            temp.append(" AUTO_INCREMENT");
         }
         return temp.toString();
     }

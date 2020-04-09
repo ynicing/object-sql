@@ -22,4 +22,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface RdId {
+    boolean autoIncrement() default false;
+    //create sequence t1_seq increment by 1 start with 1;
+    String sequence() default "";//postgreSQL： SMALLSERIAL SERIAL BIGSERIAL， oracle 自定义序列
 }

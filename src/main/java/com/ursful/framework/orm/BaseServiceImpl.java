@@ -15,6 +15,7 @@
  */
 package com.ursful.framework.orm;
 
+import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.listener.IChangeListener;
 import com.ursful.framework.orm.listener.IChangedListener;
@@ -222,7 +223,8 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         try {
             conn = getConnection();
             triggerDefaultListener(t, false);
-            helper = SQLHelperCreator.insert(t);
+            Options options = getOptions();
+            helper = SQLHelperCreator.insert(t, options);
             if(ORMUtils.getDebug()) {
                 logger.info("SAVE : " + helper);
             }
@@ -235,7 +237,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             //ps = conn.prepareStatement(sql);
             //ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             //ps = conn.prepareStatement(sql, new String[]{idCols.getFirst()});
-            SQLHelperCreator.setParameter(getOptions(), ps, helper.getParameters(), conn);
+            SQLHelperCreator.setParameter(options, ps, helper.getParameters(), conn);
             boolean flag =  ps.executeUpdate() > 0;
             try {
                 if(helper.getIdValue() == null && helper.getIdField() != null) {
@@ -1197,6 +1199,13 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         return 0;
     }*/
 
+    @Override
+    public String tableName() throws ORMException{
+        return super.getTableName(thisClass);
+    }
 
-
+    @Override
+    public void createOrUpdate() throws ORMException{
+        super.createOrUpdate(thisClass);
+    }
 }
