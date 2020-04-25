@@ -362,6 +362,7 @@ public class SQLHelperCreator {
         return helper;
     }
 
+    public static Map<String, IDGenerator> generatorMap = new HashMap<String, IDGenerator>();
 
     public static SQLHelper insert(Object obj, Options options){
 
@@ -382,20 +383,31 @@ public class SQLHelperCreator {
             if(databaseType != null && databaseType.contains("SERVER") && info.getColumnType() == ColumnType.TIMESTAMP){
                 continue;
             }
-            if(info.getPrimaryKey()){
+            if(info.getPrimaryKey()){// make sure RdId exist.
                 if (StringUtils.isEmpty(fo)) {
-                    if (String.class.getSimpleName().equals(info.getType())) {
-                        fo = UUID.randomUUID().toString();
-                        ORMUtils.setFieldValue(obj, info, fo);
-                        helper.setIdValue(fo);
-                    }else{
-                        helper.setIdField(info.getField());
-                        RdId rdId = info.getField().getAnnotation(RdId.class);
-                        // is oracle
-                        if(rdId.autoIncrement() && !StringUtils.isEmpty(rdId.sequence()) && (options instanceof OracleOptions)){
+                    RdId rdId = info.getField().getAnnotation(RdId.class);
+                    helper.setIdField(info.getField());
+                    if(rdId.autoIncrement()){
+                        if(!StringUtils.isEmpty(rdId.sequence()) && (options instanceof OracleOptions)){//oracle
                             ps.add(info.getColumnName());
                             vs.add(rdId.sequence() + ".nextval");
                             continue;
+                        }
+                    }else{
+                        Class generatorClass = rdId.generator();// use generator first
+                        if(IDGenerator.class.isAssignableFrom(generatorClass)){
+                            IDGenerator generator = generatorMap.get(generatorClass.getName());
+                            if(generator == null){
+                                try {
+                                    generator = (IDGenerator)generatorClass.newInstance();
+                                    generatorMap.put(generatorClass.getName(), generator);
+                                } catch (InstantiationException e) {
+                                } catch (IllegalAccessException e) {
+                                }
+                            }
+                            fo = generator.next(obj, info.getField().getType(), fo);
+                            ORMUtils.setFieldValue(obj, info, fo);
+                            helper.setIdValue(fo);
                         }
                     }
                 } else {//值为空的时候，但是无id，需要自取了

@@ -166,9 +166,14 @@ public class ORMUtils {
     private static List<ColumnInfo> analyze(Class<?> clazz){
         List<ColumnInfo> infoList = new ArrayList<ColumnInfo>();
         List<Field> fields = getDeclaredFields(clazz);
+        List<String> fieldNames = new ArrayList<String>();
         for(Field field : fields){
             RdColumn column = field.getAnnotation(RdColumn.class);
-            if(column != null){
+            if(column != null){//针对RdColumn
+                if(fieldNames.contains(field.getName())){
+                    continue;
+                }
+                fieldNames.add(field.getName());
                 ColumnInfo info = new ColumnInfo();
                 info.setField(field);
                 info.setOrder(column.order());

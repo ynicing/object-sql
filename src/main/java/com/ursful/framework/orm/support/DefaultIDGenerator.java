@@ -13,20 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ursful.framework.orm.annotation;
+package com.ursful.framework.orm.support;
 
-import com.ursful.framework.orm.support.DefaultIDGenerator;
-import com.ursful.framework.orm.support.IDGenerator;
+import java.util.UUID;
 
-import java.lang.annotation.*;
+public class DefaultIDGenerator implements IDGenerator{
 
+    @Override
+    public Object next(Object object, Class<?> type, Object value) {
+        if(String.class.isAssignableFrom(type) && (value == null)){
+            return UUID.randomUUID().toString();
+        }
+        return null;
+    }
 
-@Target(ElementType.FIELD)
-@Retention(RetentionPolicy.RUNTIME)
-@Documented
-public @interface RdId {
-    boolean autoIncrement() default false;
-    //create sequence t1_seq increment by 1 start with 1;
-    String sequence() default "";//postgreSQL： SMALLSERIAL SERIAL BIGSERIAL， oracle 自定义序列
-    Class<? extends IDGenerator> generator() default DefaultIDGenerator.class;
 }
