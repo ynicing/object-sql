@@ -250,7 +250,7 @@ public class SQLServiceImpl implements ISQLService{
                 tempMap = new HashMap<String, Object>();
                 for(int i = 1; i <= metaMap.getColumnCount(); i++){
                     Object obj = rs.getObject(i);
-                    KV kv = resultSetHandler.parse(metaMap, i, obj);
+                    KV kv = resultSetHandler.parse(metaMap, i, obj, rs);
                     if(kv != null) {
                         tempMap.put(kv.getKey(), kv.getValue());
                     }
@@ -280,7 +280,7 @@ public class SQLServiceImpl implements ISQLService{
                 Map<String, Object> tempMap = new HashMap<String, Object>();
                 for(int i = 1; i <= metaMap.getColumnCount(); i++){
                     Object obj = rs.getObject(i);
-                    KV kv = resultSetHandler.parse(metaMap, i, obj);
+                    KV kv = resultSetHandler.parse(metaMap, i, obj, rs);
                     if(kv != null) {
                         tempMap.put(kv.getKey(), kv.getValue());
                     }

@@ -15,13 +15,15 @@
  */
 package com.ursful.framework.orm.support;
 
+import com.ursful.framework.orm.utils.ORMUtils;
+
 import java.util.UUID;
 
 public class DefaultIDGenerator implements IDGenerator{
 
     @Override
     public Object next(Object object, Class<?> type, Object value) {
-        if(String.class.isAssignableFrom(type) && (value == null)){
+        if(String.class.isAssignableFrom(type) && (ORMUtils.isEmpty(value))){
             return UUID.randomUUID().toString();
         }
         return null;

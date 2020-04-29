@@ -18,11 +18,12 @@ package com.ursful.framework.orm.handler;
 import com.ursful.framework.orm.support.ColumnInfo;
 import com.ursful.framework.orm.support.KV;
 
+import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
 public interface IResultSetHandler {
-    String decode(Class clazz, ColumnInfo info, Object value);
-    KV parse(ResultSetMetaData metaData, int index, Object value) throws SQLException;
-    void handle(Object object, ColumnInfo info, Object value) throws SQLException;
+    String decode(Class clazz, ColumnInfo info, Object value, ResultSet resultSet);
+    KV parse(ResultSetMetaData metaData, int index, Object value, ResultSet resultSet) throws SQLException;
+    void handle(Object object, ColumnInfo info, Object value, ResultSet resultSet) throws SQLException;
 }

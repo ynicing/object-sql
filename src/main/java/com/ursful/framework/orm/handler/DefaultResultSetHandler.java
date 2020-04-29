@@ -33,7 +33,7 @@ import java.util.Date;
 public class DefaultResultSetHandler implements IResultSetHandler{
 
     @Override
-    public String decode(Class clazz, ColumnInfo info, Object value) {
+    public String decode(Class clazz, ColumnInfo info, Object value, ResultSet resultSet) {
         if(info != null && info.getField() != null){
             RdColumn column  = info.getField().getAnnotation(RdColumn.class);
             if(column != null){
@@ -44,7 +44,7 @@ public class DefaultResultSetHandler implements IResultSetHandler{
     }
 
     @Override
-    public KV parse(ResultSetMetaData metaData, int index, Object obj) throws SQLException{
+    public KV parse(ResultSetMetaData metaData, int index, Object obj, ResultSet rs) throws SQLException{
         if(obj != null) {
             if (obj instanceof Timestamp) {
                 obj = new Date(((Timestamp) obj).getTime());
@@ -78,14 +78,14 @@ public class DefaultResultSetHandler implements IResultSetHandler{
                     byte[] temp = new byte[(int)blob.length()];
                     stream.read(temp);
                     stream.close();
-                    obj = new String(temp, decode(null, null, obj));
+                    obj = new String(temp, decode(null, null, obj, rs));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
 
             }else if(obj instanceof byte[]){
                 try {
-                    obj = new String((byte[])obj, decode(null, null, obj));
+                    obj = new String((byte[])obj, decode(null, null, obj, rs));
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -102,7 +102,7 @@ public class DefaultResultSetHandler implements IResultSetHandler{
     }
 
     @Override
-    public void handle(Object object, ColumnInfo info, Object value) throws SQLException {
+    public void handle(Object object, ColumnInfo info, Object value, ResultSet rs) throws SQLException {
         if(object == null){
             return;
         }
@@ -153,7 +153,7 @@ public class DefaultResultSetHandler implements IResultSetHandler{
                             byte[] temp = new byte[(int)blob.length()];
                             stream.read(temp);
                             stream.close();
-                            String coding = decode(clazz, info, value);
+                            String coding = decode(clazz, info, value, rs);
                             obj = new String(temp, coding);
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -161,7 +161,7 @@ public class DefaultResultSetHandler implements IResultSetHandler{
 
                     }else if(value instanceof byte[]){
                         try {
-                            String coding = decode(clazz, info, value);
+                            String coding = decode(clazz, info, value, rs);
                             obj = new String((byte[])value, coding);
                         } catch (IOException e) {
                             e.printStackTrace();

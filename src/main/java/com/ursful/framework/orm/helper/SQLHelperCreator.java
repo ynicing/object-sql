@@ -676,7 +676,7 @@ public class SQLHelperCreator {
                 Map<String, Object> tempMap = new HashMap<String, Object>();
                 for(int i = 1; i <= metaMap.getColumnCount(); i++){
                     Object obj = rs.getObject(i);
-                    KV kv = resultSetHandler.parse(metaMap, i, obj);
+                    KV kv = resultSetHandler.parse(metaMap, i, obj, rs);
                     if(kv != null) {
                         tempMap.put(kv.getKey(), kv.getValue());
                     }
@@ -717,7 +717,11 @@ public class SQLHelperCreator {
                         obj = temp.get(info.getName());
                     }
                     if(obj != null){
-                        resultSetHandler.handle(t, info, obj);
+                        //mysql tinyint(1) getObject会导致返回  boolean对象；修改为tinyint(2)或者如下兼容
+                        if("integer".equalsIgnoreCase(info.getType()) && (obj instanceof Boolean)){
+                            obj = rs.getInt(info.getColumnName());
+                        }
+                        resultSetHandler.handle(t, info, obj, rs);
                     }
                 }
                 List<ColumnInfo> fields = ORMUtils.getExtendFields(clazz);
@@ -730,7 +734,7 @@ public class SQLHelperCreator {
                         obj = temp.get(info.getName().toLowerCase(Locale.ROOT));
                     }
                     if(obj != null){
-                        resultSetHandler.handle(t, info, obj);
+                        resultSetHandler.handle(t, info, obj, rs);
                     }
                 }
                 break;
