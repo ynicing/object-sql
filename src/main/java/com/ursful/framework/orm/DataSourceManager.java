@@ -194,8 +194,9 @@ public class DataSourceManager {
 
     public Connection getConnection(Class clazz, Class serviceClass){
         DataSource source = getDataSource(clazz, serviceClass);
-        Connection connection = DataSourceUtils.getConnection(source);
-        DatabaseTypeHolder.set(getProductName(source, connection));
+        DataSource raw = getRawDataSource(source);
+        Connection connection = DataSourceUtils.getConnection(raw);
+        DatabaseTypeHolder.set(getProductName(raw, connection));
         return connection;
     }
 
@@ -214,18 +215,18 @@ public class DataSourceManager {
     }
     public String getProductName(Class clazz, Class serviceClass){
         DataSource temp = getDataSource(clazz, serviceClass);
-        return getProductName(temp);
+        DataSource raw = getRawDataSource(temp);
+        return getProductName(raw);
     }
 
     public String getProductName(DataSource source, Connection connection){
-        DataSource raw = getRawDataSource(source);
-        String type = databaseTypeMap.get(raw);
+        String type = databaseTypeMap.get(source);
         if(type != null){
             return type;
         }
         try {
             String productName = connection.getMetaData().getDatabaseProductName().toUpperCase(Locale.ROOT);
-            databaseTypeMap.put(raw, productName);
+            databaseTypeMap.put(source, productName);
             return productName;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -236,6 +237,7 @@ public class DataSourceManager {
 
     public synchronized void close(Class clazz, Class serviceClass, ResultSet rs, Statement stmt, Connection conn){
         DataSource source = getDataSource(clazz, serviceClass);
+        DataSource raw = getRawDataSource(source);
         try {
             if(rs != null){
                 rs.close();
@@ -246,7 +248,7 @@ public class DataSourceManager {
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
-            DataSourceUtils.releaseConnection(conn, source);
+            DataSourceUtils.releaseConnection(conn, raw);
             DatabaseTypeHolder.remove();
         }
     }
