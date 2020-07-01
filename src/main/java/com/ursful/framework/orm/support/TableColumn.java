@@ -26,8 +26,27 @@ public class TableColumn {
     private Integer precision;
     private Integer scale;
     private String comment;
+    private boolean isPrimaryKey;
 
-//    private Integer sensitive = -1;//mysql
+    public boolean isPrimaryKey() {
+        return isPrimaryKey;
+    }
+
+    public void setIsPrimaryKey(boolean isPrimaryKey) {
+        this.isPrimaryKey = isPrimaryKey;
+    }
+
+    private String columnClass;
+
+    public String getColumnClass() {
+        return columnClass;
+    }
+
+    public void setColumnClass(String columnClass) {
+        this.columnClass = columnClass;
+    }
+
+    //    private Integer sensitive = -1;//mysql
 
     public String getDefaultValue() {
         return defaultValue;

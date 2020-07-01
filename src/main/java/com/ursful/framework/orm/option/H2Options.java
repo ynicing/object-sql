@@ -44,8 +44,53 @@ public class H2Options extends MySQLOptions{
     }
 
     @Override
+    public List<Table> tables(Connection connection, String keyword) {
+        List<Table> temp = new ArrayList<Table>();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            String dbName = connection.getCatalog();
+            String sql = "SELECT TABLE_NAME,REMARKS FROM information_schema.TABLES WHERE TABLE_CATALOG = ? ";
+            if(!ORMUtils.isEmpty(keyword)){
+                sql +=  "AND TABLE_NAME LIKE ? ";
+            }
+            ps = connection.prepareStatement(sql);
+            ps.setString(1, dbName);
+            if(!ORMUtils.isEmpty(keyword)){
+                ps.setString(2, "%" + keyword + "%");
+            }
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                temp.add(new Table(rs.getString(1), rs.getString(2)));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(ps != null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if(rs != null){
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+        return temp;
+
+    }
+
+    @Override
     public Table table(Connection connection, RdTable rdTable) throws ORMException{
         String tableName = getTableName(rdTable);
+        return table(connection, tableName);
+    }
+
+    @Override
+    public Table table(Connection connection, String tableName){
         PreparedStatement ps = null;
         ResultSet rs = null;
         try {

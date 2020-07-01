@@ -248,6 +248,11 @@ public class SQLServerOptions extends AbstractOptions{
     @Override
     public Table table(Connection connection, RdTable rdTable) throws ORMException{
         String tableName = getTableName(rdTable);
+        return table(connection, tableName);
+    }
+
+    @Override
+    public Table table(Connection connection, String tableName){
         PreparedStatement ps = null;
         ResultSet rs = null;
         Table table = null;
@@ -310,9 +315,42 @@ public class SQLServerOptions extends AbstractOptions{
     @Override
     public List<TableColumn> columns(Connection connection, RdTable rdTable) {
         String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
+        return columns(connection, tableName);
+    }
+
+    @Override
+    public List<TableColumn> columns(Connection connection, String tableName) {
         List<TableColumn> columns = new ArrayList<TableColumn>();
         PreparedStatement ps = null;
         ResultSet rs = null;
+        String primaryKey = null;
+        try {
+            // 查询列的时候，是大写就是大写，小写就是小写
+            String sql = String.format("SELECT colm.name FROM sys.columns colm, sys.indexes idx, sys.index_columns ic " +
+                    "where idx.index_id = ic.index_id and colm.column_id  = ic.column_id  " +
+                    "and idx.object_id = ic.object_id and colm.object_id = idx.object_id " +
+                    "and idx.is_primary_key = 1  and idx.object_id = OBJECT_ID('%s') ", tableName);
+            ps = connection.prepareStatement(sql);
+            rs = ps.executeQuery();
+            if (rs.next()){
+                primaryKey = rs.getString(1);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(ps != null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if(rs != null){
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
         try {
             // 查询列的时候，是大写就是大写，小写就是小写
             String schemaName = connection.getSchema();
@@ -333,6 +371,7 @@ public class SQLServerOptions extends AbstractOptions{
                 tableColumn.setOrder(rs.getInt("COLORDER"));
                 tableColumn.setDefaultValue(rs.getString("VALUE"));
                 tableColumn.setComment(rs.getString("COMMENT"));
+                tableColumn.setIsPrimaryKey(tableColumn.getColumn().equalsIgnoreCase(primaryKey));
                 columns.add(tableColumn);
             }
         } catch (SQLException e) {
@@ -587,5 +626,80 @@ public class SQLServerOptions extends AbstractOptions{
             return name;//默认
         }
     }
+
+    @Override
+    public List<Table> tables(Connection connection, String keyword) {
+        List<Table> temp = new ArrayList<Table>();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        Map<String, String> info = new HashMap<String, String>();
+        try {
+            String sql = " SELECT o.name, p.value FROM sys.extended_properties p " +
+                    "        LEFT JOIN sysobjects o ON p.major_id= o.id" +
+                    "        WHERE  p.minor_id=0 ";
+
+            if(!ORMUtils.isEmpty(keyword)){
+                sql +=  "and o.name like ? ";
+            }
+            ps = connection.prepareStatement(sql);
+            if(!ORMUtils.isEmpty(keyword)){
+                ps.setString(1, "%" + keyword + "%");
+            }
+            rs = ps.executeQuery();
+            while(rs.next()){
+                info.put(rs.getString(1), rs.getString(2));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (ps != null) {
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if (rs != null) {
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+        try {
+            String schemaName = connection.getSchema();
+            //写入大写就是大写，小写就是小写
+            //不区分大小写同样（区别于查询条件，如 TULIP 与 tulip等价
+            String sql = String.format("select name from %s.sysobjects where id = object_id('%s') and type = 'U' ", schemaName);
+            if(!ORMUtils.isEmpty(keyword)){
+                sql +=  "and name like ? ";
+            }
+            ps = connection.prepareStatement(sql);
+            if(!ORMUtils.isEmpty(keyword)){
+                ps.setString(1, "%" + keyword + "%");
+            }
+            rs = ps.executeQuery();
+            while(rs.next()){
+                String tableName = rs.getString(1);
+                temp.add(new Table(tableName, info.get(tableName)));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(ps != null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if(rs != null){
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+        return temp;
+    }
+
 
 }

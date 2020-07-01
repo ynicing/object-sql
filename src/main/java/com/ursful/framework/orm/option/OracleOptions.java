@@ -17,7 +17,6 @@ package com.ursful.framework.orm.option;
 
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.annotation.*;
-import com.ursful.framework.orm.exception.ORMError;
 import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.helper.SQLHelper;
 import com.ursful.framework.orm.query.QueryUtils;
@@ -361,8 +360,83 @@ public class OracleOptions extends AbstractOptions{
     }
 
     @Override
+    public List<Table> tables(Connection connection, String keyword) {
+        List<Table> temp = new ArrayList<Table>();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        Map<String, String> info = new HashMap<String, String>();
+        try {
+            String sql = "SELECT TABLE_NAME,COMMENTS FROM USER_TAB_COMMENTS ";
+            if(!ORMUtils.isEmpty(keyword)){
+                sql +=  "WHERE TABLE_NAME LIKE ? ";
+            }
+            ps = connection.prepareStatement(sql);
+            if(!ORMUtils.isEmpty(keyword)){
+                ps.setString(1, "%" + keyword + "%");
+            }
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                info.put(rs.getString(1), rs.getString(2));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(ps != null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if(rs != null){
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+        try {
+            //Oracle 将表名自动转为大写，所以查询只需要大写
+            //但是为了兼容，做了小写查询
+            String sql = "SELECT TABLE_NAME FROM USER_TABLES";
+            if(!ORMUtils.isEmpty(keyword)){
+                sql +=  "WHERE TABLE_NAME LIKE ? ";
+            }
+            ps = connection.prepareStatement(sql);
+            if(!ORMUtils.isEmpty(keyword)){
+                ps.setString(1, "%" + keyword + "%");
+            }
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                String tableName = rs.getString(1);
+                temp.add(new Table(tableName, info.get(tableName)));//如果是小写同时被转为大写
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(ps != null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if(rs != null){
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+        return temp;
+    }
+
+    @Override
     public Table table(Connection connection, RdTable rdTable)  throws ORMException{
         String tableName = getTableName(rdTable);
+        return table(connection, tableName);
+    }
+
+    @Override
+    public Table table(Connection connection, String tableName){
         PreparedStatement ps = null;
         ResultSet rs = null;
         Table table = null;
@@ -478,6 +552,107 @@ public class OracleOptions extends AbstractOptions{
                 tableColumn.setOrder(rs.getInt("COLUMN_ID"));
                 tableColumn.setDefaultValue(rs.getString("DATA_DEFAULT"));
                 tableColumn.setComment(columnComment.get(tableColumn.getColumn()));
+                columns.add(tableColumn);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(ps != null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if(rs != null){
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+        return columns;
+    }
+
+    public List<TableColumn> columns(Connection connection, String tableName){
+        List<TableColumn> columns = new ArrayList<TableColumn>();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        Map<String, String> columnComment = new HashMap<String, String>();
+        try {
+            String sql = "SELECT COLUMN_NAME,COMMENTS FROM USER_COL_COMMENTS WHERE TABLE_NAME = ? ";
+            ps = connection.prepareStatement(sql);
+            ps.setString(1, tableName);
+            rs = ps.executeQuery();
+            while (rs.next()){
+                //查询出来默认采用大写，为了下面comments能够匹配上
+                String cname = rs.getString(1);
+                columnComment.put(cname, rs.getString(2));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(ps != null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if(rs != null){
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+        String primaryKey = null;
+        try {
+            String sql = "select col.column_name " +
+                    "        from user_constraints con,  user_cons_columns col" +
+                    "        where con.constraint_name = col.constraint_name" +
+                    "        and con.constraint_type='P'" +
+                    "        and col.table_name = ? ";
+            ps = connection.prepareStatement(sql);
+            ps.setString(1, tableName);
+            rs = ps.executeQuery();
+            if (rs.next()){
+                //查询出来默认采用大写，为了下面comments能够匹配上
+                primaryKey = rs.getString(1);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(ps != null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if(rs != null){
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+
+
+        try {
+            String sql = " SELECT TABLE_NAME,COLUMN_NAME,DATA_TYPE,DATA_LENGTH,DATA_PRECISION,DATA_SCALE,NULLABLE,COLUMN_ID,DATA_DEFAULT FROM USER_TAB_COLUMNS WHERE TABLE_NAME = ?";
+            ps = connection.prepareStatement(sql);
+            ps.setString(1, tableName);
+            rs = ps.executeQuery();
+            while (rs.next()){
+                String cname = rs.getString(2);
+                TableColumn tableColumn = new TableColumn(tableName, cname);
+                tableColumn.setType(rs.getString("DATA_TYPE"));
+                tableColumn.setLength(rs.getInt("DATA_LENGTH"));
+                tableColumn.setPrecision(rs.getInt("DATA_PRECISION"));
+                tableColumn.setScale(rs.getInt("DATA_SCALE"));
+                tableColumn.setNullable("Y".equalsIgnoreCase(rs.getString("NULLABLE")));
+                tableColumn.setOrder(rs.getInt("COLUMN_ID"));
+                tableColumn.setDefaultValue(rs.getString("DATA_DEFAULT"));
+                tableColumn.setComment(columnComment.get(tableColumn.getColumn()));
+                tableColumn.setIsPrimaryKey(cname.equalsIgnoreCase(primaryKey));
                 columns.add(tableColumn);
             }
         } catch (SQLException e) {

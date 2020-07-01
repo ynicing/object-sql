@@ -136,22 +136,26 @@ public abstract class AbstractOptions implements Options{
                 }
                 break;
             case DECIMAL:
-                BigDecimal decimal = (BigDecimal) obj;
-                Map<String, Object> metadata = pair.getMetadata();
-                int runningMode = BigDecimal.ROUND_HALF_DOWN;//默认采用四舍五入
-                int scale = decimal.scale();
-                if(metadata != null){
-                    Integer mode = (Integer)metadata.get("runningMode");
-                    if(mode != null && mode.intValue() > -1){
-                        runningMode = mode.intValue();
+                if(obj == null) {
+                    ps.setObject(i + 1, null);
+                }else{
+                    BigDecimal decimal = (BigDecimal) obj;
+                    Map<String, Object> metadata = pair.getMetadata();
+                    int runningMode = BigDecimal.ROUND_HALF_DOWN;//默认采用四舍五入
+                    int scale = decimal.scale();
+                    if (metadata != null) {
+                        Integer mode = (Integer) metadata.get("runningMode");
+                        if (mode != null && mode.intValue() > -1) {
+                            runningMode = mode.intValue();
+                        }
+                        Integer scaleValue = (Integer) metadata.get("scale");
+                        if (scaleValue != null) {//当scale为0时，才会使用 RdColumn中的scale, 不能使用上述 decimal中的scale, 有可能失去精度变成很大
+                            scale = scaleValue.intValue();
+                        }
                     }
-                    Integer scaleValue = (Integer) metadata.get("scale");
-                    if(scaleValue != null){//当scale为0时，才会使用 RdColumn中的scale, 不能使用上述 decimal中的scale, 有可能失去精度变成很大
-                        scale = scaleValue.intValue();
-                    }
+                    BigDecimal setScale = decimal.setScale(scale, runningMode);
+                    ps.setBigDecimal(i + 1, setScale);
                 }
-                BigDecimal setScale = decimal.setScale(scale, runningMode);
-                ps.setBigDecimal(i + 1, setScale);
                 break;
             case DOUBLE:
                 ps.setObject(i + 1, obj);

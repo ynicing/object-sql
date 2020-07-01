@@ -64,6 +64,15 @@ public class PostgreSQLOptions extends MySQLOptions{
     @Override
     public Table table(Connection connection, RdTable rdTable) throws ORMException {
         String tableName = getTableName(rdTable);
+        return table(connection, tableName, rdTable.name(), rdTable.sensitive() == RdTable.DEFAULT_SENSITIVE);
+    }
+
+    @Override
+    public Table table(Connection connection, String tableName){
+        return table(connection, tableName, tableName, false);
+    }
+
+    private Table table(Connection connection, String tableName, String originalTableName, boolean sensitive){
         PreparedStatement ps = null;
         ResultSet rs = null;
         Table table = null;
@@ -76,8 +85,8 @@ public class PostgreSQLOptions extends MySQLOptions{
             rs = ps.executeQuery();
             if(rs.next()) {
                 table = new Table();
-                if(rdTable.sensitive() == RdTable.DEFAULT_SENSITIVE) {
-                    table.setName(rdTable.name());
+                if(sensitive) {
+                    table.setName(originalTableName);
                 }else{
                     table.setName(tableName);
                 }
@@ -100,6 +109,47 @@ public class PostgreSQLOptions extends MySQLOptions{
             }
         }
         return table;
+    }
+
+    @Override
+    public List<Table> tables(Connection connection, String keyword) {
+        List<Table> temp = new ArrayList<Table>();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        Table table = null;
+        try {
+            String sql = "select relname,cast(obj_description(relfilenode,'pg_class') as varchar) as COMMENT from pg_class c ";
+//            String sql = "select relname as TABLE_NAME,cast(obj_description(relfilenode,'pg_class') as varchar) as COMMENT from pg_class c";
+//            "select relname as TABLE_NAME,cast(obj_description(relfilenode,'pg_class') as varchar) as COMMENT from pg_class c where  (relname = ? OR relname = ?) ";
+//            "where relname in (select tablename from pg_tables where schemaname='public' and position('_2' in tablename)=0 AND (TABLE_NAME = ? OR TABLE_NAME = ?) ) ";
+            if(!ORMUtils.isEmpty(keyword)){
+                sql +=  "where relname like ? ";
+            }
+            ps = connection.prepareStatement(sql);
+            if(!ORMUtils.isEmpty(keyword)){
+                ps.setString(1, "%" + keyword + "%");
+            }
+            rs = ps.executeQuery();
+            while(rs.next()) {
+                temp.add(new Table(rs.getString(1), rs.getString(2)));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (ps != null) {
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if (rs != null) {
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+        return temp;
     }
 
     @Override
@@ -139,21 +189,48 @@ public class PostgreSQLOptions extends MySQLOptions{
         List<TableColumn> columns = new ArrayList<TableColumn>();
         PreparedStatement ps = null;
         ResultSet rs = null;
+        String primaryKey = null;
+        try {
+            // 查询列的时候，是大写就是大写，小写就是小写
+            String sql = String.format("select a.attname from " +
+                    "pg_constraint ct inner join pg_class c " +
+                    "on ct.conrelid = c.oid " +
+                    "inner join pg_attribute a on a.attrelid = c.oid " +
+                    "and a.attnum = ct.conkey[1] " +
+                    "inner join pg_type t on t.oid = a.atttypid " +
+                    "where  ct.contype='p' and c.relname = '%s'", tableName);
+            ps = connection.prepareStatement(sql);
+            rs = ps.executeQuery();
+            if (rs.next()){
+                primaryKey = rs.getString(1);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(ps != null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if(rs != null){
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
         try {
             String dbName = connection.getCatalog();
             String schemaName = connection.getSchema();
-            String sql = "select c.relname, ad.adsrc, a.attnum,a.attname,t.typname,SUBSTRING(format_type(a.atttypid,a.atttypmod) from '\\(.*\\)') as data_type, format_type(a.atttypid,a.atttypmod),d.description, a.attnotnull, a.*  from pg_attribute a\n" +
-                    "left join pg_type t on a.atttypid=t.oid \n" +
-                    "left join pg_class c on a.attrelid=c.oid \n" +
-                    "left join pg_description d on d.objsubid=a.attnum and d.objoid=a.attrelid \n" +
-                    "left join pg_attrdef  ad  on ad.adrelid = a.attrelid and ad.adnum = a.attnum \n" +
+            String sql = "select c.relname, ad.adsrc, a.attnum,a.attname,t.typname,SUBSTRING(format_type(a.atttypid,a.atttypmod) from '\\(.*\\)') as data_type, format_type(a.atttypid,a.atttypmod),d.description, a.attnotnull, a.*  from pg_attribute a " +
+                    "left join pg_type t on a.atttypid=t.oid " +
+                    "left join pg_class c on a.attrelid=c.oid " +
+                    "left join pg_description d on d.objsubid=a.attnum and d.objoid=a.attrelid " +
+                    "left join pg_attrdef  ad  on ad.adrelid = a.attrelid and ad.adnum = a.attnum " +
                     "where   a.attnum>0  and c.relname = ?";
             ps = connection.prepareStatement(sql);
             ps.setString(1, tableName);
-//            ps.setString(3, schemaName.toUpperCase(Locale.ROOT));
-//            ps.setString(4, schemaName.toLowerCase(Locale.ROOT));
-//            ps.setString(5, dbName.toUpperCase(Locale.ROOT));
-//            ps.setString(6, dbName.toLowerCase(Locale.ROOT));
             rs = ps.executeQuery();
             while (rs.next()){
                 String cname = rs.getString("ATTNAME");
@@ -176,6 +253,99 @@ public class PostgreSQLOptions extends MySQLOptions{
                 tableColumn.setOrder(rs.getInt("ATTNUM"));
                 tableColumn.setDefaultValue(rs.getString("ADSRC"));
                 tableColumn.setComment(rs.getString("DESCRIPTION"));
+                tableColumn.setIsPrimaryKey(tableColumn.getColumn().equalsIgnoreCase(primaryKey));
+                columns.add(tableColumn);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(ps != null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if(rs != null){
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+        return columns;
+    }
+
+    @Override
+    public List<TableColumn> columns(Connection connection, String tableName){
+        List<TableColumn> columns = new ArrayList<TableColumn>();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        String primaryKey = null;
+        try {
+            // 查询列的时候，是大写就是大写，小写就是小写
+            String sql = String.format("select a.attname from " +
+                    "pg_constraint ct inner join pg_class c " +
+                    "on ct.conrelid = c.oid " +
+                    "inner join pg_attribute a on a.attrelid = c.oid " +
+                    "and a.attnum = ct.conkey[1] " +
+                    "inner join pg_type t on t.oid = a.atttypid " +
+                    "where  ct.contype='p' and (c.relname = '%s' or c.relname = '%s')", tableName.toLowerCase(Locale.ROOT), tableName.toUpperCase(Locale.ROOT));
+            ps = connection.prepareStatement(sql);
+            rs = ps.executeQuery();
+            if (rs.next()){
+                primaryKey = rs.getString(1);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(ps != null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if(rs != null){
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+        try {
+            String dbName = connection.getCatalog();
+            String schemaName = connection.getSchema();
+            String sql = "select c.relname, ad.adsrc, a.attnum,a.attname,t.typname,SUBSTRING(format_type(a.atttypid,a.atttypmod) from '\\(.*\\)') as data_type, format_type(a.atttypid,a.atttypmod),d.description, a.attnotnull, a.*  from pg_attribute a " +
+                    "left join pg_type t on a.atttypid=t.oid " +
+                    "left join pg_class c on a.attrelid=c.oid " +
+                    "left join pg_description d on d.objsubid=a.attnum and d.objoid=a.attrelid " +
+                    "left join pg_attrdef  ad  on ad.adrelid = a.attrelid and ad.adnum = a.attnum " +
+                    "where   a.attnum>0  and (c.relname = ? or c.relname = ?)";
+            ps = connection.prepareStatement(sql);
+            ps.setString(1, tableName.toUpperCase(Locale.ROOT));
+            ps.setString(2, tableName.toLowerCase(Locale.ROOT));
+            rs = ps.executeQuery();
+            while (rs.next()){
+                String cname = rs.getString("ATTNAME");
+                if(cname.contains(".pg.dropped.")){
+                    continue;
+                }
+                TableColumn tableColumn = new TableColumn(tableName, cname);
+                tableColumn.setType(rs.getString("TYPNAME"));
+                String type = rs.getString("DATA_TYPE");
+                if(type != null && type.startsWith("(") && type.endsWith(")")) {
+                    String [] stype = type.substring(1, type.length() - 1).split(",");
+                    if(stype.length == 1){
+                        tableColumn.setLength(Integer.parseInt(stype[0]));
+                    }else if(stype.length == 2){
+                        tableColumn.setPrecision(Integer.parseInt(stype[0]));
+                        tableColumn.setScale(Integer.parseInt(stype[1]));
+                    }
+                }
+                tableColumn.setNullable("f".equalsIgnoreCase(rs.getString("ATTNOTNULL")));
+                tableColumn.setOrder(rs.getInt("ATTNUM"));
+                tableColumn.setDefaultValue(rs.getString("ADSRC"));
+                tableColumn.setComment(rs.getString("DESCRIPTION"));
+                tableColumn.setIsPrimaryKey(tableColumn.getColumn().equalsIgnoreCase(primaryKey));
                 columns.add(tableColumn);
             }
         } catch (SQLException e) {

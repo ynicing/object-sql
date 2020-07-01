@@ -357,6 +357,11 @@ public class ORMUtils {
         return temp;
     }
 
+    public static String getFieldByColumn(Class<?> clazz, String columnName){
+        Map<String, String> map = getColumnField(clazz);
+        return map.get(columnName);
+    }
+
     public static Map<String, String> getColumnField(Class<?> clazz){
         Map<String, String> temp = new HashMap<String, String>();
         List<ColumnInfo> infoList = columnInfoCache.get(clazz);

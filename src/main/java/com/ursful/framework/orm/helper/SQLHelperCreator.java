@@ -384,36 +384,7 @@ public class SQLHelperCreator {
                 continue;
             }
             if(info.getPrimaryKey()){// make sure RdId exist.
-                if (StringUtils.isEmpty(fo)) {
-                    RdId rdId = info.getField().getAnnotation(RdId.class);
-                    helper.setIdField(info.getField());
-                    if(rdId.autoIncrement()){
-                        if(!StringUtils.isEmpty(rdId.sequence()) && (options instanceof OracleOptions)){//oracle
-                            ps.add(info.getColumnName());
-                            vs.add(rdId.sequence() + ".nextval");
-                            continue;
-                        }
-                    }else{
-                        Class generatorClass = rdId.generator();// use generator first
-                        if(IDGenerator.class.isAssignableFrom(generatorClass)){
-                            IDGenerator generator = generatorMap.get(generatorClass.getName());
-                            if(generator == null){
-                                try {
-                                    generator = (IDGenerator)generatorClass.newInstance();
-                                    generatorMap.put(generatorClass.getName(), generator);
-                                } catch (InstantiationException e) {
-                                } catch (IllegalAccessException e) {
-                                }
-                            }
-                            fo = generator.next(obj, info.getField().getType(), fo);
-                            ORMUtils.setFieldValue(obj, info, fo);
-                            helper.setIdValue(fo);
-                        }
-                    }
-                } else {//值为空的时候，但是无id，需要自取了
-                    helper.setIdValue(fo);
-                }
-
+                fo = createPrimaryKeyValue(options, helper, ps, vs, info, obj, fo);
             }
             if(fo != null) {
                 ps.add(info.getColumnName());
@@ -437,7 +408,46 @@ public class SQLHelperCreator {
 
     }
 
-    public static <S> List<SQLHelper> inserts(List<S> objs){
+    public static Object createPrimaryKeyValue(
+        Options options,
+        SQLHelper helper,
+        List<String> ps,
+        List<String> vs,
+        ColumnInfo info,
+        Object obj,
+        Object fo){
+        if (StringUtils.isEmpty(fo)) {
+            RdId rdId = info.getField().getAnnotation(RdId.class);
+            helper.setIdField(info.getField());
+            if(rdId.autoIncrement()){
+                if(!StringUtils.isEmpty(rdId.sequence()) && (options instanceof OracleOptions)){//oracle
+                    ps.add(info.getColumnName());
+                    vs.add(rdId.sequence() + ".nextval");
+                }
+            }else{
+                Class generatorClass = rdId.generator();// use generator first
+                if(IDGenerator.class.isAssignableFrom(generatorClass)){
+                    IDGenerator generator = generatorMap.get(generatorClass.getName());
+                    if(generator == null){
+                        try {
+                            generator = (IDGenerator)generatorClass.newInstance();
+                            generatorMap.put(generatorClass.getName(), generator);
+                        } catch (InstantiationException e) {
+                        } catch (IllegalAccessException e) {
+                        }
+                    }
+                    fo = generator.next(obj, info.getField().getType(), fo);
+                    ORMUtils.setFieldValue(obj, info, fo);
+                    helper.setIdValue(fo);
+                }
+            }
+        } else {//值为空的时候，但是无id，需要自取了
+            helper.setIdValue(fo);
+        }
+        return fo;
+    }
+
+    public static <S> List<SQLHelper> inserts(List<S> objs, Options options){
         List<SQLHelper> helpers = new ArrayList<SQLHelper>();
         if(objs == null || objs.isEmpty()){
             return helpers;
@@ -466,16 +476,7 @@ public class SQLHelperCreator {
                     continue;
                 }
                 if (info.getPrimaryKey()) {
-                    helper.setIdField(info.getField());
-                    if (StringUtils.isEmpty(fo)) {
-                        if (String.class.getSimpleName().equals(info.getType())) {
-                            fo = UUID.randomUUID().toString();
-                            ORMUtils.setFieldValue(obj, info, fo);
-                            helper.setIdValue(fo);
-                        }
-                    } else {//值为空的时候，但是无id，需要自取了
-                        helper.setIdValue(fo);
-                    }
+                    fo = createPrimaryKeyValue(options, helper, ps, vs, info, obj, fo);
                 }
                 ps.add(info.getColumnName());
                 vs.add("?");
@@ -497,7 +498,6 @@ public class SQLHelperCreator {
             helpers.add(helper);
         }
         return helpers;
-
     }
 
     /**

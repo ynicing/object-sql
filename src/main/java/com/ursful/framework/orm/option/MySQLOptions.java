@@ -212,13 +212,57 @@ public class MySQLOptions extends AbstractOptions{
         }
     }
 
+    @Override
+    public List<Table> tables(Connection connection, String keyword) {
+        List<Table> temp = new ArrayList<Table>();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            String dbName = connection.getCatalog();
+            String sql = "SELECT TABLE_NAME,TABLE_COMMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? ";
+            if(!ORMUtils.isEmpty(keyword)){
+                sql +=  "AND TABLE_NAME LIKE ? ";
+            }
+            ps = connection.prepareStatement(sql);
+            ps.setString(1, dbName);
+            if(!ORMUtils.isEmpty(keyword)){
+                ps.setString(2, "%" + keyword + "%");
+            }
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                temp.add(new Table(rs.getString(1), rs.getString(2)));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if(ps != null){
+                try {
+                    ps.close();
+                } catch (SQLException e) {
+                }
+            }
+            if(rs != null){
+                try {
+                    rs.close();
+                } catch (SQLException e) {
+                }
+            }
+        }
+        return temp;
 
-//            lower_case_table_names= 1  表名存储在磁盘是小写的，但是比较的时候是不区分大小写
+    }
+
+    //            lower_case_table_names= 1  表名存储在磁盘是小写的，但是比较的时候是不区分大小写
 //            lower_case_table_names=0  表名存储为给定的大小和比较是区分大小写的
 //            lower_case_table_names=2, 表名存储为给定的大小写但是比较的时候是小写的
     @Override
     public Table table(Connection connection, RdTable rdTable) throws ORMException{
         String tableName = getTableName(rdTable);
+        return  table(connection, tableName);
+    }
+
+    @Override
+    public Table table(Connection connection, String tableName){
         PreparedStatement ps = null;
         ResultSet rs = null;
         try {
@@ -266,6 +310,11 @@ public class MySQLOptions extends AbstractOptions{
     @Override
     public List<TableColumn> columns(Connection connection, RdTable rdTable) throws ORMException{
         String tableName = getTableName(rdTable);
+        return columns(connection, tableName);
+    }
+
+    @Override
+    public List<TableColumn> columns(Connection connection, String tableName){
         List<TableColumn> columns = new ArrayList<TableColumn>();
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -288,6 +337,7 @@ public class MySQLOptions extends AbstractOptions{
                 column.setScale(rs.getInt("NUMERIC_SCALE"));
                 column.setOrder(rs.getInt("ORDINAL_POSITION"));
                 column.setComment(rs.getString("COLUMN_COMMENT"));
+                column.setIsPrimaryKey("PRI".equalsIgnoreCase(rs.getString("COLUMN_KEY")));
                 columns.add(column);
             }
         } catch (SQLException e) {
@@ -308,7 +358,6 @@ public class MySQLOptions extends AbstractOptions{
         }
         return columns;
     }
-
 
     @Override
     public List<String> createOrUpdateSqls(Connection connection, RdTable table, List<ColumnInfo> infos, boolean tableExisted, List<TableColumn> tableColumns) {

@@ -24,6 +24,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 
 public interface Options {
     String keyword();
@@ -41,6 +42,7 @@ public interface Options {
     boolean tableExists(Connection connection, String table);
     boolean tableExists(Connection connection, RdTable table) throws ORMException;
     Table table(Connection connection, RdTable table) throws ORMException;
+    Table table(Connection connection, String table);
     List<TableColumn> columns(Connection connection, RdTable table) throws ORMException;
 
     List<String> createOrUpdateSqls(Connection connection, RdTable table, List<ColumnInfo> columnInfoList, boolean tableExisted, List<TableColumn> tableColumns);
@@ -52,4 +54,8 @@ public interface Options {
 
     String getCaseSensitive(String name, int sensitive);
     String getTableName(RdTable table)  throws ORMException;
+
+    List<Table> tables(Connection connection, String keyword);
+    List<TableColumn> columns(Connection connection, String table);
+
 }

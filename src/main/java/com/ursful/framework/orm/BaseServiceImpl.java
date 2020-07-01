@@ -15,6 +15,7 @@
  */
 package com.ursful.framework.orm;
 
+import com.ursful.framework.orm.annotation.RdId;
 import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.listener.IChangeListener;
@@ -229,7 +230,11 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
                 logger.info("SAVE : " + helper);
             }
             logger.debug("connection :" + conn);
+            RdId rdId = null;
             if(helper.getIdValue() == null && helper.getIdField() != null) {
+                rdId = helper.getIdField().getAnnotation(RdId.class);
+            }
+            if(rdId != null && rdId.autoIncrement()) {
                 ps = conn.prepareStatement(helper.getSql(), Statement.RETURN_GENERATED_KEYS);
             }else{
                 ps = conn.prepareStatement(helper.getSql());
@@ -240,7 +245,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
             SQLHelperCreator.setParameter(options, ps, helper.getParameters(), conn);
             boolean flag =  ps.executeUpdate() > 0;
             try {
-                if(helper.getIdValue() == null && helper.getIdField() != null) {
+                if(rdId != null && rdId.autoIncrement()) {
                     ResultSet seqRs = ps.getGeneratedKeys();
                     if(seqRs.next()) {
                         Object key = seqRs.getObject(1);

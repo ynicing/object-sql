@@ -16,6 +16,7 @@
 package com.ursful.framework.orm;
 
 import com.ursful.framework.orm.exception.ORMException;
+import com.ursful.framework.orm.support.ColumnClass;
 import com.ursful.framework.orm.support.Table;
 import com.ursful.framework.orm.support.TableColumn;
 
@@ -61,12 +62,36 @@ public interface ISQLService {
 
     Double getDatabaseNanoTime();
 
+    //自动提交，无回滚
+    <S> List<S> batchSaves(List<S> ts, int batchCount);
+
+    //无回滚
+    <S> List<S> batchSaves(List<S> ts, int batchCount, boolean autoCommit);
+
+    /**
+     * 批量保存
+     * @param ts
+     * @param batchCount
+     * @param autoCommit auto commit
+     * @param rollback 当autoCommit=false 有效， rollback = false 不回滚， 为true 回滚
+     * @param <S>
+     * @return
+     */
+    <S> List<S> batchSaves(List<S> ts, int batchCount, boolean autoCommit, boolean rollback);
+
+    //默认非自动提交 回滚
     <S> List<S> batchSaves(List<S> ts, boolean rollback);
 
     void createOrUpdate(Class<?> table) throws ORMException;
 
     boolean tableExists(String table);
     Table table(Class<?> clazz)  throws ORMException;
+    Table table(String table);
     String getTableName(Class<?> clazz) throws ORMException;
     List<TableColumn> columns(Class<?> clazz) throws ORMException;
+
+    List<Table> tables();
+    List<Table> tables(String keyword);
+    List<TableColumn> tableColumns(String tableName);
+    List<ColumnClass> tableColumnsClass(String tableName);
 }

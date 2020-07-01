@@ -15,6 +15,8 @@
  */
 package com.ursful.framework.orm;
 
+import com.ursful.framework.orm.annotation.RdId;
+import com.ursful.framework.orm.exception.ORMBatchException;
 import com.ursful.framework.orm.exception.ORMError;
 import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.handler.IResultSetHandler;
@@ -472,58 +474,82 @@ public class SQLServiceImpl implements ISQLService{
         return conn;
     }
 
+    public  <S> List<S> batchSaves(List<S> ts, int batchCount) {//与事务一起
+        return batchSaves(ts, batchCount, true, false);
+    }
 
-    @Override
-    public <S> List<S> batchSaves(List<S> ts, boolean rollback) {
+    public  <S> List<S> batchSaves(List<S> ts, int batchCount, boolean autoCommit) {
+        return batchSaves(ts, batchCount, autoCommit, false);
+    }
+
+    public  <S> List<S> batchSaves(List<S> ts, int batchCount, boolean autoCommit, boolean rollback) {
+        //autoCommit true, rollback  无效
+        //autoCommit false rollback true: 回滚， false: 不回滚
+        if(ts == null || ts.isEmpty()){
+            return ts;
+        }
+
         ResultSet rs = null;
         PreparedStatement ps = null;
         Connection conn = null;
-        List<S> result = new ArrayList<S>();
+        int index = 0;
         try {
             conn = getConnection();
 
-            List<SQLHelper> helpers = SQLHelperCreator.inserts(ts);
+            if(!autoCommit) {
+                conn.setAutoCommit(false);
+            }
+
+            List<SQLHelper> helpers = SQLHelperCreator.inserts(ts, getOptions());
 
             if(helpers.isEmpty()){
                 return new ArrayList<S>();
             }
             SQLHelper helper = helpers.get(0);
+            RdId rdId = null;
+
             if(helper.getIdValue() == null && helper.getIdField() != null) {
+                rdId = helper.getIdField().getAnnotation(RdId.class);
+            }
+            if(rdId != null && rdId.autoIncrement()) {
                 ps = conn.prepareStatement(helper.getSql(), Statement.RETURN_GENERATED_KEYS);
             }else{
                 ps = conn.prepareStatement(helper.getSql());
             }
-            conn.setAutoCommit(false);
-            for(SQLHelper sqlHelper : helpers) {
-                SQLHelperCreator.setParameter(getOptions(), ps, sqlHelper.getParameters(), conn);
-                ps.addBatch();
-            }
-            ps.executeBatch();
-//            ps.clearBatch();
-//            ps.clearParameters();
-            if(helper.getIdValue() == null && helper.getIdField() != null) {
-                ResultSet seqRs = ps.getGeneratedKeys();
-                int i = 0;
-                int count = ts.size();
-                while (seqRs.next() && i < count) {
-                    Object key = seqRs.getObject(1);
-                    S s = ts.get(i);
-                    helper.setId(s, key);
-                    i++;
-                    result.add(s);
+            for (int i = 0; i < helpers.size(); i += batchCount){
+                index = i;
+                int lastIndex = Math.min(i + batchCount, helpers.size()) - 1;
+                if(i <= lastIndex){
+                    for(int j = i; j <= lastIndex; j++){
+                        SQLHelper sqlHelper = helpers.get(j);
+                        SQLHelperCreator.setParameter(getOptions(), ps, sqlHelper.getParameters(), conn);
+                        ps.addBatch();
+                    }
+                    ps.executeBatch();
+                    if(rdId != null && rdId.autoIncrement()) {
+                        ResultSet seqRs = ps.getGeneratedKeys();
+                        for(int j = i; j <= lastIndex; j++){
+                            Object key = seqRs.getObject(1);
+                            S s = ts.get(j);
+                            helper.setId(s, key);
+                        }
+                        seqRs.close();
+                    }
                 }
-                seqRs.close();
+            }
+            if(!autoCommit){
+                conn.commit();
             }
         } catch (SQLException e) {
-            if(rollback) {
+            if(!autoCommit && rollback) {
                 try {
                     conn.rollback();
                 } catch (SQLException e1) {
                 }
             }
-            throw new RuntimeException(e);
+            throw new ORMBatchException(e, ts.size(), index);
         } finally{
-            if(conn != null){
+            if(conn != null && !autoCommit){
                 try {
                     conn.setAutoCommit(true);
                 } catch (SQLException e) {
@@ -532,8 +558,14 @@ public class SQLServiceImpl implements ISQLService{
             closeConnection(rs, ps, conn);
 
         }
-        return result;
+        return ts;
     }
+
+    @Override
+    public <S> List<S> batchSaves(List<S> ts, boolean rollback) {
+        return batchSaves(ts, ts.size(), false, rollback);
+    }
+
 
     //((JdbcConnection) connection).getURL() org.h2.jdbc.JdbcConnection
     //((JDBC4Connection) connection).getURL() com.mysql.jdbc.JDBC4Connection
@@ -647,6 +679,25 @@ public class SQLServiceImpl implements ISQLService{
     }
 
     @Override
+    public Table table(String tableName){
+        Options options = getOptions();
+        if(options == null){
+            logger.warn("Query table Not Support.");
+            return null;
+        }
+        Connection temp = getConnection();
+        try{
+            Connection connection = getRealConnection(temp);
+            return options.table(connection, tableName);
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally{
+            closeConnection(null, null, temp);
+        }
+        return null;
+    }
+
+    @Override
     public List<TableColumn> columns(Class<?> clazz) throws ORMException{
         if(clazz == null){
             return null;
@@ -673,6 +724,99 @@ public class SQLServiceImpl implements ISQLService{
             e.printStackTrace();
         }finally{
             closeConnection(null, null, temp);
+        }
+        return null;
+    }
+
+    @Override
+    public List<Table> tables() {
+        return tables(null);
+    }
+
+    @Override
+    public List<Table> tables(String keyword) {
+        Options options = getOptions();
+        if(options == null){
+            logger.warn("Query Tables Not Support.");
+            return null;
+        }
+        Connection temp = getConnection();
+        try{
+            Connection connection = getRealConnection(temp);
+            return options.tables(connection, keyword);
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally{
+            closeConnection(null, null, temp);
+        }
+        return null;
+    }
+
+    @Override
+    public List<TableColumn> tableColumns(String tableName) {
+        List<TableColumn> columns = null;
+        Options options = getOptions();
+        if(options == null){
+            logger.warn("Query Table Columns Not Support.");
+            return null;
+        }
+        Connection temp = getConnection();
+        try{
+            Connection connection = getRealConnection(temp);
+            columns = options.columns(connection, tableName);
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally{
+            closeConnection(null, null, temp);
+        }
+        if(columns != null && !columns.isEmpty()){
+            List<ColumnClass> columnClasses = tableColumnsClass(tableName);
+            Map<String, String> columnClassMap = new HashMap<String, String>();
+            for(ColumnClass columnClass : columnClasses){
+                columnClassMap.put(columnClass.getColumn(), columnClass.getColumnClass());
+                columnClassMap.put(columnClass.getColumn().toUpperCase(Locale.ROOT), columnClass.getColumnClass());
+                columnClassMap.put(columnClass.getColumn().toLowerCase(Locale.ROOT), columnClass.getColumnClass());
+            }
+            for(TableColumn tableColumn : columns){
+                tableColumn.setColumnClass(columnClassMap.get(tableColumn.getColumn()));
+            }
+        }
+        return columns;
+    }
+
+    @Override
+    public List<ColumnClass> tableColumnsClass(String tableName) {
+        Options options = getOptions();
+        if(options == null){
+            logger.warn("Query Table Columns Not Support.");
+            return null;
+        }
+        Connection temp = getConnection();
+        Statement stmt = null;
+        ResultSet rs = null;
+        List<ColumnClass> columnClasses = new ArrayList<ColumnClass>();
+        try{
+            String sql = String.format("SELECT * FROM %s WHERE 1 <> 1", tableName);
+            stmt = temp.createStatement();
+            rs = stmt.executeQuery(sql);
+            ResultSetMetaData data = rs.getMetaData();
+            int count = data.getColumnCount();
+
+            for(int i = 1; i <= count; i++){
+                String className = data.getColumnClassName(i);
+                String columnName = data.getColumnName(i);
+                int precision = data.getPrecision(i);
+                int scale = data.getScale(i);
+                ColumnClass columnClass = new ColumnClass(tableName, columnName, className);
+                columnClass.setPrecision(precision);
+                columnClass.setScale(scale);
+                columnClasses.add(columnClass);
+            }
+            return columnClasses;
+        }catch (Exception e){
+            e.printStackTrace();
+        }finally{
+            closeConnection(rs, stmt, temp);
         }
         return null;
     }
