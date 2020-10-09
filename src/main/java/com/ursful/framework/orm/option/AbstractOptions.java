@@ -26,8 +26,6 @@ import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.annotation.RdUniqueKey;
 import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.utils.ORMUtils;
-import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 import javax.sql.rowset.serial.SerialClob;
 import java.io.ByteArrayInputStream;
@@ -211,7 +209,7 @@ public abstract class AbstractOptions implements Options{
         boolean noAlias = false;
         if(returnColumns.isEmpty()){
             String all = null;
-            if(StringUtils.isEmpty(alias)){
+            if(ORMUtils.isEmpty(alias)){
                 noAlias = true;
                 all = Expression.EXPRESSION_ALL;
             }else{
@@ -221,13 +219,13 @@ public abstract class AbstractOptions implements Options{
             temp.add(all);
         }else{
             for(Column column : returnColumns){
-                if(column.getAlias() == null && !StringUtils.isEmpty(alias)){
+                if(column.getAlias() == null && !ORMUtils.isEmpty(alias)){
                     column.setAlias(alias);
                 }
                 inColumn.add(column.getAlias() + "." + column.getName());
                 temp.add(parseColumn(column));
                 if(Expression.EXPRESSION_ALL.equals(column.getName())){
-                    if(!StringUtils.isEmpty(column.getAlias()) && !allAlias.contains(column.getAlias())){
+                    if(!ORMUtils.isEmpty(column.getAlias()) && !allAlias.contains(column.getAlias())){
                         allAlias.add(column.getAlias());
                     }else{
                         noAlias = true;
@@ -240,7 +238,7 @@ public abstract class AbstractOptions implements Options{
             for (Order order : orders) {
                 Column column = order.getColumn();
                 QueryUtils.setColumnAlias(column, alias);
-                if (!StringUtils.isEmpty(column.getAlias()) && !allAlias.contains(column.getAlias())
+                if (!ORMUtils.isEmpty(column.getAlias()) && !allAlias.contains(column.getAlias())
                         && !inColumn.contains(column.getAlias() + "." + column.getName())) {
                     String orderStr = parseColumn(column);
                     temp.add(orderStr);
@@ -249,7 +247,7 @@ public abstract class AbstractOptions implements Options{
         }
         sb.append(ORMUtils.join(temp, ","));
         if(sb.length() == 0){
-            if(StringUtils.isEmpty(alias)) {
+            if(ORMUtils.isEmpty(alias)) {
                 sb.append(Expression.EXPRESSION_ALL);
             }else{
                 sb.append(alias + "." + Expression.EXPRESSION_ALL);
@@ -381,7 +379,7 @@ public abstract class AbstractOptions implements Options{
         String foreignTable= null;
         String foreignColumn = null;
         if(foreign == null){
-            if(StringUtils.isEmpty(rdColumn.foreignKey())){
+            if(ORMUtils.isEmpty(rdColumn.foreignKey())){
                 return null;
             }
             foreignKey = rdColumn.foreignKey();
@@ -392,9 +390,9 @@ public abstract class AbstractOptions implements Options{
             foreignTable= foreign.table();
             foreignColumn = foreign.column();
         }
-        Assert.isTrue(!StringUtils.isEmpty(foreignKey), "Foreign Key Name Should Not Be Empty.");
-        Assert.isTrue(!StringUtils.isEmpty(foreignTable), "Foreign Table Should Not Be Empty.");
-        Assert.isTrue(!StringUtils.isEmpty(foreignColumn), "Foreign Column Should Not Be Empty.");
+        ORMUtils.whenEmpty(foreignKey, "Foreign Key Name Should Not Be Empty.");
+        ORMUtils.whenEmpty(foreignTable, "Foreign Table Should Not Be Empty.");
+        ORMUtils.whenEmpty(foreignColumn, "Foreign Column Should Not Be Empty.");
 //        constraint JOB_INST_EXEC_FK foreign key (JOB_INSTANCE_ID) references BATCH_JOB_INSTANCE(JOB_INSTANCE_ID)
         return String.format("CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s(%s)", foreignKey, rdColumn.name(), foreignTable, foreignColumn);
     }
@@ -416,7 +414,7 @@ public abstract class AbstractOptions implements Options{
             uniqueKeys = rdColumn.uniqueKeys();
         }
 
-        if(StringUtils.isEmpty(uniqueName)){
+        if(ORMUtils.isEmpty(uniqueName)){
             String [] tabs = table.name().split("_");
             StringBuffer names = new StringBuffer();
             for(String tab : tabs){
@@ -436,7 +434,7 @@ public abstract class AbstractOptions implements Options{
             uniqueName = names.toString().toUpperCase(Locale.ROOT);
         }
         String uniqueKeysStr = ORMUtils.join(uniqueKeys, ",");
-        if(StringUtils.isEmpty(uniqueKeysStr)){
+        if(ORMUtils.isEmpty(uniqueKeysStr)){
             uniqueKeysStr =  rdColumn.name();
         }
         return String.format("CONSTRAINT %s UNIQUE(%s)", uniqueName, uniqueKeysStr);
@@ -444,9 +442,9 @@ public abstract class AbstractOptions implements Options{
 
     protected String columnComment(RdColumn rdColumn){
         String comment = null;
-        if(!StringUtils.isEmpty(rdColumn.title())){
+        if(!ORMUtils.isEmpty(rdColumn.title())){
             comment =  rdColumn.title();
-            if(!StringUtils.isEmpty(rdColumn.description())){
+            if(!ORMUtils.isEmpty(rdColumn.description())){
                 comment += ";" + rdColumn.description();
             }
         }
@@ -653,7 +651,7 @@ public abstract class AbstractOptions implements Options{
                 if(!ORMUtils.isEmpty(column.getAlias())){
                     aliasName = column.getAlias() + "." + aliasName;
                 }
-                if(StringUtils.isEmpty(column.getFormat())){
+                if(ORMUtils.isEmpty(column.getFormat())){
                     sb.append(aliasName);
                 }else{
                     if(column.getValue() != null && column.getValue().getClass().isArray()){
@@ -770,7 +768,7 @@ public abstract class AbstractOptions implements Options{
                             }else if(extObject instanceof SQLPair){
                                 sqlPair = (SQLPair)extObject;
                             }
-                            if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
+                            if(sqlPair != null && !ORMUtils.isEmpty(sqlPair.getSql())) {
                                 if (sql.length() == 0) {
                                     sql.append(sqlPair.getSql());
                                 } else {
@@ -788,7 +786,7 @@ public abstract class AbstractOptions implements Options{
                             }else if(extObject instanceof SQLPair){
                                 sqlPair = (SQLPair)extObject;
                             }
-                            if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
+                            if(sqlPair != null && !ORMUtils.isEmpty(sqlPair.getSql())) {
                                 if (sql.length() == 0) {
                                     sql.append(sqlPair.getSql());
                                 } else {
@@ -804,7 +802,7 @@ public abstract class AbstractOptions implements Options{
                             List<String> aorStr = new ArrayList<String>();
                             for(Expression orOr : aor){
                                 sqlPair = parseExpression(queryOrClass, orOr);
-                                if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
+                                if(sqlPair != null && !ORMUtils.isEmpty(sqlPair.getSql())) {
                                     aorStr.add(sqlPair.getSql());
                                     if (sqlPair.getPairs() != null) {//column = column
                                         values.addAll(sqlPair.getPairs());
@@ -824,7 +822,7 @@ public abstract class AbstractOptions implements Options{
                             List<String> andStr = new ArrayList<String>();
                             for(Expression orAnd : ands){
                                 sqlPair = parseExpression(queryOrClass, orAnd);
-                                if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
+                                if(sqlPair != null && !ORMUtils.isEmpty(sqlPair.getSql())) {
                                     andStr.add(sqlPair.getSql());
                                     if (sqlPair.getPairs() != null) {//column = column
                                         values.addAll(sqlPair.getPairs());
@@ -844,7 +842,7 @@ public abstract class AbstractOptions implements Options{
                             List<String> orStr = new ArrayList<String>();
                             for(Expression orOr : ors){
                                 sqlPair = parseExpression(queryOrClass, orOr);
-                                if(sqlPair != null && !StringUtils.isEmpty(sqlPair.getSql())) {
+                                if(sqlPair != null && !ORMUtils.isEmpty(sqlPair.getSql())) {
                                     orStr.add(sqlPair.getSql());
                                     if (sqlPair.getPairs() != null) {//column = column
                                         values.addAll(sqlPair.getPairs());
@@ -905,7 +903,7 @@ public abstract class AbstractOptions implements Options{
             throw new ORMException(ORMError.TABLE_ANNOTATION_IS_NULL);
         }
         String tableName = getCaseSensitive(rdTable.name(), rdTable.sensitive());
-        if (StringUtils.isEmpty(tableName)){
+        if (ORMUtils.isEmpty(tableName)){
             throw new ORMException(ORMError.TABLE_NAME_IS_EMPTY);
         }
         return tableName;

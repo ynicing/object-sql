@@ -21,7 +21,6 @@ import com.ursful.framework.orm.utils.ORMUtils;
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.annotation.RdTable;
 import org.springframework.core.annotation.AnnotationUtils;
-import org.springframework.util.Assert;
 
 import java.util.*;
 
@@ -133,9 +132,9 @@ public class MultiQueryImpl implements IMultiQuery {
     }
 
     public AliasTable join(Class<?> clazz, String alias){
-        Assert.notNull(clazz, "AliasTable join class should not be null.");
+        ORMUtils.whenEmpty(clazz, "AliasTable join class should not be null.");
         RdTable rdTable = AnnotationUtils.findAnnotation(clazz, RdTable.class);
-        Assert.notNull(rdTable, "Should annotate RdTable");
+        ORMUtils.whenEmpty(rdTable, "Should annotate RdTable");
         AliasTable table = new AliasTable(clazz);
         table.setAlias(alias);
         aliasJoin.add(alias);

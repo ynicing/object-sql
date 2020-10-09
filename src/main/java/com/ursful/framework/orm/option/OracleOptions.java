@@ -22,7 +22,6 @@ import com.ursful.framework.orm.helper.SQLHelper;
 import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
-import org.springframework.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
@@ -217,7 +216,7 @@ public class OracleOptions extends AbstractOptions{
         sb.append("SELECT ");
         sb.append(selectColumns(query, alias));
         String order = orders(query, alias);
-        boolean hasOrder = !StringUtils.isEmpty(order);
+        boolean hasOrder = !ORMUtils.isEmpty(order);
         if(page != null && !hasOrder){
             sb.append(",ROWNUM rn_ ");
         }
@@ -261,7 +260,7 @@ public class OracleOptions extends AbstractOptions{
         String tableName = ORMUtils.getTableName(clazz);
         StringBuffer sql = new StringBuffer("SELECT ");
         String nameStr = ORMUtils.join(names, ",");
-        if(StringUtils.isEmpty(nameStr)){
+        if(ORMUtils.isEmpty(nameStr)){
             sql.append(alias + "." + Expression.EXPRESSION_ALL);
         }else{
             sql.append(nameStr);
@@ -271,7 +270,7 @@ public class OracleOptions extends AbstractOptions{
         if(multiOrder != null) {
             QueryUtils.setMultiOrderAlias(multiOrder, alias);
             String orders = getOrders(multiOrder.getOrders());
-            if (!StringUtils.isEmpty(orders)) {
+            if (!ORMUtils.isEmpty(orders)) {
                 hasOrder = true;
                 order = " ORDER BY " + orders;
             }
@@ -287,7 +286,7 @@ public class OracleOptions extends AbstractOptions{
             Condition condition = terms.getCondition();
             QueryUtils.setConditionAlias(condition, alias);
             String conditions = getConditions(clazz, ORMUtils.newList(condition), values);
-            if (!StringUtils.isEmpty(conditions)) {
+            if (!ORMUtils.isEmpty(conditions)) {
                 sql.append(" WHERE " + conditions);
                 hasCondition = true;
             }
@@ -740,7 +739,7 @@ public class OracleOptions extends AbstractOptions{
                                     needUpdate = true;
                                 }
                             }
-                            if(!needUpdate && !StringUtils.isEmpty(tableColumn.getDefaultValue())){
+                            if(!needUpdate && !ORMUtils.isEmpty(tableColumn.getDefaultValue())){
                                 String defaultValue = tableColumn.getDefaultValue().trim();
                                 if(defaultValue.startsWith("'") && defaultValue.startsWith("'")){
                                     defaultValue = defaultValue.substring(1, defaultValue.length() - 1);
@@ -756,7 +755,7 @@ public class OracleOptions extends AbstractOptions{
                                 }else{
                                     sqls.add(String.format("ALTER TABLE \"%s\" MODIFY %s", tableName, temp));
                                 }
-                                if (!StringUtils.isEmpty(comment) && !comment.equals(tableColumn.getComment())) {
+                                if (!ORMUtils.isEmpty(comment) && !comment.equals(tableColumn.getComment())) {
                                     if(table.sensitive() == RdTable.DEFAULT_SENSITIVE) {
                                         sqls.add(String.format("COMMENT ON COLUMN %s.%s IS '%s'", tableName, columnName, comment));
                                     }else{
@@ -794,7 +793,7 @@ public class OracleOptions extends AbstractOptions{
                                     sqls.add("ALTER TABLE \"" + tableName + "\" ADD " + foreignSQL);
                                 }
                             }
-                            if (!StringUtils.isEmpty(comment)) {
+                            if (!ORMUtils.isEmpty(comment)) {
                                 if(table.sensitive() == RdTable.DEFAULT_SENSITIVE) {
                                     sqls.add(String.format("COMMENT ON COLUMN %s.%s IS '%s'", tableName, columnName, comment));
                                 }else{
@@ -822,7 +821,7 @@ public class OracleOptions extends AbstractOptions{
                     RdUniqueKey uniqueKey = info.getField().getAnnotation(RdUniqueKey.class);
                     RdForeignKey foreignKey = info.getField().getAnnotation(RdForeignKey.class);
                     RdId rdId = info.getField().getAnnotation(RdId.class);
-                    if(rdId != null && rdId.autoIncrement() && !StringUtils.isEmpty(rdId.sequence())){
+                    if(rdId != null && rdId.autoIncrement() && !ORMUtils.isEmpty(rdId.sequence())){
                         //todo
                         //create seq?
                         String seqName = getCaseSensitive(rdId.sequence(), table.sensitive());
@@ -852,7 +851,7 @@ public class OracleOptions extends AbstractOptions{
                     String temp = columnString(info, table.sensitive(), rdColumn, true);
                     String comment = columnComment(rdColumn);
                     String columnName = getCaseSensitive(rdColumn.name(), table.sensitive());
-                    if(!StringUtils.isEmpty(comment)){
+                    if(!ORMUtils.isEmpty(comment)){
                         if(table.sensitive() == RdTable.DEFAULT_SENSITIVE){
                             comments.add(String.format("COMMENT ON COLUMN %s.%s IS '%s'", tableName, columnName, comment));
                         }else{
@@ -875,10 +874,10 @@ public class OracleOptions extends AbstractOptions{
                 sql.append(")");
                 sqls.add(sql.toString());
                 String comment = table.comment();
-                if(StringUtils.isEmpty(comment)){
+                if(ORMUtils.isEmpty(comment)){
                     comment = table.title();
                 }
-                if(!StringUtils.isEmpty(comment)){
+                if(!ORMUtils.isEmpty(comment)){
 
                     if(table.sensitive() == RdTable.DEFAULT_SENSITIVE){
                         sqls.add(String.format("COMMENT ON TABLE %s IS '%s'", tableName, comment));
@@ -905,7 +904,7 @@ public class OracleOptions extends AbstractOptions{
         temp.append(" ");
 
         String type = getColumnType(info, rdColumn);
-        if(!StringUtils.isEmpty(rdColumn.defaultValue())){
+        if(!ORMUtils.isEmpty(rdColumn.defaultValue())){
             type += " DEFAULT '" +  rdColumn.defaultValue() + "'";
         }
         if(!rdColumn.nullable()){

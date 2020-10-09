@@ -23,14 +23,12 @@ import com.ursful.framework.orm.annotation.RdTable;
 import com.ursful.framework.orm.support.ColumnInfo;
 import com.ursful.framework.orm.support.ColumnType;
 import org.springframework.core.annotation.AnnotationUtils;
-import org.springframework.util.Assert;
-import org.springframework.util.ConcurrentReferenceHashMap;
-import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -84,10 +82,10 @@ public class ORMUtils {
         return debug;
     }
 
-    private static Map<Class, List<ColumnInfo>> columnInfoCache = new ConcurrentReferenceHashMap<Class, List<ColumnInfo>>();
+    private static Map<Class, List<ColumnInfo>> columnInfoCache = new ConcurrentHashMap<Class, List<ColumnInfo>>();
 
-    private static Map<Class, String> tableNameCache = new ConcurrentReferenceHashMap<Class, String>();
-    private static Map<Class, RdTable> rdTableCache = new ConcurrentReferenceHashMap<Class, RdTable>();
+    private static Map<Class, String> tableNameCache = new ConcurrentHashMap<Class, String>();
+    private static Map<Class, RdTable> rdTableCache = new ConcurrentHashMap<Class, RdTable>();
 
     public static String getTableName(Class clazz){
         if(tableNameCache.containsKey(clazz)){
@@ -161,6 +159,18 @@ public class ORMUtils {
 
     public static Object getFieldValue(Object object, ColumnInfo info){
         return getFieldValue(object, info.getField());
+    }
+
+    public static void whenEmpty(Object object, String message){
+        if(isEmpty(object)){
+            throw new RuntimeException(message);
+        }
+    }
+
+    public static void whenTrue(boolean flag, String message){
+        if(flag){
+            throw new RuntimeException(message);
+        }
     }
 
     private static List<ColumnInfo> analyze(Class<?> clazz){
@@ -387,10 +397,10 @@ public class ORMUtils {
         if(from.getClass() == to.getClass()){
             Class clazz = to.getClass();
             List<ColumnInfo> columnInfos = getColumnInfo(clazz);
-            Assert.notNull(columnInfos, "Get columns cache is empty.");
+            ORMUtils.whenTrue(columnInfos == null, "Get columns cache is empty.");
             for(ColumnInfo info : columnInfos){
                 Object fromValue = getFieldValue(from, info);
-                if(StringUtils.isEmpty(fromValue)){//因为属性
+                if(ORMUtils.isEmpty(fromValue)){//因为属性
                     if(list.contains(info.getColumnName())) {
                         setFieldNullValue(to, info.getField());
                     }
@@ -454,7 +464,7 @@ public class ORMUtils {
         return temp;
     }
 
-    private static Map<Class, List<ColumnInfo>> extendFieldCache = new ConcurrentReferenceHashMap<Class, List<ColumnInfo>>();
+    private static Map<Class, List<ColumnInfo>> extendFieldCache = new ConcurrentHashMap<Class, List<ColumnInfo>>();
 
     public static List<ColumnInfo> getExtendFields(Class<?> clazz){
         List<ColumnInfo> infoList = extendFieldCache.get(clazz);

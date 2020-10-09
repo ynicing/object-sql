@@ -28,7 +28,6 @@ import com.ursful.framework.orm.helper.SQLHelperCreator;
 import com.ursful.framework.orm.utils.ORMUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.Assert;
 
 import javax.sql.DataSource;
 import java.lang.reflect.InvocationTargetException;
@@ -397,7 +396,7 @@ public class SQLServiceImpl implements ISQLService{
                     return timestamp.getTime() + timestamp.getNanos()/1000000000.0;
                 }else{
                     Timestamp timestamp = getOracleTimestamp(object, conn);
-                    Assert.notNull(timestamp, "Error get timestamp from oracle.");
+                    ORMUtils.whenEmpty(timestamp, "Error get timestamp from oracle.");
                     return timestamp.getTime() + timestamp.getNanos()/1000000000.0;
                 }
             }
@@ -428,7 +427,7 @@ public class SQLServiceImpl implements ISQLService{
 
     private Timestamp getOracleTimestamp(Object value, Connection connection) {
         try {
-            Assert.notNull(connection, "Oracle connection should not be nullable.");
+            ORMUtils.whenEmpty(connection, "Oracle connection should not be nullable.");
             Connection conn = getRealConnection(connection);
             Class clz = value.getClass();
             Method m = clz.getMethod("timestampValue", Connection.class);

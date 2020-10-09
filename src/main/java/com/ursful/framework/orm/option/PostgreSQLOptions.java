@@ -19,7 +19,6 @@ import com.ursful.framework.orm.annotation.*;
 import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
-import org.springframework.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
@@ -450,7 +449,7 @@ public class PostgreSQLOptions extends MySQLOptions{
                                 }
                             }
                             String defaultValue = tableColumn.getDefaultValue();
-                            if(!StringUtils.isEmpty(defaultValue) && !StringUtils.isEmpty(rdColumn.defaultValue())){
+                            if(!ORMUtils.isEmpty(defaultValue) && !ORMUtils.isEmpty(rdColumn.defaultValue())){
                                 if(!defaultValue.equals(rdColumn.defaultValue())){
                                     if(table.sensitive() == RdTable.DEFAULT_SENSITIVE){
                                         sqls.add(String.format(" ALTER TABLE %s ALTER COLUMN %s SET DEFAULT '%s'", tableName, columnName, rdColumn.defaultValue()));
@@ -473,7 +472,7 @@ public class PostgreSQLOptions extends MySQLOptions{
                                         sqls.add(String.format("ALTER TABLE \"%s\" ALTER COLUMN \"%s\" DROP NOT NULL", tableName, columnName));
                                     }
                                 }
-                                if (!StringUtils.isEmpty(comment) && !comment.equals(tableColumn.getComment())) {
+                                if (!ORMUtils.isEmpty(comment) && !comment.equals(tableColumn.getComment())) {
                                     if(table.sensitive() == RdTable.DEFAULT_SENSITIVE){
                                         sqls.add(String.format("COMMENT ON COLUMN %s.%s IS '%s'", tableName, columnName, comment));
                                     }else{
@@ -512,7 +511,7 @@ public class PostgreSQLOptions extends MySQLOptions{
                                 }
                             }
 
-                            if (!StringUtils.isEmpty(comment)) {
+                            if (!ORMUtils.isEmpty(comment)) {
                                 if(table.sensitive() == RdTable.DEFAULT_SENSITIVE){
                                     sqls.add(String.format("COMMENT ON COLUMN %s.%s IS '%s'", tableName, columnName, comment));
                                 }else{
@@ -541,7 +540,7 @@ public class PostgreSQLOptions extends MySQLOptions{
                     String temp = columnString(info, table.sensitive(), rdColumn, true);
                     String comment = columnComment(rdColumn);
                     String columnName = getCaseSensitive(rdColumn.name(), table.sensitive());
-                    if(!StringUtils.isEmpty(comment)){
+                    if(!ORMUtils.isEmpty(comment)){
                         if(table.sensitive() == RdTable.DEFAULT_SENSITIVE){
                             comments.add(String.format("COMMENT ON COLUMN %s.%s IS '%s'", tableName, columnName, comment));
                         }else{
@@ -565,10 +564,10 @@ public class PostgreSQLOptions extends MySQLOptions{
                 sql.append(";");
                 sqls.add(sql.toString());
                 String comment = table.comment();
-                if(StringUtils.isEmpty(comment)){
+                if(ORMUtils.isEmpty(comment)){
                     comment = table.title();
                 }
-                if(!StringUtils.isEmpty(comment)){
+                if(!ORMUtils.isEmpty(comment)){
                     if(table.sensitive() == RdTable.DEFAULT_SENSITIVE){
                         sqls.add(String.format("COMMENT ON TABLE %s IS '%s'", tableName, comment));
                     }else{
@@ -591,13 +590,13 @@ public class PostgreSQLOptions extends MySQLOptions{
             temp.append(String.format("\"%s\"", cname));
         }
         RdId rdId = info.getField().getAnnotation(RdId.class);
-        if(rdId != null && rdId.autoIncrement() && !StringUtils.isEmpty(rdId.sequence())){
+        if(rdId != null && rdId.autoIncrement() && !ORMUtils.isEmpty(rdId.sequence())){
             temp.append(" " + rdId.sequence());
         }else{
             String type = getColumnType(info, rdColumn);
             temp.append(" " + type);
         }
-        if(!StringUtils.isEmpty(rdColumn.defaultValue())){
+        if(!ORMUtils.isEmpty(rdColumn.defaultValue())){
             temp.append(" DEFAULT '" +  rdColumn.defaultValue() + "'");
         }
         if(!rdColumn.nullable()){

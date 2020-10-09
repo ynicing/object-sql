@@ -21,8 +21,6 @@ import com.ursful.framework.orm.option.OracleOptions;
 import com.ursful.framework.orm.query.QueryUtils;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
-import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Field;
 import java.sql.*;
@@ -52,7 +50,7 @@ public class SQLHelperCreator {
 
         Pair primaryKey = null;
         List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
-        Assert.notEmpty(infoList, "Get columns cache is empty.");
+        ORMUtils.whenEmpty(infoList, "Get columns cache is empty.");
         for(ColumnInfo info : infoList){
             if(info.getPrimaryKey()){
                 Object fo = null;
@@ -159,7 +157,7 @@ public class SQLHelperCreator {
             conditions = options.getConditions(clazz, ORMUtils.newList(condition), pairs);
         }
         String tableName = ORMUtils.getTableName(clazz);
-        if(StringUtils.isEmpty(conditions)){
+        if(ORMUtils.isEmpty(conditions)){
             throw new RuntimeException("Delete table without conditions, Class[" + clazz.getName() + "]");
         }
         StringBuffer sql = new StringBuffer("DELETE FROM " + tableName + " WHERE " + conditions);
@@ -185,7 +183,7 @@ public class SQLHelperCreator {
         List<String> sets = new ArrayList<String>();
         Pair primaryKey = null;
         List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
-        Assert.notNull(infoList, "Get columns cache is empty.");
+        ORMUtils.whenTrue(infoList == null, "Get columns cache is empty.");
         String databaseType = DatabaseTypeHolder.get();
         SQLHelper helper = new SQLHelper();
         for(ColumnInfo info : infoList){
@@ -220,7 +218,7 @@ public class SQLHelperCreator {
             Condition condition = terms.getCondition();
             conditions = option.getConditions(clazz, ORMUtils.newList(condition), parameters);
         }
-        if(StringUtils.isEmpty(conditions)) {
+        if(ORMUtils.isEmpty(conditions)) {
             throw new RuntimeException("Update table terms is empty, Class[" + clazz.getName() + "], value[" + obj + "]");
         }else{
             sql.append(conditions);
@@ -254,7 +252,7 @@ public class SQLHelperCreator {
         List<String> sets = new ArrayList<String>();
         Pair primaryKey = null;
         List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
-        Assert.notNull(infoList, "Get columns cache is empty.");
+        ORMUtils.whenTrue(infoList == null, "Get columns cache is empty.");
         String databaseType = DatabaseTypeHolder.get();
         SQLHelper helper = new SQLHelper();
         for(ColumnInfo info : infoList){
@@ -322,7 +320,7 @@ public class SQLHelperCreator {
         sql.append(" SET ");
         List<Pair> parameters = new ArrayList<Pair>();
         List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
-        Assert.notNull(infoList, "Get columns cache is empty.");
+        ORMUtils.whenTrue(infoList == null, "Get columns cache is empty.");
         SQLHelper helper = new SQLHelper();
 
         if(values != null) {
@@ -376,7 +374,7 @@ public class SQLHelperCreator {
         List<String> vs = new ArrayList<String>();
         SQLHelper helper = new SQLHelper();
         List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
-        Assert.notNull(infoList, "Get columns cache is empty.");
+        ORMUtils.whenTrue(infoList == null, "Get columns cache is empty.");
         String databaseType = DatabaseTypeHolder.get();
         for(ColumnInfo info : infoList){
             Object fo = ORMUtils.getFieldValue(obj, info);
@@ -416,11 +414,11 @@ public class SQLHelperCreator {
         ColumnInfo info,
         Object obj,
         Object fo){
-        if (StringUtils.isEmpty(fo)) {
+        if (ORMUtils.isEmpty(fo)) {
             RdId rdId = info.getField().getAnnotation(RdId.class);
             helper.setIdField(info.getField());
             if(rdId.autoIncrement()){
-                if(!StringUtils.isEmpty(rdId.sequence()) && (options instanceof OracleOptions)){//oracle
+                if(!ORMUtils.isEmpty(rdId.sequence()) && (options instanceof OracleOptions)){//oracle
                     ps.add(info.getColumnName());
                     vs.add(rdId.sequence() + ".nextval");
                 }
@@ -468,7 +466,7 @@ public class SQLHelperCreator {
             List<String> vs = new ArrayList<String>();
             SQLHelper helper = new SQLHelper();
             List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
-            Assert.notNull(infoList, "Get columns cache is empty.");
+            ORMUtils.whenTrue(infoList == null, "Get columns cache is empty.");
             String databaseType = DatabaseTypeHolder.get();
             for (ColumnInfo info : infoList) {
                 Object fo = ORMUtils.getFieldValue(obj, info);
@@ -514,7 +512,7 @@ public class SQLHelperCreator {
 
         StringBuffer sql = new StringBuffer("SELECT ");
         String nameStr = ORMUtils.join(names, ",");
-        if(StringUtils.isEmpty(nameStr)){
+        if(ORMUtils.isEmpty(nameStr)){
             sql.append("*");
         }else{
             sql.append(nameStr);
@@ -527,7 +525,7 @@ public class SQLHelperCreator {
         Pair primaryKey = null;
 
         List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
-        Assert.notNull(infoList, "Get columns cache is empty.");
+        ORMUtils.whenTrue(infoList == null, "Get columns cache is empty.");
         for(ColumnInfo info : infoList) {
             Object fo = ORMUtils.getFieldValue(obj, info);
             if (fo != null) {
@@ -563,7 +561,7 @@ public class SQLHelperCreator {
         StringBuffer sql = new StringBuffer("SELECT * FROM " + tableName);
         List<Pair> values = new ArrayList<Pair>();
         String conditions = options.getConditions(clazz, expresses, values);
-        if (!StringUtils.isEmpty(conditions)) {
+        if (!ORMUtils.isEmpty(conditions)) {
             sql.append(" WHERE " + conditions);
         }
         SQLHelper helper = new SQLHelper();
@@ -579,7 +577,7 @@ public class SQLHelperCreator {
         StringBuffer sql = new StringBuffer("SELECT COUNT(*) FROM " + tableName);
         List<Pair> values = new ArrayList<Pair>();
         String conditions = options.getConditions(clazz, expresses, values);
-        if (!StringUtils.isEmpty(conditions)) {
+        if (!ORMUtils.isEmpty(conditions)) {
             sql.append(" WHERE " + conditions);
         }
         SQLHelper helper = new SQLHelper();
@@ -593,7 +591,7 @@ public class SQLHelperCreator {
         StringBuffer sql = new StringBuffer("SELECT COUNT(*) FROM " + tableName);
         List<Pair> values = new ArrayList<Pair>();
         String conditions = options.getConditions(clazz, ORMUtils.newList(terms.getCondition()), values);
-        if (!StringUtils.isEmpty(conditions)) {
+        if (!ORMUtils.isEmpty(conditions)) {
             sql.append(" WHERE " + conditions);
         }
         SQLHelper helper = new SQLHelper();
@@ -619,7 +617,7 @@ public class SQLHelperCreator {
         Pair primaryKey = null;
         List<Pair> parameters = new ArrayList<Pair>();
         List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
-        Assert.notNull(infoList, "Get columns cache is empty.");
+        ORMUtils.whenTrue(infoList == null, "Get columns cache is empty.");
         for(ColumnInfo info : infoList){
             if(info.getPrimaryKey() && id != null){
                 primaryKey = new Pair(info, id);

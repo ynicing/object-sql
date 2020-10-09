@@ -17,12 +17,10 @@ package com.ursful.framework.orm.option;
 
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.annotation.*;
-import com.ursful.framework.orm.exception.ORMError;
 import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.helper.SQLHelper;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
-import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -119,7 +117,7 @@ public class MySQLOptions extends AbstractOptions{
         String tableName = ORMUtils.getTableName(clazz);
         StringBuffer sql = new StringBuffer("SELECT ");
         String nameStr = ORMUtils.join(names, ",");
-        if(StringUtils.isEmpty(nameStr)){
+        if(ORMUtils.isEmpty(nameStr)){
             sql.append(Expression.EXPRESSION_ALL);
         }else{
             sql.append(nameStr);
@@ -128,13 +126,13 @@ public class MySQLOptions extends AbstractOptions{
         List<Pair> values = new ArrayList<Pair>();
         if(terms != null) {
             String conditions = getConditions(clazz, ORMUtils.newList(terms.getCondition()), values);
-            if (!StringUtils.isEmpty(conditions)) {
+            if (!ORMUtils.isEmpty(conditions)) {
                 sql.append(" WHERE " + conditions);
             }
         }
         if(multiOrder != null) {
             String orders = getOrders(multiOrder.getOrders());
-            if (!StringUtils.isEmpty(orders)) {
+            if (!ORMUtils.isEmpty(orders)) {
                 sql.append(" ORDER BY " + orders);
             }
         }
@@ -433,7 +431,7 @@ public class MySQLOptions extends AbstractOptions{
                                     needUpdate = true;
                                 }
                             }
-                            if(!needUpdate && !StringUtils.isEmpty(tableColumn.getDefaultValue())){
+                            if(!needUpdate && !ORMUtils.isEmpty(tableColumn.getDefaultValue())){
                                 if(!tableColumn.getDefaultValue().equals(rdColumn.defaultValue())){
                                     needUpdate = true;
                                 }
@@ -441,7 +439,7 @@ public class MySQLOptions extends AbstractOptions{
                             if(needUpdate) {
                                 String temp = columnString(info, table.sensitive(), rdColumn, false);
                                 String comment = columnComment(rdColumn);
-                                if (!StringUtils.isEmpty(comment)) {
+                                if (!ORMUtils.isEmpty(comment)) {
                                     temp += " COMMENT '" + comment + "'";
                                 }
                                 if(table.sensitive() == RdTable.DEFAULT_SENSITIVE){
@@ -458,7 +456,7 @@ public class MySQLOptions extends AbstractOptions{
                             // int, bigint(忽略精度), decimal(精度）， varchar， char 判断长度， 其他判断类型，+ 默认值
                             String temp = columnString(info, table.sensitive(), rdColumn, true);
                             String comment = columnComment(rdColumn);
-                            if (!StringUtils.isEmpty(comment)) {
+                            if (!ORMUtils.isEmpty(comment)) {
                                 temp += " COMMENT'" + comment + "'";
                             }
                             if(table.sensitive() == RdTable.DEFAULT_SENSITIVE){
@@ -490,7 +488,7 @@ public class MySQLOptions extends AbstractOptions{
                     RdForeignKey foreignKey = info.getField().getAnnotation(RdForeignKey.class);
                     String temp = columnString(info, table.sensitive(), rdColumn, true);
                     String comment = columnComment(rdColumn);
-                    if(!StringUtils.isEmpty(comment)){
+                    if(!ORMUtils.isEmpty(comment)){
                         temp += " COMMENT '" + comment + "'";
                     }
                     columnSQL.add(temp.toString());
@@ -508,16 +506,16 @@ public class MySQLOptions extends AbstractOptions{
                 sql.append(ORMUtils.join(columnSQL, ","));
                 sql.append(")");
                 String comment = table.comment();
-                if(StringUtils.isEmpty(comment)){
+                if(ORMUtils.isEmpty(comment)){
                     comment = table.title();
                 }
-                if(!StringUtils.isEmpty(comment)){
+                if(!ORMUtils.isEmpty(comment)){
                     sql.append(" COMMENT='" + comment + "' ");
                 }
-                if(!StringUtils.isEmpty(table.collate())){
+                if(!ORMUtils.isEmpty(table.collate())){
                     sql.append(" COLLATE='" + table.collate() + "'");
                 }
-                if(!StringUtils.isEmpty(table.engine())){
+                if(!ORMUtils.isEmpty(table.engine())){
                     sql.append(" ENGINE='" + table.engine() + "'");
                 }
                 sql.append(";");
@@ -536,7 +534,7 @@ public class MySQLOptions extends AbstractOptions{
             temp.append(String.format("`%s`", cname));
         }
         String type = " " + getColumnType(info, rdColumn);
-        if(!StringUtils.isEmpty(rdColumn.defaultValue())){
+        if(!ORMUtils.isEmpty(rdColumn.defaultValue())){
             type += " DEFAULT '" +  rdColumn.defaultValue() + "'";
         }
         if(!rdColumn.nullable()){

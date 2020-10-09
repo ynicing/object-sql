@@ -16,7 +16,6 @@
 package com.ursful.framework.orm.support;
 
 import com.ursful.framework.orm.utils.ORMUtils;
-import org.springframework.util.Assert;
 
 import java.io.Serializable;
 import java.util.List;
@@ -39,7 +38,7 @@ public class QueryInfo implements Serializable {
 		return sql;
 	}
 	public void setSql(String sql) {
-		Assert.notNull(sql, "SQL is null.");
+		ORMUtils.whenEmpty(sql, "SQL is null.");
 		this.sql = ORMUtils.convertSQL(sql);
 	}
 	public Class<?> getClazz() {

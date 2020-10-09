@@ -21,7 +21,6 @@ import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.helper.SQLHelper;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
-import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -118,7 +117,7 @@ public class SQLServerOptions extends AbstractOptions{
         sb.append(selectColumns(query, null));
         if(page != null){
             String byOrders = orders(query, null);
-            if(!StringUtils.isEmpty(byOrders)){
+            if(!ORMUtils.isEmpty(byOrders)){
                 sb.append(" ,row_number() over(" + byOrders + ") rn_ ");
             }else{
                 sb.append(" ,row_number() over(order by (select 0)) rn_ ");
@@ -154,7 +153,7 @@ public class SQLServerOptions extends AbstractOptions{
         String tableName = ORMUtils.getTableName(clazz);
         StringBuffer sql = new StringBuffer("SELECT ");
         String nameStr = ORMUtils.join(names, ",");
-        if(StringUtils.isEmpty(nameStr)){
+        if(ORMUtils.isEmpty(nameStr)){
             sql.append(Expression.EXPRESSION_ALL);
         }else{
             sql.append(nameStr);
@@ -163,7 +162,7 @@ public class SQLServerOptions extends AbstractOptions{
             String byOrders = null;
             if(multiOrder != null) {
                 String orders = getOrders(multiOrder.getOrders());
-                if (!StringUtils.isEmpty(orders)) {
+                if (!ORMUtils.isEmpty(orders)) {
                     byOrders = " ORDER BY " + orders;
                 }
             }
@@ -178,7 +177,7 @@ public class SQLServerOptions extends AbstractOptions{
         if(terms != null) {
             Condition condition = terms.getCondition();
             String conditions = getConditions(clazz, ORMUtils.newList(condition), values);
-            if (!StringUtils.isEmpty(conditions)) {
+            if (!ORMUtils.isEmpty(conditions)) {
                 sql.append(" WHERE " + conditions);
             }
         }
@@ -196,7 +195,7 @@ public class SQLServerOptions extends AbstractOptions{
             String byOrders = null;
             if(multiOrder != null) {
                 String orders = getOrders(multiOrder.getOrders());
-                if (!StringUtils.isEmpty(orders)) {
+                if (!ORMUtils.isEmpty(orders)) {
                     byOrders = " ORDER BY " + orders;
                 }
             }
@@ -446,7 +445,7 @@ public class SQLServerOptions extends AbstractOptions{
                                     needUpdate = true;
                                 }
                             }
-                            if(!needUpdate && !StringUtils.isEmpty(tableColumn.getDefaultValue())){
+                            if(!needUpdate && !ORMUtils.isEmpty(tableColumn.getDefaultValue())){
                                 String defaultValue = tableColumn.getDefaultValue();
                                 if(defaultValue.startsWith("('") && defaultValue.endsWith("')")){
                                     defaultValue = defaultValue.substring(2, defaultValue.length() - 2);
@@ -458,7 +457,7 @@ public class SQLServerOptions extends AbstractOptions{
                             if(needUpdate) {
                                 String temp = columnString(info, table.sensitive(), rdColumn, false);
                                 sqls.add(String.format("ALTER TABLE %s ALTER COLUMN %s", tableName, temp));
-                                if (!StringUtils.isEmpty(comment) && !comment.equals(tableColumn.getComment())) {
+                                if (!ORMUtils.isEmpty(comment) && !comment.equals(tableColumn.getComment())) {
                                     // MS_Description
                                     sqls.add(String.format("EXECUTE sp_addextendedproperty N'MS_Description',N'%s',N'user',N'dbo',N'table',N'%s',N'column',N'%s'",
                                             comment, tableName, columnName));
@@ -483,7 +482,7 @@ public class SQLServerOptions extends AbstractOptions{
                                 sqls.add("ALTER TABLE " + tableName + " ADD " + foreignSQL);
                             }
 
-                            if (!StringUtils.isEmpty(comment)) {
+                            if (!ORMUtils.isEmpty(comment)) {
                                 //MS_Description
                                 sqls.add(String.format("EXECUTE sp_addextendedproperty N'MS_Description',N'%s',N'user',N'dbo',N'table',N'%s',N'column',N'%s'",
                                         comment, tableName, columnName));
@@ -504,7 +503,7 @@ public class SQLServerOptions extends AbstractOptions{
                     String temp = columnString(info, table.sensitive(), rdColumn, true);
                     String comment = columnComment(rdColumn);
                     String columnName = getCaseSensitive(rdColumn.name(), table.sensitive());
-                    if(!StringUtils.isEmpty(comment)){
+                    if(!ORMUtils.isEmpty(comment)){
                         comments.add(String.format("EXECUTE sp_addextendedproperty N'MS_Description',N'%s',N'user',N'dbo',N'table',N'%s',N'column',N'%s'",
                                 comment, tableName, columnName));
                     }
@@ -525,10 +524,10 @@ public class SQLServerOptions extends AbstractOptions{
                 sql.append(";");
                 sqls.add(sql.toString());
                 String comment = table.comment();
-                if(StringUtils.isEmpty(comment)){
+                if(ORMUtils.isEmpty(comment)){
                     comment = table.title();
                 }
-                if(!StringUtils.isEmpty(comment)){
+                if(!ORMUtils.isEmpty(comment)){
                     sqls.add(String.format("EXECUTE sp_addextendedproperty N'MS_Description',N'%s',N'user',N'dbo',N'table',N'%s',NULL,NULL",
                             comment, tableName));
                 }
@@ -545,7 +544,7 @@ public class SQLServerOptions extends AbstractOptions{
         temp.append(cname);
         String type = getColumnType(info, rdColumn);
         temp.append(" " + type);
-        if(!StringUtils.isEmpty(rdColumn.defaultValue())){
+        if(!ORMUtils.isEmpty(rdColumn.defaultValue())){
             temp.append(" DEFAULT '" +  rdColumn.defaultValue() + "'");
         }
         if(!rdColumn.nullable()){

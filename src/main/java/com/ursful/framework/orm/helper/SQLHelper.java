@@ -17,7 +17,6 @@ package com.ursful.framework.orm.helper;
 
 import com.ursful.framework.orm.utils.ORMUtils;
 import com.ursful.framework.orm.support.Pair;
-import org.springframework.util.Assert;
 import org.springframework.validation.DataBinder;
 
 import java.lang.reflect.Field;
@@ -75,7 +74,7 @@ public class SQLHelper {
 		return sql;
 	}
 	public void setSql(String sql) {
-		Assert.notNull(sql, "SQL is null.");
+		ORMUtils.whenEmpty(sql, "SQL is null.");
 		this.sql = ORMUtils.convertSQL(sql);
 	}
 	public List<Pair> getParameters() {

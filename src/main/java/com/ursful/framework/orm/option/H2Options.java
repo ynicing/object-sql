@@ -25,7 +25,6 @@ import com.ursful.framework.orm.support.TableColumn;
 import com.ursful.framework.orm.utils.ORMUtils;
 import com.ursful.framework.orm.support.ColumnInfo;
 import com.ursful.framework.orm.support.ColumnType;
-import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -289,7 +288,7 @@ public class H2Options extends MySQLOptions{
                                     needUpdate = true;
                                 }
                             }
-                            if(!needUpdate && !StringUtils.isEmpty(tableColumn.getDefaultValue())){
+                            if(!needUpdate && !ORMUtils.isEmpty(tableColumn.getDefaultValue())){
                                 String defaultValue = tableColumn.getDefaultValue().trim();
                                 if(defaultValue.startsWith("'") && defaultValue.endsWith("'")){
                                     defaultValue = defaultValue.substring(1, defaultValue.length() - 1);
@@ -307,7 +306,7 @@ public class H2Options extends MySQLOptions{
                                     sqls.add(String.format("ALTER TABLE \"%s\" MODIFY COLUMN %s", tableName, temp));
                                 }
                                 String comment = columnComment(rdColumn);
-                                if (!StringUtils.isEmpty(comment)) {
+                                if (!ORMUtils.isEmpty(comment)) {
                                     if(table.sensitive() == RdTable.DEFAULT_SENSITIVE){
                                         sqls.add(String.format("COMMENT ON COLUMN %s.%s IS '%s'", tableName, columnName,
                                                 comment));
@@ -330,7 +329,7 @@ public class H2Options extends MySQLOptions{
                                 sqls.add(String.format("ALTER TABLE \"%s\" ADD COLUMN %s", tableName, temp));
                             }
                             String comment = columnComment(rdColumn);
-                            if (!StringUtils.isEmpty(comment)) {
+                            if (!ORMUtils.isEmpty(comment)) {
                                 if(table.sensitive() == RdTable.DEFAULT_SENSITIVE){
                                     sqls.add(String.format("COMMENT ON COLUMN %s.%s IS '%s'", tableName, columnName,
                                             comment));
@@ -379,7 +378,7 @@ public class H2Options extends MySQLOptions{
                     String temp = columnString(info, table.sensitive(), rdColumn, true);
                     String comment = columnComment(rdColumn);
                     String columnName =  getCaseSensitive(info.getColumnName(), table.sensitive());
-                    if(!StringUtils.isEmpty(comment)){
+                    if(!ORMUtils.isEmpty(comment)){
                         if(table.sensitive() == RdTable.DEFAULT_SENSITIVE){
                             comments.add(String.format("COMMENT ON COLUMN %s.%s IS '%s'", tableName, columnName,
                                     comment));
@@ -403,12 +402,12 @@ public class H2Options extends MySQLOptions{
                 sql.append(ORMUtils.join(columnSQL, ","));
                 sql.append(")");
                 String comment = table.comment();
-                if(StringUtils.isEmpty(comment)){
+                if(ORMUtils.isEmpty(comment)){
                     comment = table.title();
                 }
 
                 sqls.add(sql.toString());
-                if(!StringUtils.isEmpty(comment)){
+                if(!ORMUtils.isEmpty(comment)){
                     if(table.sensitive() == RdTable.DEFAULT_SENSITIVE){
                         sqls.add(String.format("COMMENT ON TABLE %s IS '%s'", tableName, comment));
                     }else{
@@ -431,7 +430,7 @@ public class H2Options extends MySQLOptions{
         }
         temp.append(" ");
         String type = getColumnType(info, rdColumn);
-        if(!StringUtils.isEmpty(rdColumn.defaultValue())){
+        if(!ORMUtils.isEmpty(rdColumn.defaultValue())){
             type += " DEFAULT '" +  rdColumn.defaultValue() + "'";
         }
         if(!rdColumn.nullable()){

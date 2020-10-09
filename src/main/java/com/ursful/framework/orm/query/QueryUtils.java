@@ -18,20 +18,19 @@ package com.ursful.framework.orm.query;
 
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.utils.ORMUtils;
-import org.springframework.util.StringUtils;
 
 import java.util.*;
 
 public class QueryUtils {
 
     public static void setMultiOrderAlias(MultiOrder multiOrder, String alias){
-        if(multiOrder != null && !StringUtils.isEmpty(alias)){
+        if(multiOrder != null && !ORMUtils.isEmpty(alias)){
             setOrdersAlias(multiOrder.getOrders(), alias);
         }
     }
 
     public static void setOrdersAlias(List<Order> orders, String alias){
-        if(orders != null&& !StringUtils.isEmpty(alias)){
+        if(orders != null&& !ORMUtils.isEmpty(alias)){
             for(Order order : orders){
                 setColumnAlias(order.getColumn(), alias);
             }
@@ -39,14 +38,14 @@ public class QueryUtils {
     }
 
     public static void setConditionsAlias(List<Condition> conditions, String alias){
-        if(conditions != null && !StringUtils.isEmpty(alias)){
+        if(conditions != null && !ORMUtils.isEmpty(alias)){
             for(Condition condition : conditions){
                 setConditionAlias(condition, alias);
             }
         }
     }
     public static void setConditionAlias(Condition condition, String alias){
-        if(condition != null && !StringUtils.isEmpty(alias)){
+        if(condition != null && !ORMUtils.isEmpty(alias)){
             List<ConditionObject> exts = condition.getConditions();
             for(ConditionObject ext : exts){
                 if(ext == null){
@@ -72,7 +71,7 @@ public class QueryUtils {
     }
 
     public static void setExpressionsAlias(Expression[] expressions, String alias){
-        if(expressions != null && !StringUtils.isEmpty(alias)){
+        if(expressions != null && !ORMUtils.isEmpty(alias)){
             for(Expression expression : expressions){
                 setExpressionAlias(expression, alias);
             }
@@ -80,7 +79,7 @@ public class QueryUtils {
     }
 
     public static void setExpressionAlias(Expression expression, String alias){
-        if(expression != null && !StringUtils.isEmpty(alias)){
+        if(expression != null && !ORMUtils.isEmpty(alias)){
             setColumnAlias(expression.getLeft(), alias);
             if(expression.getValue() instanceof Column){
                 setColumnAlias((Column)expression.getValue(), alias);
@@ -88,7 +87,7 @@ public class QueryUtils {
         }
     }
     public static void setColumnsAlias(List<Column> columns, String alias){
-        if(columns != null && !StringUtils.isEmpty(alias)){
+        if(columns != null && !ORMUtils.isEmpty(alias)){
             for(Column column : columns){
                 setColumnAlias(column, alias);
             }
@@ -96,8 +95,8 @@ public class QueryUtils {
     }
 
     public static void setColumnAlias(Column column, String alias){
-        if(column != null && !StringUtils.isEmpty(alias)){
-            if(StringUtils.isEmpty(column.getAlias())) {
+        if(column != null && !ORMUtils.isEmpty(alias)){
+            if(ORMUtils.isEmpty(column.getAlias())) {
                 column.setAlias(alias);
             }
             if(column.getValue() instanceof  Column){
