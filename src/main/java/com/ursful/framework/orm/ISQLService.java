@@ -82,6 +82,27 @@ public interface ISQLService {
     //默认非自动提交 回滚
     <S> List<S> batchSaves(List<S> ts, boolean rollback);
 
+
+    boolean batchUpdates(List ts, String [] columns, int batchCount);
+    boolean batchUpdates(List ts, String [] columns, int batchCount, boolean autoCommit);
+    /**
+     * 批量更新，根据sql更新，若更新列为null，则将被更新
+     * @param ts
+     * @param columns 指定更新列，未指定则更新全部
+     * @param batchCount
+     * @param autoCommit auto commit
+     * @param rollback 当autoCommit=false 有效， rollback = false 不回滚， 为true 回滚
+     * @return boolean
+     */
+    boolean batchUpdates(List ts, String [] columns, int batchCount, boolean autoCommit, boolean rollback);
+    boolean batchUpdates(List ts, String [] columns, boolean rollback);
+
+    //无columns默认更新全表
+    boolean batchUpdates(List ts, int batchCount);
+    boolean batchUpdates(List ts, int batchCount, boolean autoCommit);
+    boolean batchUpdates(List ts, int batchCount, boolean autoCommit, boolean rollback);
+    boolean batchUpdates(List ts, boolean rollback);
+
     void createOrUpdate(Class<?> table) throws ORMException;
 
     boolean tableExists(String table);

@@ -6,7 +6,7 @@
 
   <groupId>com.ursful.framework</groupId>
   <artifactId>ursful-orm</artifactId>
-  <version>2.7.5</version>
+  <version>3.0.1</version>
   <description>Lightweight ursful Object Relational Mapping (ORM)</description>
 
   <name>ursful-orm</name>
@@ -55,12 +55,6 @@
       <scope>test</scope>
     </dependency>
 
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-beans</artifactId>
-      <version>${spring.version}</version>
-      <scope>provided</scope>
-    </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-context</artifactId>

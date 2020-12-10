@@ -498,6 +498,77 @@ public class SQLHelperCreator {
         return helpers;
     }
 
+    public static <S> List<SQLHelper> updates(List<S> objs, List<String> columns){
+        List<SQLHelper> helpers = new ArrayList<SQLHelper>();
+        if(objs == null || objs.isEmpty()){
+            return helpers;
+        }
+        String updateSQL = null;
+        Class clazz = null;
+        List<ColumnInfo> selected = null;
+
+        for(Object obj : objs) {
+            if(clazz == null) {
+                clazz = obj.getClass();
+            }else{
+                if(!clazz.equals(obj.getClass())){
+                    throw new RuntimeException("Error class, [" + clazz.getName() + "] but [" + obj.getClass() + "]");
+                }
+            }
+            String tableName = ORMUtils.getTableName(clazz);
+            List<Pair> parameters = new ArrayList<Pair>();
+            SQLHelper helper = new SQLHelper();
+            ColumnInfo primaryKey = null;
+            if(selected == null){
+                List<String> ps = new ArrayList<String>();
+                selected = new ArrayList<ColumnInfo>();
+                List<ColumnInfo> infoList = ORMUtils.getColumnInfo(clazz);
+                ORMUtils.whenTrue(infoList == null, "Get columns cache is empty.");
+                String databaseType = DatabaseTypeHolder.get();
+                for (ColumnInfo info : infoList) {
+                    if (databaseType != null && databaseType.contains("SERVER") && info.getColumnType() == ColumnType.TIMESTAMP) {
+                        continue;
+                    }
+                    if(info.getPrimaryKey()){
+                        primaryKey = info;
+                        continue;
+                    }
+                    if(columns != null){
+                        if(columns.contains(info.getColumnName())){
+                            selected.add(info);
+                        }
+                    }else{
+                        selected.add(info);
+                    }
+                }
+                ORMUtils.whenTrue(primaryKey == null, "No primary key for table : " + clazz);
+                ORMUtils.whenTrue(selected.isEmpty(), "No valid column for table : " + clazz);
+                StringBuffer sql = new StringBuffer("UPDATE ");
+                sql.append(tableName);
+                sql.append(" SET ");
+                for (ColumnInfo info : selected) {
+                    if (databaseType != null && databaseType.contains("SERVER") && info.getColumnType() == ColumnType.TIMESTAMP) {
+                        continue;
+                    }
+                    ps.add(String.format(" %s = ? ", info.getColumnName()));
+                }
+                selected.add(primaryKey);
+                sql.append(ORMUtils.join(ps, ","));
+                sql.append(String.format(" WHERE %s = ? ", primaryKey.getColumnName()));
+                updateSQL = sql.toString();
+            }
+            for (ColumnInfo info : selected) {
+                Object fo = ORMUtils.getFieldValue(obj, info);
+                Pair pair = new Pair(info, fo);
+                parameters.add(pair);
+            }
+            helper.setSql(updateSQL);
+            helper.setParameters(parameters);
+            helpers.add(helper);
+        }
+        return helpers;
+    }
+
     /**
      * 允许获取 id，匹配，唯一等值
      * 有id根据id获取，其他根据列 等值获取

@@ -68,9 +68,9 @@ public class OracleOptions extends AbstractOptions{
                 }
                 break;
             case DOUBLE:
-                BigDecimal bg=new BigDecimal((Double)obj);
-                bg.setScale(5,BigDecimal.ROUND_HALF_DOWN);
-                ps.setDouble(i + 1, bg.doubleValue());
+//                BigDecimal bg=new BigDecimal((Double)obj);
+//                bg.setScale(5,BigDecimal.ROUND_HALF_UP);
+                ps.setDouble(i + 1, (Double)obj);
                 hasSet = true;
                 break;
             default:

@@ -38,6 +38,15 @@ public class ORMUtils {
     private static boolean debug = false;
     private static boolean isTrim = false;
     private static boolean lowerCaseSql = false;
+    private static int runningMode = -1;
+
+    public static void setRunningMode(int runningMode){
+        runningMode = runningMode;
+    }
+
+    public static int getRunningMode(){
+        return runningMode;
+    }
 
     public static void enableLowerCaseSql(boolean lowerCase){
         lowerCaseSql = lowerCase;

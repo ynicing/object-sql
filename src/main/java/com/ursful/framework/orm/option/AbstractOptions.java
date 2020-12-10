@@ -139,16 +139,25 @@ public abstract class AbstractOptions implements Options{
                 }else{
                     BigDecimal decimal = (BigDecimal) obj;
                     Map<String, Object> metadata = pair.getMetadata();
-                    int runningMode = BigDecimal.ROUND_HALF_DOWN;//默认采用四舍五入
+                    int runningMode = BigDecimal.ROUND_UNNECESSARY;
                     int scale = decimal.scale();
                     if (metadata != null) {
-                        Integer mode = (Integer) metadata.get("runningMode");
+                        Integer scaleValue = (Integer) metadata.get("scale");
+                        int newScale = scale;
+                        if (scaleValue != null) {//当scale为0时，才会使用 RdColumn中的scale, 不能使用上述 decimal中的scale, 有可能失去精度变成很大
+                            newScale = scaleValue.intValue();
+                        }
+                        Integer mode = (Integer) metadata.get("runningMode");//优先级最高，比ORMUTils。runningMode高
                         if (mode != null && mode.intValue() > -1) {
                             runningMode = mode.intValue();
+                            scale = newScale;
+                        }else if(ORMUtils.getRunningMode() > -1){
+                            runningMode = ORMUtils.getRunningMode();
+                            scale = newScale;
                         }
-                        Integer scaleValue = (Integer) metadata.get("scale");
-                        if (scaleValue != null) {//当scale为0时，才会使用 RdColumn中的scale, 不能使用上述 decimal中的scale, 有可能失去精度变成很大
-                            scale = scaleValue.intValue();
+                    }else{
+                        if(ORMUtils.getRunningMode() > -1){
+                            runningMode = ORMUtils.getRunningMode();
                         }
                     }
                     BigDecimal setScale = decimal.setScale(scale, runningMode);

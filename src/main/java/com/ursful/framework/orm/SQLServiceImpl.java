@@ -560,10 +560,111 @@ public class SQLServiceImpl implements ISQLService{
         return ts;
     }
 
+    public boolean batchUpdates(List ts, String[] columns,  int batchCount, boolean autoCommit, boolean rollback) {
+        //autoCommit true, rollback  无效
+        //autoCommit false rollback true: 回滚， false: 不回滚
+        boolean result = false;
+        if(ts == null || ts.isEmpty()){
+            return result;
+        }
+
+        ResultSet rs = null;
+        PreparedStatement ps = null;
+        Connection conn = null;
+        int index = 0;
+        try {
+            conn = getConnection();
+
+            if(!autoCommit) {
+                conn.setAutoCommit(false);
+            }
+            List<SQLHelper> helpers = SQLHelperCreator.updates(ts, columns == null ? null : Arrays.asList(columns));
+
+            if(helpers.isEmpty()){
+                return result;
+            }
+            SQLHelper helper = helpers.get(0);
+
+            ps = conn.prepareStatement(helper.getSql());
+
+            for (int i = 0; i < helpers.size(); i += batchCount){
+                index = i;
+                int lastIndex = Math.min(i + batchCount, helpers.size()) - 1;
+                if(i <= lastIndex){
+                    for(int j = i; j <= lastIndex; j++){
+                        SQLHelper sqlHelper = helpers.get(j);
+                        SQLHelperCreator.setParameter(getOptions(), ps, sqlHelper.getParameters(), conn);
+                        ps.addBatch();
+                    }
+                    ps.executeBatch();
+                }
+            }
+            if(!autoCommit){
+                conn.commit();
+            }
+            result = true;
+        } catch (SQLException e) {
+            if(!autoCommit && rollback) {
+                try {
+                    conn.rollback();
+                } catch (SQLException e1) {
+                }
+            }
+            throw new ORMBatchException(e, ts.size(), index);
+        } finally{
+            if(conn != null && !autoCommit){
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException e) {
+                }
+            }
+            closeConnection(rs, ps, conn);
+
+        }
+        return result;
+    }
+
+    @Override
+    public boolean batchUpdates(List ts, String[] columns, boolean rollback) {
+        return batchUpdates(ts, columns, ts.size(), rollback, false);
+    }
+
+    @Override
+    public boolean batchUpdates(List ts, int batchCount) {
+        return batchUpdates(ts, null, ts.size(), true, false);
+    }
+
+    @Override
+    public boolean batchUpdates(List ts, int batchCount, boolean autoCommit) {
+        return batchUpdates(ts, null, batchCount, autoCommit, false);
+    }
+
+    @Override
+    public boolean batchUpdates(List ts, int batchCount, boolean autoCommit, boolean rollback) {
+        return batchUpdates(ts, null, batchCount, autoCommit, rollback);
+    }
+
+    @Override
+    public boolean batchUpdates(List ts, boolean rollback) {
+        return batchUpdates(ts, null, ts.size(), rollback, false);
+    }
+
+    @Override
+    public boolean batchUpdates(List ts, String[] columns, int batchCount) {
+        return batchUpdates(ts, columns, batchCount, true, false);
+    }
+
+    @Override
+    public boolean batchUpdates(List ts, String[] columns, int batchCount, boolean autoCommit) {
+        return batchUpdates(ts, columns, batchCount, autoCommit, false);
+    }
+
+
     @Override
     public <S> List<S> batchSaves(List<S> ts, boolean rollback) {
         return batchSaves(ts, ts.size(), false, rollback);
     }
+
 
 
     //((JdbcConnection) connection).getURL() org.h2.jdbc.JdbcConnection
