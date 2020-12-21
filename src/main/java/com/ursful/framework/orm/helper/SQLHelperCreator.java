@@ -135,6 +135,9 @@ public class SQLHelperCreator {
                 continue;
             }
             SQLPair pair = options.parseExpression(clazz, express.getExpression());
+            if(pair == null){
+                continue;
+            }
             terms.add(pair.getSql());
             pairs.addAll(pair.getPairs());
             hasExpress = true;
@@ -298,6 +301,9 @@ public class SQLHelperCreator {
                         continue;
                     }
                     SQLPair pair = option.parseExpression(clazz, express.getExpression());
+                    if(pair == null){
+                        continue;
+                    }
                     terms.add(pair.getSql());
                     parameters.addAll(pair.getPairs());
                 }
@@ -330,6 +336,9 @@ public class SQLHelperCreator {
                     continue;
                 }
                 SQLPair pair = options.parseExpression(clazz, express.getExpression());
+                if(pair == null){
+                    continue;
+                }
                 terms.add(pair.getSql());
                 parameters.addAll(pair.getPairs());
             }
@@ -346,6 +355,9 @@ public class SQLHelperCreator {
                     continue;
                 }
                 SQLPair pair = options.parseExpression(clazz, express.getExpression());
+                if(pair == null){
+                    continue;
+                }
                 terms.add(pair.getSql());
                 parameters.addAll(pair.getPairs());
             }
