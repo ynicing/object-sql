@@ -91,14 +91,15 @@ public class MySQLOptions extends AbstractOptions{
         List<Pair> values = new ArrayList<Pair>();
         StringBuffer sb = new StringBuffer();
         sb.append("SELECT ");
-        sb.append(selectColumns(query, null));
+        List<String> asNames = new ArrayList<String>();
+        sb.append(selectColumns(query, null, asNames));
         sb.append(" FROM ");
         sb.append(tables(query, values, null));
         sb.append(joins(query, values));
         sb.append(wheres(query, values, null));
         sb.append(groups(query, null));
         sb.append(havings(query, values, null));
-        sb.append(orders(query, null));
+        sb.append(orders(query, null, asNames));
         if(page != null){
             sb.append(" LIMIT ? OFFSET ? ");
             values.add(new Pair(new Integer(page.getSize())));

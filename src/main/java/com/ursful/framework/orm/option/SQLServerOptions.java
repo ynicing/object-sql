@@ -114,9 +114,10 @@ public class SQLServerOptions extends AbstractOptions{
         List<Pair> values = new ArrayList<Pair>();
         StringBuffer sb = new StringBuffer();
         sb.append("SELECT ");
-        sb.append(selectColumns(query, null));
+        List<String> asNames = new ArrayList<String>();
+        sb.append(selectColumns(query, null, asNames));
         if(page != null){
-            String byOrders = orders(query, null);
+            String byOrders = orders(query, null, asNames);
             if(!ORMUtils.isEmpty(byOrders)){
                 sb.append(" ,row_number() over(" + byOrders + ") rn_ ");
             }else{
@@ -137,7 +138,7 @@ public class SQLServerOptions extends AbstractOptions{
             sb.append(") ms_ ");
             sb.append(" WHERE ms_.rn_ > " +page.getOffset()+" ");
         }else{
-            sb.append(orders(query, null));
+            sb.append(orders(query, null, asNames));
         }
         info.setClazz(query.getReturnClass());
         info.setSql(sb.toString());

@@ -181,7 +181,7 @@ public abstract class AbstractOptions implements Options{
         StringBuffer sb = new StringBuffer();
         sb.append("SELECT ");
         if(query.isDistinct()){
-            sb.append(selectColumns(query, null));
+            sb.append(selectColumns(query, null, null));
         }else {
             sb.append(selectCount());
         }
@@ -206,7 +206,10 @@ public abstract class AbstractOptions implements Options{
         return " COUNT(*) ";
     }
 
-    public String selectColumns(IQuery query, String alias){
+    public String selectColumns(IQuery query, String alias, List<String> asNames){
+        if(asNames == null){
+            asNames = new ArrayList<String>();
+        }
         StringBuffer sb = new StringBuffer();
         if(query.isDistinct()) {
             sb.append(" DISTINCT ");
@@ -233,6 +236,20 @@ public abstract class AbstractOptions implements Options{
                 }
                 inColumn.add(column.getAlias() + "." + column.getName());
                 temp.add(parseColumn(column));
+                if (!ORMUtils.isEmpty(column.getAsName())){
+                    asNames.add(column.getAsName().toUpperCase(Locale.ROOT));
+                }else{
+                    String format = column.getFormat();
+                    if(!ORMUtils.isEmpty(format)){
+                        String fm = format.toUpperCase(Locale.ROOT);
+                        String word = " AS ";
+                        int index = fm.indexOf(word);
+                        if(index > -1) {
+                            String asName = fm.substring(index + word.length());
+                            asNames.add(asName.trim());
+                        }
+                    }
+                }
                 if(Expression.EXPRESSION_ALL.equals(column.getName())){
                     if(!ORMUtils.isEmpty(column.getAlias()) && !allAlias.contains(column.getAlias())){
                         allAlias.add(column.getAlias());
@@ -246,7 +263,9 @@ public abstract class AbstractOptions implements Options{
             List<Order> orders = query.getOrders();
             for (Order order : orders) {
                 Column column = order.getColumn();
-                QueryUtils.setColumnAlias(column, alias);
+                if(!asNames.contains(column.getName().toUpperCase(Locale.ROOT))) {
+                    QueryUtils.setColumnAlias(column, alias);
+                }
                 if (!ORMUtils.isEmpty(column.getAlias()) && !allAlias.contains(column.getAlias())
                         && !inColumn.contains(column.getAlias() + "." + column.getName())) {
                     String orderStr = parseColumn(column);
@@ -265,10 +284,18 @@ public abstract class AbstractOptions implements Options{
         return sb.toString();
     }
 
-    public String orders(IQuery query, String alias){
+    public String orders(IQuery query, String alias, List<String> asNames){
+        if (asNames == null){
+            asNames = new ArrayList<String>();
+        }
         String result = "";
         List<Order> orders = query.getOrders();
-        QueryUtils.setOrdersAlias(orders, alias);
+        for(Order order : orders) {
+            Column column = order.getColumn();
+            if(!(ORMUtils.isEmpty(column.getAlias()) && asNames.contains(column.getName().toUpperCase(Locale.ROOT)))){
+                QueryUtils.setOrdersAlias(orders, alias);
+            }
+        }
         String orderString = getOrders(orders);
         if (orderString != null && !"".equals(orderString)) {
             result = " ORDER BY " + orderString;

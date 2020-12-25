@@ -214,8 +214,9 @@ public class OracleOptions extends AbstractOptions{
         String alias = "ora_";
 
         sb.append("SELECT ");
-        sb.append(selectColumns(query, alias));
-        String order = orders(query, alias);
+        List<String> asNames = new ArrayList<String>();
+        sb.append(selectColumns(query, alias, asNames));
+        String order = orders(query, alias, asNames);
         boolean hasOrder = !ORMUtils.isEmpty(order);
         if(page != null && !hasOrder){
             sb.append(",ROWNUM rn_ ");
