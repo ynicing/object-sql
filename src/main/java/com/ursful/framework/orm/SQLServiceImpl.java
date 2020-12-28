@@ -148,7 +148,7 @@ public class SQLServiceImpl implements ISQLService{
                 }
             }
             ps.executeBatch();
-//            ps.clearParameters();
+            conn.commit();
         } catch (SQLException e) {
             e.printStackTrace();
             try {

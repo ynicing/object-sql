@@ -91,7 +91,7 @@ public class MySQLOptions extends AbstractOptions{
         List<Pair> values = new ArrayList<Pair>();
         StringBuffer sb = new StringBuffer();
         sb.append("SELECT ");
-        List<String> asNames = new ArrayList<String>();
+        Map<String, String> asNames = new HashMap<String, String>();
         sb.append(selectColumns(query, null, asNames));
         sb.append(" FROM ");
         sb.append(tables(query, values, null));

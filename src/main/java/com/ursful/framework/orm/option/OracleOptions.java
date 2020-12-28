@@ -214,7 +214,7 @@ public class OracleOptions extends AbstractOptions{
         String alias = "ora_";
 
         sb.append("SELECT ");
-        List<String> asNames = new ArrayList<String>();
+        Map<String, String> asNames = new HashMap<String, String>();
         sb.append(selectColumns(query, alias, asNames));
         String order = orders(query, alias, asNames);
         boolean hasOrder = !ORMUtils.isEmpty(order);
