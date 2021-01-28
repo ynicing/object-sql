@@ -458,6 +458,10 @@ public class PostgreSQLOptions extends MySQLOptions{
                                     }
                                 }
                             }
+                            RdId rdId = info.getField().getAnnotation(RdId.class);
+                            if (!needUpdate && (tableColumn.isNullable() != rdColumn.nullable()) && !tableColumn.isPrimaryKey() && rdId == null){
+                                needUpdate = true;
+                            }
                             if(needUpdate) {
                                 if(!rdColumn.nullable()){
                                     if(table.sensitive() == RdTable.DEFAULT_SENSITIVE){

@@ -15,10 +15,7 @@
  */
 package com.ursful.framework.orm.option;
 
-import com.ursful.framework.orm.annotation.RdColumn;
-import com.ursful.framework.orm.annotation.RdForeignKey;
-import com.ursful.framework.orm.annotation.RdTable;
-import com.ursful.framework.orm.annotation.RdUniqueKey;
+import com.ursful.framework.orm.annotation.*;
 import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.support.Table;
 import com.ursful.framework.orm.support.TableColumn;
@@ -185,8 +182,7 @@ public class H2Options extends MySQLOptions{
     }
 
     @Override
-    public List<TableColumn> columns(Connection connection, RdTable rdTable) throws ORMException {
-        String tableName = getTableName(rdTable);
+    public List<TableColumn> columns(Connection connection, String tableName){
         List<TableColumn> columns = new ArrayList<TableColumn>();
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -226,6 +222,12 @@ public class H2Options extends MySQLOptions{
             }
         }
         return columns;
+    }
+
+    @Override
+    public List<TableColumn> columns(Connection connection, RdTable rdTable) throws ORMException {
+        String tableName = getTableName(rdTable);
+        return columns(connection, tableName);
     }
 
 
@@ -297,13 +299,18 @@ public class H2Options extends MySQLOptions{
                                     needUpdate = true;
                                 }
                             }
+                            RdId rdId = info.getField().getAnnotation(RdId.class);
+                            if (!needUpdate && (tableColumn.isNullable() != rdColumn.nullable()) && !tableColumn.isPrimaryKey() && rdId == null){
+                                String temp = columnStringChangeNull(info, table.sensitive(), rdColumn.nullable());
+                                sqls.add(String.format("ALTER TABLE %s ALTER %s ", tableName, temp));
+                            }
                             if(needUpdate) {
                                 String temp = columnString(info, table.sensitive(), rdColumn, false);
 
                                 if(table.sensitive() == RdTable.DEFAULT_SENSITIVE){
-                                    sqls.add(String.format("ALTER TABLE %s MODIFY COLUMN %s", tableName, temp));
+                                    sqls.add(String.format("ALTER TABLE %s ALTER COLUMN %s", tableName, temp));
                                 }else{
-                                    sqls.add(String.format("ALTER TABLE \"%s\" MODIFY COLUMN %s", tableName, temp));
+                                    sqls.add(String.format("ALTER TABLE \"%s\" ALTER COLUMN %s", tableName, temp));
                                 }
                                 String comment = columnComment(rdColumn);
                                 if (!ORMUtils.isEmpty(comment)) {
@@ -420,6 +427,22 @@ public class H2Options extends MySQLOptions{
         return sqls;
     }
 
+    protected String columnStringChangeNull(ColumnInfo info, int sensitive, boolean isNull) {
+        StringBuffer temp = new StringBuffer();
+        String cname = getCaseSensitive(info.getColumnName(), sensitive);
+        if(sensitive == RdTable.DEFAULT_SENSITIVE){
+            temp.append(cname);
+        }else{
+            temp.append(String.format("\"%s\"", cname));
+        }
+        if(isNull) {
+            temp.append(" SET NULL");
+        }else{
+            temp.append(" SET NOT NULL");
+        }
+        return temp.toString();
+    }
+
     protected String columnString(ColumnInfo info, int sensitive, RdColumn rdColumn, boolean addKey) {
         StringBuffer temp = new StringBuffer();
         String cname = getCaseSensitive(info.getColumnName(), sensitive);
@@ -433,7 +456,7 @@ public class H2Options extends MySQLOptions{
         if(!ORMUtils.isEmpty(rdColumn.defaultValue())){
             type += " DEFAULT '" +  rdColumn.defaultValue() + "'";
         }
-        if(!rdColumn.nullable()){
+        if(!rdColumn.nullable() && addKey){
             type += " NOT NULL";
         }
         temp.append(type);

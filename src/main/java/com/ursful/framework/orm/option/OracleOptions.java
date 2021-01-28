@@ -749,6 +749,11 @@ public class OracleOptions extends AbstractOptions{
                                     needUpdate = true;
                                 }
                             }
+                            RdId rdId = info.getField().getAnnotation(RdId.class);
+                            if (!needUpdate && (tableColumn.isNullable() != rdColumn.nullable()) && !tableColumn.isPrimaryKey() && rdId == null){
+                                String temp = columnStringChangeNull(info, table.sensitive(), rdColumn.nullable());
+                                sqls.add(String.format("ALTER TABLE %s MODIFY %s", tableName, temp));
+                            }
                             if(needUpdate) {
                                 String temp = columnString(info, table.sensitive(), rdColumn, false);
                                 if(table.sensitive() == RdTable.DEFAULT_SENSITIVE){
@@ -908,13 +913,29 @@ public class OracleOptions extends AbstractOptions{
         if(!ORMUtils.isEmpty(rdColumn.defaultValue())){
             type += " DEFAULT '" +  rdColumn.defaultValue() + "'";
         }
-        if(!rdColumn.nullable()){
+        if(!rdColumn.nullable() && addKey){
             type += " NOT NULL";
         }
         temp.append(type);
         if(info.getPrimaryKey() && addKey){
             temp.append(" ");
             temp.append("PRIMARY KEY");
+        }
+        return temp.toString();
+    }
+
+    protected String columnStringChangeNull(ColumnInfo info, int sensitive, boolean isNull) {
+        StringBuffer temp = new StringBuffer();
+        String cname = getCaseSensitive(info.getColumnName(), sensitive);
+        if(sensitive == RdTable.DEFAULT_SENSITIVE){
+            temp.append(cname);
+        }else{
+            temp.append(String.format("\"%s\"", cname));
+        }
+        if(isNull) {
+            temp.append(" NULL");
+        }else{
+            temp.append(" NOT NULL");
         }
         return temp.toString();
     }

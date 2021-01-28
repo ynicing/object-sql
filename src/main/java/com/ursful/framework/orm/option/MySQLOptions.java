@@ -437,6 +437,10 @@ public class MySQLOptions extends AbstractOptions{
                                     needUpdate = true;
                                 }
                             }
+                            RdId rdId = info.getField().getAnnotation(RdId.class);
+                            if (!needUpdate && (tableColumn.isNullable() != rdColumn.nullable()) && !tableColumn.isPrimaryKey() && rdId == null){
+                                needUpdate = true;
+                            }
                             if(needUpdate) {
                                 String temp = columnString(info, table.sensitive(), rdColumn, false);
                                 String comment = columnComment(rdColumn);

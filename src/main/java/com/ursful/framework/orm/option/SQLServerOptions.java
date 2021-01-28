@@ -455,6 +455,10 @@ public class SQLServerOptions extends AbstractOptions{
                                     needUpdate = true;
                                 }
                             }
+                            RdId rdId = info.getField().getAnnotation(RdId.class);
+                            if (!needUpdate && (tableColumn.isNullable() != rdColumn.nullable()) && !tableColumn.isPrimaryKey() && rdId == null){
+                                needUpdate = true;
+                            }
                             if(needUpdate) {
                                 String temp = columnString(info, table.sensitive(), rdColumn, false);
                                 sqls.add(String.format("ALTER TABLE %s ALTER COLUMN %s", tableName, temp));
