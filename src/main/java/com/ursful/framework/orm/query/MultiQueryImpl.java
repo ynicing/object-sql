@@ -228,6 +228,17 @@ public class MultiQueryImpl implements IMultiQuery {
         return where(left, value, ExpressionType.CDT_NotIn);
     }
 
+    @Override
+    public IMultiQuery whereNotInQuery(Column left, IMultiQuery query) {
+        return where(left, query, ExpressionType.CDT_NotIn);
+    }
+
+    @Override
+    public IMultiQuery whereInQuery(Column left, IMultiQuery query) {
+
+        return where(left, query, ExpressionType.CDT_In);
+    }
+
     public AliasTable table(Class<?> clazz){
         String alias = generateUniqueAlias(clazz);
         return table(clazz, alias);
@@ -492,6 +503,9 @@ public class MultiQueryImpl implements IMultiQuery {
     @Override
     public void setOptions(Options options) {
         this.options = options;
+        for (IMultiQuery query : this.subQueries){
+            query.setOptions(options);
+        }
     }
 
     @Override

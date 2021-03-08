@@ -36,6 +36,7 @@ public interface Options {
     String databaseType();
     String nanoTimeSQL();
     QueryInfo doQueryCount(IQuery query);
+    QueryInfo doQuery(IQuery query);
     QueryInfo doQuery(IQuery query, Pageable page);
     SQLHelper doQuery(Class<?> clazz, String[] names, Terms terms, MultiOrder multiOrder, Integer start, Integer size);
 

@@ -57,6 +57,8 @@ public class QueryUtils {
                     case OR:
                         if(extObject instanceof Expression) {
                             setExpressionAlias((Expression)extObject, alias);
+                        }else if(extObject instanceof Condition){
+                            setConditionAlias((Condition)extObject, alias);
                         }
                         break;
                     case AND_OR:

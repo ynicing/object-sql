@@ -37,6 +37,10 @@ import java.util.Date;
 
 public abstract class AbstractOptions implements Options{
 
+    public QueryInfo doQuery(IQuery query){
+        return doQuery(query, null);
+    }
+
     public abstract boolean preSetParameter(PreparedStatement ps, Connection connection, String databaseType, int i, Pair pair) throws SQLException;
 
     public boolean tableExists(Connection connection, RdTable rdTable)  throws ORMException {
@@ -567,6 +571,18 @@ public abstract class AbstractOptions implements Options{
                 if(sqlPair != null){
                     return sqlPair;
                 }
+            }else if(conditionValue instanceof IQuery){
+                QueryInfo newQueryInfo = doQuery((IQuery)conditionValue);
+                String sql = null;
+                if(ExpressionType.CDT_In == expression.getType()){
+                    sql = String.format(" %s IN (%s) ", conditionName, newQueryInfo.getSql());
+                }else{
+                    sql = String.format(" %s NOT IN (%s) ", conditionName, newQueryInfo.getSql());
+                }
+                if(sql != null) {
+                    sqlPair = new SQLPair(sql, newQueryInfo.getValues());
+                    return sqlPair;
+                }
             }
         }
         if(!ORMUtils.isEmpty(conditionValue)){
@@ -796,6 +812,7 @@ public abstract class AbstractOptions implements Options{
                 }
                 List<ConditionObject> exts = condition.getConditions();
                 for(ConditionObject ext : exts){
+                    boolean group = false;
                     Object extObject = ext.getObject();
                     switch (ext.getType()){
                         case AND:
@@ -804,12 +821,25 @@ public abstract class AbstractOptions implements Options{
                                 sqlPair = parseExpression(queryOrClass, and);
                             }else if(extObject instanceof SQLPair){
                                 sqlPair = (SQLPair)extObject;
+                            }else if(extObject instanceof Condition){
+                                List<Pair> pairList = new ArrayList<Pair>();
+                                String sqlCondition = getConditions(queryOrClass, ORMUtils.newList((Condition)extObject), pairList);
+                                sqlPair = new SQLPair(sqlCondition, pairList);
+                                group = true;
                             }
                             if(sqlPair != null && !ORMUtils.isEmpty(sqlPair.getSql())) {
-                                if (sql.length() == 0) {
-                                    sql.append(sqlPair.getSql());
-                                } else {
-                                    sql.append(" AND " + sqlPair.getSql());
+                                if(group){
+                                    if (sql.length() == 0) {
+                                        sql.append("(" + sqlPair.getSql() + ")");
+                                    } else {
+                                        sql.append(" AND (" + sqlPair.getSql() + ")");
+                                    }
+                                }else {
+                                    if (sql.length() == 0) {
+                                        sql.append(sqlPair.getSql());
+                                    } else {
+                                        sql.append(" AND " + sqlPair.getSql());
+                                    }
                                 }
                                 if (sqlPair.getPairs() != null) {//column = column
                                     values.addAll(sqlPair.getPairs());
@@ -822,12 +852,25 @@ public abstract class AbstractOptions implements Options{
                                 sqlPair = parseExpression(queryOrClass, or);
                             }else if(extObject instanceof SQLPair){
                                 sqlPair = (SQLPair)extObject;
+                            }else if(extObject instanceof Condition){
+                                List<Pair> pairList = new ArrayList<Pair>();
+                                String sqlCondition = getConditions(queryOrClass, ORMUtils.newList((Condition)extObject), pairList);
+                                sqlPair = new SQLPair(sqlCondition, pairList);
+                                group = true;
                             }
                             if(sqlPair != null && !ORMUtils.isEmpty(sqlPair.getSql())) {
-                                if (sql.length() == 0) {
-                                    sql.append(sqlPair.getSql());
-                                } else {
-                                    sql.append(" OR " + sqlPair.getSql());
+                                if(group){
+                                    if (sql.length() == 0) {
+                                        sql.append("(" + sqlPair.getSql() + ")");
+                                    } else {
+                                        sql.append(" OR (" + sqlPair.getSql() + ")");
+                                    }
+                                }else {
+                                    if (sql.length() == 0) {
+                                        sql.append(sqlPair.getSql());
+                                    } else {
+                                        sql.append(" OR " + sqlPair.getSql());
+                                    }
                                 }
                                 if (sqlPair.getPairs() != null) {//column = column
                                     values.addAll(sqlPair.getPairs());

@@ -940,6 +940,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         S s = null;
 
         Connection conn = getConnection();
+        query.setOptions(getOptions());
         //setClob通用
         QueryInfo qinfo = getOptions().doQuery(query, null);// = queryString(names, false);
 

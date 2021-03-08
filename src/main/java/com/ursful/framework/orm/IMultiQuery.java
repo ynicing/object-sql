@@ -62,6 +62,9 @@ public interface IMultiQuery extends IQuery{
     IMultiQuery whereInValues(Column left, Object ... values);
     IMultiQuery whereNotInValues(Column left, Object ... values);
 
+    IMultiQuery whereInQuery(Column left, IMultiQuery query);
+    IMultiQuery whereNotInQuery(Column left, IMultiQuery query);
+
     IMultiQuery where(Column left, Object value, ExpressionType type);
     IMultiQuery where(Column left, Column value);
     IMultiQuery where(Condition condition);

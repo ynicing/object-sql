@@ -53,6 +53,20 @@ public class Terms  implements Serializable {
         return this;
     }
 
+    public Terms or(Terms terms){
+        if(terms != null) {
+            conditions.add(new ConditionObject(terms.getCondition(), ConditionType.OR));
+        }
+        return this;
+    }
+
+    public Terms and(Terms terms){
+        if(terms != null) {
+            conditions.add(new ConditionObject(terms.getCondition(), ConditionType.AND));
+        }
+        return this;
+    }
+
     public Terms andOr(Express ... expresses){
         expresses(ConditionType.AND_OR, expresses);
         return this;

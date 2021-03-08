@@ -17,6 +17,7 @@ package com.ursful.framework.orm;
 
 import com.ursful.framework.orm.exception.ORMException;
 import com.ursful.framework.orm.support.ColumnClass;
+import com.ursful.framework.orm.support.Options;
 import com.ursful.framework.orm.support.Table;
 import com.ursful.framework.orm.support.TableColumn;
 
@@ -27,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 
 public interface ISQLService {
+
+    Options getOptions();
 
     String currentDatabaseName();
 

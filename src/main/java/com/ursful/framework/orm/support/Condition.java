@@ -55,6 +55,20 @@ public class Condition implements Serializable {
         return this;
     }
 
+    public Condition or(Condition condition){
+        if(condition != null) {
+            conditions.add(new ConditionObject(condition, ConditionType.OR));
+        }
+        return this;
+    }
+
+    public Condition and(Condition condition){
+        if(condition != null) {
+            conditions.add(new ConditionObject(condition, ConditionType.AND));
+        }
+        return this;
+    }
+
     public Condition orOr(Expression ... expressions){
         if(expressions != null){
             conditions.add(new ConditionObject(expressions, ConditionType.OR_OR));

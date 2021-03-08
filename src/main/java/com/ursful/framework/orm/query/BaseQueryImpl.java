@@ -15,6 +15,7 @@
  */
 package com.ursful.framework.orm.query;
 
+import com.ursful.framework.orm.IMultiQuery;
 import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.IBaseQuery;
 import com.ursful.framework.orm.IQuery;

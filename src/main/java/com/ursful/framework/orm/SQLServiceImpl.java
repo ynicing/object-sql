@@ -64,7 +64,7 @@ public class SQLServiceImpl implements ISQLService{
         return dataSourceManager;
     }
 
-    protected Options getOptions(){
+    public Options getOptions(){
         if(dataSourceManager == null){
             return null;
         }
