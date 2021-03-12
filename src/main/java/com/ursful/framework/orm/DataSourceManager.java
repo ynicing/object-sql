@@ -30,34 +30,34 @@ import java.util.*;
 
 public class DataSourceManager {
 
-    private static List<IRealConnection> connectionInterface = new ArrayList<IRealConnection>();
+    private List<IRealConnection> connectionInterface = new ArrayList<IRealConnection>();
 
-    public static List<IRealConnection> getRealConnection(){
+    public List<IRealConnection> getRealConnection(){
         return connectionInterface;
     }
 
-    public static void register(IRealConnection connection){
+    public void register(IRealConnection connection){
         if(!connectionInterface.contains(connection)){
             connectionInterface.add(connection);
         }
     }
-    public static void deregister(IRealConnection connection){
+    public void deregister(IRealConnection connection){
         connectionInterface.remove(connection);
     }
 
-    private static Map<DataSource, String> databaseTypeMap = new HashMap<DataSource, String>();
-    private static List<Options> optionsList = Arrays.asList(
+    private Map<DataSource, String> databaseTypeMap = new HashMap<DataSource, String>();
+    private List<Options> optionsList = Arrays.asList(
             new Options[]{new H2Options(),
                     new MySQLOptions(),
                     new SQLServerOptions(),
                     new OracleOptions(),
                     new PostgreSQLOptions()});
 
-    private static Map<String, Options> optionsCache = new HashMap<String, Options>();
+    private Map<String, Options> optionsCache = new HashMap<String, Options>();
 
-    private static Map<Class, DataSource> dataSourceMap = new HashMap<Class, DataSource>();
-    private static Map<String, DataSource> packageDataSourceMap = new HashMap<String, DataSource>();
-    private static Map<String, DataSource> classDataSourceMap = new HashMap<String, DataSource>();
+    private Map<Class, DataSource> dataSourceMap = new HashMap<Class, DataSource>();
+    private Map<String, DataSource> packageDataSourceMap = new HashMap<String, DataSource>();
+    private Map<String, DataSource> classDataSourceMap = new HashMap<String, DataSource>();
 
     public void register(Class clazz, DataSource dataSource){
         classDataSourceMap.put(clazz.getName(), dataSource);
