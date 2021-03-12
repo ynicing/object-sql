@@ -318,18 +318,22 @@ public abstract class AbstractOptions implements Options{
             }
         }else{
             List<String> words = new ArrayList<String>();
-            Map<String, Class<?>> aliasMap = query.getAliasTable();
-            Map<String, IQuery> aliasQuery = query.getAliasQuery();
+            Map<String, Object> aliasMap = query.getAliasTable();
             List<String> aliasList = query.getAliasList();
             for(String alias : aliasList) {
                 if(aliasMap.containsKey(alias)) {
-                    String tn = ORMUtils.getTableName(aliasMap.get(alias));
-                    words.add(tn + " " + alias);
-                }else if(aliasQuery.containsKey(alias)){
-                    IQuery q = aliasQuery.get(alias);
-                    QueryInfo queryInfo = doQuery(q, null);
-                    words.add("(" + queryInfo.getSql() + ") " + alias);
-                    values.addAll(queryInfo.getValues());
+                    Object object = aliasMap.get(alias);
+                    if(object instanceof Class) {
+                        String tn = ORMUtils.getTableName((Class) object);
+                        words.add(tn + " " + alias);
+                    }else if(object instanceof IQuery){
+                        IQuery q = (IQuery)aliasMap.get(alias);
+                        QueryInfo queryInfo = doQuery(q, null);
+                        words.add("(" + queryInfo.getSql() + ") " + alias);
+                        values.addAll(queryInfo.getValues());
+                    }else{
+                        words.add(object.toString() + " " + alias);
+                    }
                 }
             }
             return ORMUtils.join(words, ",");
@@ -385,6 +389,8 @@ public abstract class AbstractOptions implements Options{
                 QueryInfo info = doQuery((IQuery)table, null);
                 tableName = "(" + info.getSql() + ") ";
                 values.addAll(info.getValues());
+            }else{// String.
+                tableName =  join.getTable().toString();
             }
             switch (join.getType()){
                 case FULL_JOIN:
@@ -495,7 +501,7 @@ public abstract class AbstractOptions implements Options{
 
     abstract String getColumnType(ColumnInfo info, RdColumn column);
 
-    public SQLPair parseExpression(Class clazz, Map<String,Class<?>> clazzes, Expression expression){
+    public SQLPair parseExpression(Class clazz, Map<String,Object> clazzes, Expression expression){
 
         SQLPair sqlPair = null;
         if(expression == null){
@@ -593,8 +599,11 @@ public abstract class AbstractOptions implements Options{
                 columnType = pairMap.get(column.getName());
             }else{
                 if(clazzes != null && clazzes.containsKey(column.getAlias())){
-                    Map<String, ColumnType> pairMap = ORMUtils.getColumnType(clazzes.get(column.getAlias()));
-                    columnType = pairMap.get(column.getName());
+                    Object object = clazzes.get(column.getAlias());
+                    if(object instanceof Class) {
+                        Map<String, ColumnType> pairMap = ORMUtils.getColumnType((Class)object);
+                        columnType = pairMap.get(column.getName());
+                    }
                 }
             }
             switch (expression.getType()) {

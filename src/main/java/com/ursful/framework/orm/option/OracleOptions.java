@@ -992,7 +992,7 @@ public class OracleOptions extends AbstractOptions{
     }
 
 
-    public SQLPair parseExpression(Class clazz, Map<String,Class<?>> clazzes, Expression expression) {
+    public SQLPair parseExpression(Class clazz, Map<String, Object> clazzes, Expression expression) {
 
         SQLPair sqlPair = null;
         if (expression == null) {

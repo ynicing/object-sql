@@ -40,8 +40,8 @@ public class MultiQueryImpl implements IMultiQuery {
 
     private List<String> aliasList = new ArrayList<String>();
     private List<String> aliasJoin = new ArrayList<String>();
-	private Map<String, Class<?>> aliasTable = new HashMap<String, Class<?>>();
-    private Map<String, IQuery> aliasQuery = new HashMap<String, IQuery>();
+	private Map<String, Object> aliasTable = new HashMap<String, Object>();
+//    private Map<String, IQuery> aliasQuery = new HashMap<String, IQuery>();
     private List<Condition> conditions = new ArrayList<Condition>();
 	private List<Condition> havings = new ArrayList<Condition>();
 	private List<Column> groups = new ArrayList<Column>();
@@ -94,7 +94,7 @@ public class MultiQueryImpl implements IMultiQuery {
         }else if(object instanceof Class){
             prefixAlias = ((Class<?>)object).getSimpleName().substring(0, 1).toLowerCase(Locale.ROOT);
         }else{
-            prefixAlias = "unknown";
+            prefixAlias = object.toString().substring(0, 1).toLowerCase(Locale.ROOT);
         }
         String alias = prefixAlias + i;
         while(containsAlias(alias)){
@@ -122,7 +122,7 @@ public class MultiQueryImpl implements IMultiQuery {
         table.setAlias(alias);
         aliasList.add(alias);
         addUsedAlias(alias);
-        aliasQuery.put(alias, query);
+        aliasTable.put(alias, query);
         return table;
     }
 
@@ -242,6 +242,17 @@ public class MultiQueryImpl implements IMultiQuery {
     public AliasTable table(Class<?> clazz){
         String alias = generateUniqueAlias(clazz);
         return table(clazz, alias);
+    }
+
+    @Override
+    public AliasTable table(String tableName) {
+        String alias = generateUniqueAlias(tableName);
+        AliasTable table = new AliasTable(tableName);
+        table.setAlias(alias);
+        aliasList.add(alias);
+        aliasTable.put(alias, tableName);
+        addUsedAlias(alias);
+        return table;
     }
 
     public AliasTable table(Class<?> clazz, String alias){
@@ -391,10 +402,10 @@ public class MultiQueryImpl implements IMultiQuery {
     }
 
 
-    @Override
-    public Map<String, IQuery> getAliasQuery() {
-        return aliasQuery;
-    }
+//    @Override
+//    public Map<String, IQuery> getAliasQuery() {
+//        return aliasQuery;
+//    }
 
     @Override
     public Class<?> getTable() {
@@ -412,7 +423,7 @@ public class MultiQueryImpl implements IMultiQuery {
     }
 
     @Override
-    public Map<String, Class<?>> getAliasTable() {
+    public Map<String, Object> getAliasTable() {
         return aliasTable;
     }
 

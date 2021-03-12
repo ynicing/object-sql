@@ -286,10 +286,10 @@ public class BaseQueryImpl implements IBaseQuery {
 		return this;
 	}
 
-    @Override
-    public Map<String, IQuery> getAliasQuery() {
-        return null;
-    }
+//    @Override
+//    public Map<String, IQuery> getAliasQuery() {
+//        return null;
+//    }
 
     @Override
     public Class<?> getTable() {
@@ -307,7 +307,7 @@ public class BaseQueryImpl implements IBaseQuery {
     }
 
     @Override
-    public Map<String, Class<?>> getAliasTable() {
+    public Map<String, Object> getAliasTable() {
         return null;
     }
 

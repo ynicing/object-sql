@@ -23,7 +23,7 @@ import java.util.Map;
 
 public interface IQuery{
 
-    Map<String, IQuery> getAliasQuery();
+//    Map<String, IQuery> getAliasQuery();
 
     Class<?> getTable();
 
@@ -31,7 +31,7 @@ public interface IQuery{
 
     List<String> getAliasList();
 
-    Map<String, Class<?>> getAliasTable();
+    Map<String, Object> getAliasTable();
 
     List<Join> getJoins();
 
