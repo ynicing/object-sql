@@ -31,6 +31,7 @@ public interface IMultiQuery extends IQuery{
     AliasTable table(IQuery query);
     AliasTable table(Class<?> clazz);
     AliasTable table(String table);
+    AliasTable table(String table, String alias);
     AliasTable table(IQuery query, String alias);
     AliasTable table(Class<?> clazz, String alias);
 

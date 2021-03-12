@@ -245,14 +245,19 @@ public class MultiQueryImpl implements IMultiQuery {
     }
 
     @Override
-    public AliasTable table(String tableName) {
-        String alias = generateUniqueAlias(tableName);
+    public AliasTable table(String tableName, String alias) {
         AliasTable table = new AliasTable(tableName);
         table.setAlias(alias);
         aliasList.add(alias);
         aliasTable.put(alias, tableName);
         addUsedAlias(alias);
         return table;
+    }
+
+    @Override
+    public AliasTable table(String tableName) {
+        String alias = generateUniqueAlias(tableName);
+        return table(tableName, alias);
     }
 
     public AliasTable table(Class<?> clazz, String alias){
