@@ -348,7 +348,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         return updates(t, expresses, false, true, null);
     }
     public boolean updatesWithoutListener(T t, Express ... expresses){
-        return updates(t, expresses, true, false, null);
+        return updates(t, expresses, false, false, null);
     }
     public  boolean updatesNull(T t, Express ... expresses){
         return updates(t, expresses, true, true, null);
@@ -357,10 +357,10 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         return updates(t, expresses, true, false, null);
     }
     public boolean updatesNull(T t, String [] forNullColumns,  Express ... expresses){
-        return updates(t, expresses, false, true, forNullColumns);
+        return updates(t, expresses, true, true, forNullColumns);
     }
     public boolean updatesNullWithoutListener(T t, String [] forNullColumns, Express ... expresses){
-        return updates(t, expresses, false, false, forNullColumns);
+        return updates(t, expresses, true, false, forNullColumns);
     }
 
     private boolean updates(T t, Express [] expresses, boolean updateNull, boolean enableListener, String [] forNullColumns) {
