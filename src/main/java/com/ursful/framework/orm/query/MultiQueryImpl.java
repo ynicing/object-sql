@@ -178,6 +178,16 @@ public class MultiQueryImpl implements IMultiQuery {
     }
 
     @Override
+    public IMultiQuery whereNotStartWith(Column left, String value) {
+        return where(left, value, ExpressionType.CDT_NotStartWith);
+    }
+
+    @Override
+    public IMultiQuery whereNotEndWith(Column left, String value) {
+        return where(left, value, ExpressionType.CDT_NotEndWith);
+    }
+
+    @Override
     public IMultiQuery whereLess(Column left, Object value) {
         return where(left, value, ExpressionType.CDT_Less);
     }
@@ -203,7 +213,7 @@ public class MultiQueryImpl implements IMultiQuery {
         return where(left, value, ExpressionType.CDT_In);
     }
 
-
+    @Override
     public IMultiQuery whereInValues(Column left, Object ... values){
         List<Object> temp = null;
         if(values != null){
@@ -213,6 +223,8 @@ public class MultiQueryImpl implements IMultiQuery {
         }
         return where(left, temp, ExpressionType.CDT_In);
     }
+
+    @Override
     public IMultiQuery whereNotInValues(Column left, Object ... values){
         List<Object> temp = null;
         if(values != null){

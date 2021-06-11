@@ -223,7 +223,9 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         SQLHelper helper = null;
         try {
             conn = getConnection();
-            triggerDefaultListener(t, false);
+            if(enableListener) {
+                triggerDefaultListener(t, false);
+            }
             Options options = getOptions();
             helper = SQLHelperCreator.insert(t, options);
             if(ORMUtils.getDebug()) {
@@ -306,7 +308,9 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         SQLHelper helper = null;
         try {
             conn = getConnection();
-            triggerDefaultListener(t, true);
+            if(enableListener) {
+                triggerDefaultListener(t, true);
+            }
             helper = SQLHelperCreator.update(getOptions(), t, null, updateNull, nullColumns);
             T original = null;
             if(helper.getPair() != null && (!changeListeners.isEmpty()||!changedListeners.isEmpty())) {

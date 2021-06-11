@@ -47,6 +47,8 @@ public interface IMultiQuery extends IQuery{
     IMultiQuery whereNotLike(Column left, String value);
     IMultiQuery whereStartWith(Column left, String value);
     IMultiQuery whereEndWith(Column left, String value);
+    IMultiQuery whereNotStartWith(Column left, String value);
+    IMultiQuery whereNotEndWith(Column left, String value);
 
     IMultiQuery whereLess(Column left, Object value);
     IMultiQuery whereLessEqual(Column left, Object value);
