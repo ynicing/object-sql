@@ -20,11 +20,14 @@ import com.ursful.framework.orm.support.*;
 import com.ursful.framework.orm.IBaseQuery;
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.annotation.RdTable;
+import com.ursful.framework.orm.utils.ORMUtils;
 import org.springframework.core.annotation.AnnotationUtils;
 
 import java.util.*;
 
 public class BaseQueryImpl implements IBaseQuery {
+
+    private String id;
 	
     private Class<?> table;
     private Class<?> returnClass;
@@ -75,62 +78,72 @@ public class BaseQueryImpl implements IBaseQuery {
 
     @Override
     public IBaseQuery whereEqual(String name, Object value) {
-        return where(name, value, ExpressionType.CDT_Equal);
+        return where(name, value, ExpressionType.CDT_EQUAL);
     }
 
     @Override
     public IBaseQuery whereNotEqual(String name, Object value) {
-        return where(name, value, ExpressionType.CDT_NotEqual);
+        return where(name, value, ExpressionType.CDT_NOT_EQUAL);
     }
 
     @Override
     public IBaseQuery whereLike(String name, String value) {
-        return where(name, value, ExpressionType.CDT_Like);
+        return where(name, value, ExpressionType.CDT_LIKE);
     }
 
     @Override
     public IBaseQuery whereNotLike(String name, String value) {
-        return where(name, value, ExpressionType.CDT_NotLike);
+        return where(name, value, ExpressionType.CDT_NOT_LIKE);
     }
 
     @Override
     public IBaseQuery whereStartWith(String name, String value) {
-        return where(name, value, ExpressionType.CDT_StartWith);
+        return where(name, value, ExpressionType.CDT_START_WITH);
     }
 
     @Override
     public IBaseQuery whereEndWith(String name, String value) {
-        return where(name, value, ExpressionType.CDT_EndWith);
+        return where(name, value, ExpressionType.CDT_END_WITH);
+    }
+
+    @Override
+    public IBaseQuery whereNotStartWith(String name, String value) {
+        return where(name, value, ExpressionType.CDT_NOT_START_WITH);
+    }
+
+    @Override
+    public IBaseQuery whereNotEndWith(String name, String value) {
+        return where(name, value, ExpressionType.CDT_NOT_END_WITH);
     }
 
     @Override
     public IBaseQuery whereLess(String name, Object value) {
-        return where(name, value, ExpressionType.CDT_Less);
+        return where(name, value, ExpressionType.CDT_LESS);
     }
 
     @Override
     public IBaseQuery whereLessEqual(String name, Object value) {
-        return where(name, value, ExpressionType.CDT_LessEqual);
+        return where(name, value, ExpressionType.CDT_LESS_EQUAL);
     }
 
     @Override
     public IBaseQuery whereMore(String name, Object value) {
-        return where(name, value, ExpressionType.CDT_More);
+        return where(name, value, ExpressionType.CDT_MORE);
     }
 
     @Override
     public IBaseQuery whereMoreEqual(String name, Object value) {
-        return where(name, value, ExpressionType.CDT_MoreEqual);
+        return where(name, value, ExpressionType.CDT_MORE_EQUAL);
     }
 
     @Override
     public IBaseQuery whereIn(String name, Collection value) {
-        return where(name, value, ExpressionType.CDT_In);
+        return where(name, value, ExpressionType.CDT_IN);
     }
 
     @Override
     public IBaseQuery whereNotIn(String name, Collection value) {
-        return where(name, value, ExpressionType.CDT_NotIn);
+        return where(name, value, ExpressionType.CDT_NOT_IN);
     }
 
     @Override
@@ -141,7 +154,7 @@ public class BaseQueryImpl implements IBaseQuery {
         }else{
             temp = new ArrayList<Object>();
         }
-        return where(name, temp, ExpressionType.CDT_In);
+        return where(name, temp, ExpressionType.CDT_IN);
     }
 
     @Override
@@ -152,7 +165,7 @@ public class BaseQueryImpl implements IBaseQuery {
         }else{
             temp = new ArrayList<Object>();
         }
-        return where(name, temp, ExpressionType.CDT_NotIn);
+        return where(name, temp, ExpressionType.CDT_NOT_IN);
     }
 
     public IBaseQuery where(String name, Object value, ExpressionType type){
@@ -176,6 +189,16 @@ public class BaseQueryImpl implements IBaseQuery {
                 }
                 conditions.add(new Condition().and(express.getExpression()));
             }
+        }
+        return this;
+    }
+
+    @Override
+    public IBaseQuery whereBetween(String name, Object value, Object andValue){
+        if(!ORMUtils.isEmpty(value) && !ORMUtils.isEmpty(andValue)){
+            Expression expression = new Expression(new Column(name), value, ExpressionType.CDT_BETWEEN);
+            expression.setAndValue(andValue);
+            conditions.add(new Condition().and(expression));
         }
         return this;
     }
@@ -227,6 +250,7 @@ public class BaseQueryImpl implements IBaseQuery {
     @Override
     public IBaseQuery createQuery(Class<?> clazz, String... names){
         this.returnClass = clazz;
+        this.returnColumns.clear();
         if(names != null){
             for(String name : names){
                 returnColumns.add(new Column(name));
@@ -238,6 +262,7 @@ public class BaseQueryImpl implements IBaseQuery {
     @Override
     public IBaseQuery createQuery(Class<?> clazz, Column... columns){
         this.returnClass = clazz;
+        this.returnColumns.clear();
         if(columns != null){
             for(Column column : columns){
                 returnColumns.add(column);
@@ -246,10 +271,32 @@ public class BaseQueryImpl implements IBaseQuery {
         return this;
     }
 
+    @Override
+    public IBaseQuery addReturnColumn(Column column){
+        if(column != null) {
+            this.returnColumns.add(column);
+        }
+        return this;
+    }
+
+    @Override
+    public IBaseQuery addReturnColumn(String column){
+        if(ORMUtils.isEmpty(column)) {
+            this.returnColumns.add(new Column(column));
+        }
+        return this;
+    }
+
+    @Override
+    public IBaseQuery clearReturnColumns(){
+        this.returnColumns.clear();
+        return this;
+    }
 
     @Override
     public IBaseQuery createQuery(String... names){
         this.returnClass = this.table;
+        this.returnColumns.clear();
         if(names != null){
             for(String name : names){
                 returnColumns.add(new Column(name));
@@ -260,6 +307,7 @@ public class BaseQueryImpl implements IBaseQuery {
 
     public IBaseQuery createQuery(Column... columns) {
         this.returnClass = this.table;
+        this.returnColumns.clear();
         if(columns != null){
            for(Column column : columns){
                returnColumns.add(column);
@@ -292,6 +340,16 @@ public class BaseQueryImpl implements IBaseQuery {
 //    }
 
     @Override
+    public String id() {
+        return this.id;
+    }
+
+    @Override
+    public void setId(String id){
+        this.id = id;
+    }
+
+    @Override
     public Class<?> getTable() {
         return table;
     }
@@ -299,21 +357,6 @@ public class BaseQueryImpl implements IBaseQuery {
     @Override
     public boolean isDistinct() {
         return distinct;
-    }
-
-    @Override
-    public List<String> getAliasList() {
-        return new ArrayList<String>();
-    }
-
-    @Override
-    public Map<String, Object> getAliasTable() {
-        return null;
-    }
-
-    @Override
-    public List<Join> getJoins() {
-        return null;
     }
 
     @Override

@@ -26,6 +26,18 @@ import java.util.*;
 
 public class MultiQueryImpl implements IMultiQuery {
 
+    private String id;
+
+    @Override
+    public String id() {
+        return this.id;
+    }
+
+    @Override
+    public void setId(String id){
+        this.id = id;
+    }
+
     private List<IMultiQuery> subQueries = new ArrayList<IMultiQuery>();
 
     private List<String> usedAlias = new ArrayList<String>();
@@ -55,6 +67,7 @@ public class MultiQueryImpl implements IMultiQuery {
 	
 	public IMultiQuery createQuery(Class<?> clazz, Column... columns) {
 		this.returnClass = clazz;
+        this.returnColumns.clear();
         if(columns != null) {
             for (Column column : columns) {
                 returnColumns.add(column);
@@ -64,6 +77,7 @@ public class MultiQueryImpl implements IMultiQuery {
 	}
 
     public IMultiQuery createQuery(Column... columns) {
+        this.returnColumns.clear();
         if(columns != null) {
             for (Column column : columns) {
                 returnColumns.add(column);
@@ -74,6 +88,7 @@ public class MultiQueryImpl implements IMultiQuery {
 
     public IMultiQuery createQuery(Class<?> clazz, Columns... columns){
         this.returnClass = clazz;
+        this.returnColumns.clear();
         if(columns != null) {
             for (Columns column : columns) {
                 if(!column.getColumnList().isEmpty()) {
@@ -84,6 +99,17 @@ public class MultiQueryImpl implements IMultiQuery {
         return this;
     }
 
+    public IMultiQuery addReturnColumn(Column column){
+        if(column != null) {
+            this.returnColumns.add(column);
+        }
+        return this;
+    }
+
+    public IMultiQuery clearReturnColumns(){
+        this.returnColumns.clear();
+        return this;
+    }
 
     /////////////////////////////////
     private String generateUniqueAlias(Object object){
@@ -149,68 +175,68 @@ public class MultiQueryImpl implements IMultiQuery {
 
     @Override
     public IMultiQuery whereEqual(Column left, Object value) {
-        return where(left, value, ExpressionType.CDT_Equal);
+        return where(left, value, ExpressionType.CDT_EQUAL);
     }
 
     @Override
     public IMultiQuery whereNotEqual(Column left, Object value) {
-        return where(left, value, ExpressionType.CDT_NotEqual);
+        return where(left, value, ExpressionType.CDT_NOT_EQUAL);
     }
 
     @Override
     public IMultiQuery whereLike(Column left, String value) {
-        return where(left, value, ExpressionType.CDT_Like);
+        return where(left, value, ExpressionType.CDT_LIKE);
     }
 
     @Override
     public IMultiQuery whereNotLike(Column left, String value) {
-        return where(left, value, ExpressionType.CDT_NotLike);
+        return where(left, value, ExpressionType.CDT_NOT_LIKE);
     }
 
     @Override
     public IMultiQuery whereStartWith(Column left, String value) {
-        return where(left, value, ExpressionType.CDT_StartWith);
+        return where(left, value, ExpressionType.CDT_START_WITH);
     }
 
     @Override
     public IMultiQuery whereEndWith(Column left, String value) {
-        return where(left, value, ExpressionType.CDT_EndWith);
+        return where(left, value, ExpressionType.CDT_END_WITH);
     }
 
     @Override
     public IMultiQuery whereNotStartWith(Column left, String value) {
-        return where(left, value, ExpressionType.CDT_NotStartWith);
+        return where(left, value, ExpressionType.CDT_NOT_START_WITH);
     }
 
     @Override
     public IMultiQuery whereNotEndWith(Column left, String value) {
-        return where(left, value, ExpressionType.CDT_NotEndWith);
+        return where(left, value, ExpressionType.CDT_NOT_END_WITH);
     }
 
     @Override
     public IMultiQuery whereLess(Column left, Object value) {
-        return where(left, value, ExpressionType.CDT_Less);
+        return where(left, value, ExpressionType.CDT_LESS);
     }
 
     @Override
     public IMultiQuery whereLessEqual(Column left, Object value) {
-        return where(left, value, ExpressionType.CDT_LessEqual);
+        return where(left, value, ExpressionType.CDT_LESS_EQUAL);
     }
 
     @Override
     public IMultiQuery whereMore(Column left, Object value) {
-        return where(left, value, ExpressionType.CDT_More);
+        return where(left, value, ExpressionType.CDT_MORE);
     }
 
     @Override
     public IMultiQuery whereMoreEqual(Column left, Object value) {
-        return where(left, value, ExpressionType.CDT_MoreEqual);
+        return where(left, value, ExpressionType.CDT_MORE_EQUAL);
     }
 
 
     @Override
     public IMultiQuery whereIn(Column left, Collection value) {
-        return where(left, value, ExpressionType.CDT_In);
+        return where(left, value, ExpressionType.CDT_IN);
     }
 
     @Override
@@ -221,7 +247,7 @@ public class MultiQueryImpl implements IMultiQuery {
         }else{
             temp = new ArrayList<Object>();
         }
-        return where(left, temp, ExpressionType.CDT_In);
+        return where(left, temp, ExpressionType.CDT_IN);
     }
 
     @Override
@@ -232,23 +258,33 @@ public class MultiQueryImpl implements IMultiQuery {
         }else{
             temp = new ArrayList<Object>();
         }
-        return where(left, temp, ExpressionType.CDT_NotIn);
+        return where(left, temp, ExpressionType.CDT_NOT_IN);
     }
 
     @Override
     public IMultiQuery whereNotIn(Column left, Collection value) {
-        return where(left, value, ExpressionType.CDT_NotIn);
+        return where(left, value, ExpressionType.CDT_NOT_IN);
     }
 
     @Override
     public IMultiQuery whereNotInQuery(Column left, IMultiQuery query) {
-        return where(left, query, ExpressionType.CDT_NotIn);
+        return where(left, query, ExpressionType.CDT_NOT_IN);
+    }
+
+    @Override
+    public IMultiQuery whereBetween(Column left, Object value, Object andValue){
+        if(!ORMUtils.isEmpty(value) && !ORMUtils.isEmpty(andValue)){
+            Expression expression = new Expression(left, value, ExpressionType.CDT_BETWEEN);
+            expression.setAndValue(andValue);
+            conditions.add(new Condition().and(expression));
+        }
+        return this;
     }
 
     @Override
     public IMultiQuery whereInQuery(Column left, IMultiQuery query) {
 
-        return where(left, query, ExpressionType.CDT_In);
+        return where(left, query, ExpressionType.CDT_IN);
     }
 
     public AliasTable table(Class<?> clazz){
@@ -437,6 +473,11 @@ public class MultiQueryImpl implements IMultiQuery {
     @Override
     public List<String> getAliasList() {
         return aliasList;
+    }
+
+    @Override
+    public List<String> getAliasJoinList() {
+        return aliasJoin;
     }
 
     @Override

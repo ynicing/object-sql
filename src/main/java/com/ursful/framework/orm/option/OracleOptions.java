@@ -15,6 +15,7 @@
  */
 package com.ursful.framework.orm.option;
 
+import com.ursful.framework.orm.IMultiQuery;
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.annotation.*;
 import com.ursful.framework.orm.exception.ORMException;
@@ -223,7 +224,9 @@ public class OracleOptions extends AbstractOptions{
         }
         sb.append(" FROM ");
         sb.append(tables(query, values, alias));
-        sb.append(joins(query, values));
+        if(query instanceof IMultiQuery) {
+            sb.append(joins((IMultiQuery)query, values));
+        }
         int now = sb.length();
         sb.append(wheres(query, values, null));
         int then = sb.length();

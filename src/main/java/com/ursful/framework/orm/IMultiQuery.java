@@ -20,13 +20,16 @@ import com.ursful.framework.orm.support.*;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 public interface IMultiQuery extends IQuery{
 
     IMultiQuery createQuery(Class<?> clazz, Column... columns);//select a.id, a.name from
     IMultiQuery createQuery(Class<?> clazz, Columns... columns);//select a.id, a.name from
-
     IMultiQuery createQuery(Column ... columns);
+
+    IMultiQuery addReturnColumn(Column column);
+    IMultiQuery clearReturnColumns();
 
     AliasTable table(IQuery query);
     AliasTable table(Class<?> clazz);
@@ -69,6 +72,8 @@ public interface IMultiQuery extends IQuery{
     IMultiQuery whereInQuery(Column left, IMultiQuery query);
     IMultiQuery whereNotInQuery(Column left, IMultiQuery query);
 
+    IMultiQuery whereBetween(Column left, Object value, Object andValue);
+
     IMultiQuery where(Column left, Object value, ExpressionType type);
     IMultiQuery where(Column left, Column value);
     IMultiQuery where(Condition condition);
@@ -95,5 +100,9 @@ public interface IMultiQuery extends IQuery{
 
     IMultiQuery parentQuery();
 
+    List<String> getAliasList();
+    List<String> getAliasJoinList();
 
+    Map<String, Object> getAliasTable();
+    List<Join> getJoins();
 }

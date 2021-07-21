@@ -159,9 +159,20 @@ public class QueryUtils {
         }
     }
 
-
-    public static void main(String[] args) {
-
+    public static String displayName(String columnName){
+        String [] names = columnName.split("_");
+        if(names.length == 1){
+            if(isUpperOrLowerCase(columnName)){
+                return columnName;
+            }
+        }
+        StringBuffer sb = new StringBuffer(names[0].toLowerCase(Locale.ROOT));
+        for(int i = 1; i < names.length; i++){
+            String n = names[i];
+            sb.append(n.substring(0,1).toUpperCase(Locale.ROOT));
+            sb.append(n.substring(1).toLowerCase(Locale.ROOT));
+        }
+        return sb.toString();
     }
 
 }

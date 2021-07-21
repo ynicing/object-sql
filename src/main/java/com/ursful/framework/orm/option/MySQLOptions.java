@@ -15,6 +15,7 @@
  */
 package com.ursful.framework.orm.option;
 
+import com.ursful.framework.orm.IMultiQuery;
 import com.ursful.framework.orm.IQuery;
 import com.ursful.framework.orm.annotation.*;
 import com.ursful.framework.orm.exception.ORMException;
@@ -95,7 +96,9 @@ public class MySQLOptions extends AbstractOptions{
         sb.append(selectColumns(query, null, asNames));
         sb.append(" FROM ");
         sb.append(tables(query, values, null));
-        sb.append(joins(query, values));
+        if(query instanceof IMultiQuery) {
+            sb.append(joins((IMultiQuery)query, values));
+        }
         sb.append(wheres(query, values, null));
         sb.append(groups(query, null));
         sb.append(havings(query, values, null));

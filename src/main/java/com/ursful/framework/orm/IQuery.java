@@ -24,16 +24,13 @@ import java.util.Map;
 public interface IQuery{
 
 //    Map<String, IQuery> getAliasQuery();
+    String id();
+
+    void setId(String id);
 
     Class<?> getTable();
 
     boolean isDistinct();
-
-    List<String> getAliasList();
-
-    Map<String, Object> getAliasTable();
-
-    List<Join> getJoins();
 
     List<Condition> getConditions();
 
@@ -46,7 +43,6 @@ public interface IQuery{
     Class<?> getReturnClass();
 
     List<Column> getReturnColumns();
-
     Pageable getPageable();
 
     void setPageable(Pageable pageable);

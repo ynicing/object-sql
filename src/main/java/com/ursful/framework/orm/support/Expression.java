@@ -31,6 +31,20 @@ public class Expression implements Serializable {
     private Column left;
 	private ExpressionType type;
 	private Object value;
+	private Object andValue;
+
+	public Expression andValue(Object andValue) {
+		this.andValue = andValue;
+		return this;
+	}
+
+	public Object getAndValue() {
+		return andValue;
+	}
+
+	public void setAndValue(Object andValue) {
+		this.andValue = andValue;
+	}
 
 	//exists or not exists
 	public Expression(ExpressionType type, IMultiQuery value){
@@ -41,7 +55,7 @@ public class Expression implements Serializable {
 
 	public Expression(Column left, Column value){
 		this.left = left;
-		this.type = ExpressionType.CDT_Equal;
+		this.type = ExpressionType.CDT_EQUAL;
 		this.value = value;
 	}
 

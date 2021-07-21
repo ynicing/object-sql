@@ -50,12 +50,12 @@ public class Join implements Serializable {
     }
 
     public Join on(String columnName, Column column){
-        conditions.add(new Condition().and(new Expression(new Column(this.table.getAlias(), columnName), column, ExpressionType.CDT_Equal)));
+        conditions.add(new Condition().and(new Expression(new Column(this.table.getAlias(), columnName), column, ExpressionType.CDT_EQUAL)));
         return this;
     }
 
     public Join on(Column thisColumn, Column column){
-        conditions.add(new Condition().and(new Expression(thisColumn, column, ExpressionType.CDT_Equal)));
+        conditions.add(new Condition().and(new Expression(thisColumn, column, ExpressionType.CDT_EQUAL)));
         return this;
     }
 

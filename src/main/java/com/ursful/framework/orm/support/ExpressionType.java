@@ -16,27 +16,57 @@
 
 package com.ursful.framework.orm.support;
 public enum ExpressionType {
-    CDT_None, //
-    CDT_Equal, //=
-    CDT_NotEqual,//<> !=
-    CDT_Like,// like %x% 不建议使用
-    CDT_NotLike,// _a ...
-    CDT_StartWith,// x% 建议使用
+    @Deprecated
+    CDT_Equal,
+    @Deprecated
+    CDT_NotEqual,
+    @Deprecated
+    CDT_Like,
+    @Deprecated
+    CDT_NotLike,
+    @Deprecated
+    CDT_StartWith,
+    @Deprecated
     CDT_NotStartWith,
-    CDT_EndWith,// %x  禁止使用 除非特定情况
+    @Deprecated
+    CDT_EndWith,
+    @Deprecated
     CDT_NotEndWith,
+    @Deprecated
     CDT_Less,// <
+    @Deprecated
     CDT_LessEqual,// <=
+    @Deprecated
     CDT_More,// >
+    @Deprecated
     CDT_MoreEqual,// >=
+    @Deprecated
     CDT_In, // []/List/Collection/Set
+    @Deprecated
     CDT_NotIn,
+
+    CDT_NONE, //
+    CDT_EQUAL, //=
+    CDT_NOT_EQUAL,//<> !=
+    CDT_LIKE,// like %x% 不建议使用
+    CDT_NOT_LIKE,// _a ...
+    CDT_START_WITH,// x% 建议使用
+    CDT_NOT_START_WITH,
+    CDT_END_WITH,// %x  禁止使用 除非特定情况
+    CDT_NOT_END_WITH,
+    CDT_LESS,// <
+    CDT_LESS_EQUAL,// <=
+    CDT_MORE,// >
+    CDT_MORE_EQUAL,// >=
+    CDT_IN, // []/List/Collection/Set
+    CDT_NOT_IN,
     CDT_IS_NULL,
     CDT_IS_NOT_NULL,
     CDT_IS_EMPTY,
     CDT_IS_NOT_EMPTY,
     CDT_EXISTS,
-    CDT_NOT_EXISTS;
+    CDT_NOT_EXISTS,
+    CDT_BETWEEN;
 
     public static ExpressionType getType(String name){
         if(name != null && !"".equals(name)){
@@ -44,6 +74,6 @@ public enum ExpressionType {
                 return ExpressionType.valueOf(name.trim());
             }catch (Exception e){}
         }
-        return CDT_None;
+        return CDT_NONE;
     }
 }

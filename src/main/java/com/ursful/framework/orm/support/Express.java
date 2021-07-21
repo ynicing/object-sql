@@ -34,9 +34,24 @@ public class Express implements Serializable {
         if(value instanceof ExpressionType){
             this.type = type;
         }else {
-            this.type = ExpressionType.CDT_Equal;
+            this.type = ExpressionType.CDT_EQUAL;
             this.value = value;
         }
+    }
+
+    private Object andValue;//between
+
+    public Express andValue(Object andValue) {
+        this.andValue = andValue;
+        return this;
+    }
+
+    public Object getAndValue() {
+        return andValue;
+    }
+
+    public void setAndValue(Object andValue) {
+        this.andValue = andValue;
     }
 
     //solo.
@@ -47,7 +62,9 @@ public class Express implements Serializable {
     }
 
     public Expression getExpression(){
-        return new Expression(this.left, value, type);
+        Expression expression = new Expression(this.left, value, type);
+        expression.setAndValue(this.andValue);
+        return expression;
     }
 
     public Express(String function, String left, Object value, ExpressionType type){

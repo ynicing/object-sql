@@ -33,6 +33,8 @@ public interface IBaseQuery extends IQuery{
 	IBaseQuery whereNotLike(String name, String value);
 	IBaseQuery whereStartWith(String name, String value);
 	IBaseQuery whereEndWith(String name, String value);
+	IBaseQuery whereNotStartWith(String name, String value);
+	IBaseQuery whereNotEndWith(String name, String value);
 
 	IBaseQuery whereLess(String name, Object value);
 	IBaseQuery whereLessEqual(String name, Object value);
@@ -55,6 +57,8 @@ public interface IBaseQuery extends IQuery{
 	IBaseQuery where(Express... expresses);
 	IBaseQuery where(Expression... expressions);
 
+	IBaseQuery whereBetween(String name, Object value, Object andValue);
+
 	IBaseQuery group(String name);
 	IBaseQuery having(String name, Object value, ExpressionType type);
 	IBaseQuery having(Terms terms);//group by  having (a = ? or b = ? ...)
@@ -64,9 +68,10 @@ public interface IBaseQuery extends IQuery{
 	IBaseQuery createQuery(String... names);
     IBaseQuery createQuery(Class<?> clazz, String... names);
     IBaseQuery createQuery(Class<?> clazz, Column... columns);
+	IBaseQuery addReturnColumn(Column column);
+	IBaseQuery addReturnColumn(String column);
+	IBaseQuery clearReturnColumns();
+
     IBaseQuery distinct();
-
-
-
 
 }

@@ -15,6 +15,7 @@
  */
 package com.ursful.framework.orm.option;
 
+import com.ursful.framework.orm.IBaseQuery;
 import com.ursful.framework.orm.IMultiQuery;
 import com.ursful.framework.orm.annotation.RdColumn;
 import com.ursful.framework.orm.annotation.RdForeignKey;
@@ -191,7 +192,9 @@ public abstract class AbstractOptions implements Options{
         }
         sb.append(" FROM ");
         sb.append(tables(query, values, null));
-        sb.append(joins(query, values));
+        if(query instanceof IMultiQuery) {
+            sb.append(joins((IMultiQuery)query, values));
+        }
         sb.append(wheres(query, values, null));
         sb.append(groups(query, null));
         sb.append(havings(query, values, null));
@@ -309,7 +312,7 @@ public abstract class AbstractOptions implements Options{
     }
 
     public String tables(IQuery query, List<Pair> values, String tableAlias){
-        if(query.getTable() != null){
+        if(query instanceof IBaseQuery){//base query
             String tableName = ORMUtils.getTableName(query.getTable());
             if(tableAlias  == null) {
                 return tableName;
@@ -317,9 +320,10 @@ public abstract class AbstractOptions implements Options{
                 return tableName + " " + tableAlias;
             }
         }else{
+            IMultiQuery multiQuery = (IMultiQuery)query;
             List<String> words = new ArrayList<String>();
-            Map<String, Object> aliasMap = query.getAliasTable();
-            List<String> aliasList = query.getAliasList();
+            Map<String, Object> aliasMap = multiQuery.getAliasTable();
+            List<String> aliasList = multiQuery.getAliasList();
             for(String alias : aliasList) {
                 if(aliasMap.containsKey(alias)) {
                     Object object = aliasMap.get(alias);
@@ -373,7 +377,7 @@ public abstract class AbstractOptions implements Options{
         return result;
     }
 
-    public String joins(IQuery obj, List<Pair> values){
+    public String joins(IMultiQuery obj, List<Pair> values){
         List<Join> joins = obj.getJoins();
         StringBuffer sb = new StringBuffer();
         if(joins == null){
@@ -555,21 +559,27 @@ public abstract class AbstractOptions implements Options{
                 }else{
                     switch (expression.getType()) {
                         case CDT_Equal:
+                        case CDT_EQUAL:
                             sqlPair = new SQLPair(" " + conditionName + " = " + valueSQL);
                             break;
                         case CDT_NotEqual:
+                        case CDT_NOT_EQUAL:
                             sqlPair = new SQLPair(" " + conditionName + " != " + valueSQL);
                             break;
                         case CDT_More:
+                        case CDT_MORE:
                             sqlPair = new SQLPair(" " + conditionName + " > " + valueSQL);
                             break;
                         case CDT_MoreEqual:
+                        case CDT_MORE_EQUAL:
                             sqlPair = new SQLPair(" " + conditionName + " >= " + valueSQL);
                             break;
                         case CDT_Less:
+                        case CDT_LESS:
                             sqlPair = new SQLPair(" " + conditionName + " < " + valueSQL);
                             break;
                         case CDT_LessEqual:
+                        case CDT_LESS_EQUAL:
                             sqlPair = new SQLPair(" " + conditionName + " <= " + valueSQL);
                             break;
                     }
@@ -580,7 +590,7 @@ public abstract class AbstractOptions implements Options{
             }else if(conditionValue instanceof IQuery){
                 QueryInfo newQueryInfo = doQuery((IQuery)conditionValue);
                 String sql = null;
-                if(ExpressionType.CDT_In == expression.getType()){
+                if(ExpressionType.CDT_In == expression.getType() || ExpressionType.CDT_IN == expression.getType()){
                     sql = String.format(" %s IN (%s) ", conditionName, newQueryInfo.getSql());
                 }else{
                     sql = String.format(" %s NOT IN (%s) ", conditionName, newQueryInfo.getSql());
@@ -608,43 +618,82 @@ public abstract class AbstractOptions implements Options{
             }
             switch (expression.getType()) {
                 case CDT_Equal:
+                case CDT_EQUAL:
                     sqlPair = new SQLPair(" " + conditionName + " = ?", new Pair(conditionValue,columnType));
                     break;
                 case CDT_NotEqual:
+                case CDT_NOT_EQUAL:
                     sqlPair = new SQLPair(" " + conditionName + " != ?", new Pair(conditionValue,columnType));
                     break;
                 case CDT_More:
+                case CDT_MORE:
                     sqlPair = new SQLPair(" "+ conditionName + " > ?", new Pair(conditionValue,columnType));
                     break;
                 case CDT_MoreEqual:
+                case CDT_MORE_EQUAL:
                     sqlPair = new SQLPair(" "+ conditionName + " >= ?", new Pair(conditionValue,columnType));
                     break;
                 case CDT_Less:
+                case CDT_LESS:
                     sqlPair = new SQLPair(" "+ conditionName + " < ?", new Pair(conditionValue,columnType));
                     break;
                 case CDT_LessEqual:
+                case CDT_LESS_EQUAL:
                     sqlPair = new SQLPair(" "+ conditionName + " <= ?", new Pair(conditionValue,columnType));
                     break;
                 case CDT_Like:
+                case CDT_LIKE:
                     sqlPair = new SQLPair(" "+ conditionName + " LIKE ?", new Pair("%" +conditionValue + "%"));
                     break;
                 case CDT_NotLike:
+                case CDT_NOT_LIKE:
                     sqlPair = new SQLPair(" "+ conditionName + " NOT LIKE ?", new Pair("%" +conditionValue + "%"));
                     break;
                 case CDT_EndWith:
+                case CDT_END_WITH:
                     sqlPair = new SQLPair(" "+ conditionName + " LIKE ?", new Pair("%" +conditionValue));
                     break;
                 case CDT_StartWith:
+                case CDT_START_WITH:
                     sqlPair = new SQLPair(" "+ conditionName + " LIKE ?", new Pair(conditionValue + "%"));
                     break;
                 case CDT_NotEndWith:
+                case CDT_NOT_END_WITH:
                     sqlPair = new SQLPair(" "+ conditionName + " NOT LIKE ?", new Pair("%" +conditionValue));
                     break;
                 case CDT_NotStartWith:
+                case CDT_NOT_START_WITH:
                     sqlPair = new SQLPair(" "+ conditionName + " NOT LIKE ?", new Pair(conditionValue + "%"));
                     break;
+                case CDT_BETWEEN:
+                    List<Pair> vs = new ArrayList<Pair>();
+                    StringBuffer btSql = new StringBuffer(" (" + conditionName + " BETWEEN ");
+                    if(expression.getValue() instanceof Column){
+                        btSql.append(parseColumn((Column) expression.getValue()));
+                    }else{
+                        btSql.append("?");
+                        vs.add(new Pair(conditionValue, columnType));
+                    }
+                    btSql.append(" AND ");
+                    if(expression.getAndValue() instanceof Column){
+                        btSql.append(parseColumn((Column) expression.getAndValue()));
+                    }else{
+                        btSql.append("?");
+                        Object andConditionValue = expression.getAndValue();
+                        if(andConditionValue instanceof String){
+                            if(isTrim){
+                                andConditionValue = ((String) andConditionValue).trim();
+                            }
+                        }
+                        vs.add(new Pair(andConditionValue, columnType));
+                    }
+                    btSql.append(")");
+                    sqlPair = new SQLPair(btSql.toString(), vs);
+                    break;
                 case CDT_In:
+                case CDT_IN:
                 case CDT_NotIn:
+                case CDT_NOT_IN:
                     if(Collection.class.isAssignableFrom(conditionValue.getClass())){
                         List<String> names = new ArrayList<String>();
                         List<Pair> values = new ArrayList<Pair>();
@@ -665,7 +714,7 @@ public abstract class AbstractOptions implements Options{
                             }
                         }
                         if(!names.isEmpty()) {
-                            if (expression.getType() == ExpressionType.CDT_In) {
+                            if (expression.getType() == ExpressionType.CDT_In || expression.getType() == ExpressionType.CDT_IN) {
                                 sqlPair = new SQLPair(" " + conditionName + " IN (" + ORMUtils.join(names, ",") + ")", values);
                             } else {
                                 sqlPair = new SQLPair(" " + conditionName + " NOT IN (" + ORMUtils.join(names, ",") + ")", values);
@@ -978,8 +1027,11 @@ public abstract class AbstractOptions implements Options{
         if(clazz instanceof Class){
             return parseExpression((Class)clazz, null, expression);
         }else if(clazz instanceof IQuery){
-            IQuery query = (IQuery)clazz;
-            return parseExpression(query.getTable(), query.getAliasTable(), expression);
+            if(clazz instanceof IBaseQuery){
+                return parseExpression(((IBaseQuery) clazz).getTable(), null, expression);
+            }else {
+                return parseExpression(null, ((IMultiQuery) clazz).getAliasTable(), expression);
+            }
         }else{
             return parseExpression(null, null, expression);
         }

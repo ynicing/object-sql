@@ -17,13 +17,10 @@ package com.ursful.framework.orm;
 
 import com.ursful.framework.orm.annotation.RdId;
 import com.ursful.framework.orm.exception.ORMException;
+import com.ursful.framework.orm.listener.*;
 import com.ursful.framework.orm.support.*;
-import com.ursful.framework.orm.listener.IChangeListener;
-import com.ursful.framework.orm.listener.IChangedListener;
-import com.ursful.framework.orm.listener.IDefaultListener;
 import com.ursful.framework.orm.utils.ORMUtils;
 import com.ursful.framework.orm.helper.SQLHelperCreator;
-import com.ursful.framework.orm.listener.IORMListener;
 import com.ursful.framework.orm.helper.SQLHelper;
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeansException;
@@ -61,6 +58,8 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
     private List<IChangeListener> changeListeners = new ArrayList<IChangeListener>();
 
     private List<IChangedListener> changedListeners = new ArrayList<IChangedListener>();
+
+    private List<IQueryListener> queryListeners = new ArrayList<IQueryListener>();
 
     public void addDefaultListener(IDefaultListener listener){
         if(!defaultListeners.contains(listener)) {
@@ -110,6 +109,17 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         }
     }
 
+    public void addQueryListener(IQueryListener listener){
+        if(!queryListeners.contains(listener)){
+            queryListeners.add(listener);
+        }
+    }
+    public void removeQueryListener(IQueryListener listener){
+        if(queryListeners.contains(listener)){
+            queryListeners.remove(listener);
+        }
+    }
+
     private <S> void sortAddListeners(List<S> result, Class<S> clazz){
         Map<String, S> listenerMap = BeanFactoryUtils.beansOfTypeIncludingAncestors(factory, clazz);
         for(S listener : listenerMap.values()){
@@ -134,8 +144,14 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         sortAddListeners(defaultListeners, IDefaultListener.class);
         sortAddListeners(changeListeners, IChangeListener.class);
         sortAddListeners(changedListeners, IChangedListener.class);
+        sortAddListeners(queryListeners, IQueryListener.class);
     }
 
+    private void triggerQueryListener(IQuery query){
+        for (IQueryListener listener : queryListeners) {
+            listener.handle(thisClass, query);
+        }
+    }
 
     private void triggerDefaultListener(T  t, boolean isUpdate){
         for (IDefaultListener listener : defaultListeners) {
@@ -945,6 +961,9 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
         Connection conn = getConnection();
         query.setOptions(getOptions());
+
+        triggerQueryListener(query);
+
         //setClob通用
         QueryInfo qinfo = getOptions().doQuery(query, null);// = queryString(names, false);
 
@@ -980,7 +999,6 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         }
         return s;
     }
-
 
     public <S> S get(Object t) {
 
@@ -1028,71 +1046,27 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
 
 
     public <S> List<S> query(IQuery q){
-        return query(q, null);
+        return innerQuery(q);
     }
 
     public <S> List<S> query(IQuery q, int size){
-
         Pageable page = new Pageable();
         page.setPage(1);
         page.setSize(size);
-
-        Connection conn = getConnection();
-        //setClob通用
-
-        List<S> temp = new ArrayList<S>();
-
-        q.setOptions(getOptions());
         q.setPageable(page);
-        QueryInfo qinfo =  q.doQuery();
-
-//        QueryInfo qinfo = getQueryPage().doQuery(q, page);// = queryString(names, false);
-
-        if(ORMUtils.getDebug()) {
-            logger.info("list:" + qinfo);
-        }
-
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-        try {
-
-            ps = conn.prepareStatement(qinfo.getSql());
-            SQLHelperCreator.setParameter(getOptions(), ps, qinfo.getValues(), conn);
-            rs = ps.executeQuery();
-
-            while(rs.next()){
-                S t = SQLHelperCreator.newClass(qinfo.getClazz(), rs, getResultSetHandler());
-                temp.add(t);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            logger.error("SQL : " + qinfo, e);
-            throw new RuntimeException("QUERY_SQL_ERROR, SQL[" + qinfo.getSql() + "]" + e.getMessage());
-        } catch (SecurityException e) {
-            logger.error("SQL : " + qinfo, e);
-            throw new RuntimeException("QUERY_SQL_SECURITY, SQL[" + qinfo.getSql() + "]" + e.getMessage());
-        } catch (IllegalAccessException e) {
-            logger.error("SQL : " + qinfo, e);
-            throw new RuntimeException("QUERY_SQL_ILLEGAL_ACCESS, SQL[" + qinfo.getSql() + "]" + e.getMessage());
-        } catch (IllegalArgumentException e) {
-            logger.error("SQL : " + qinfo, e);
-            throw new RuntimeException("QUERY_SQL_ILLEGAL_ARGUMENT, SQL[" + qinfo.getSql() + "]" + e.getMessage());
-        } finally{
-            closeConnection(rs, ps, conn);
-        }
-        return temp;
+        return innerQuery(q);
     }
 
-    private <S> List<S> query(IQuery q, Pageable page){
+    private <S> List<S> innerQuery(IQuery q){
 
         Connection conn = getConnection();
+
         //setClob通用
-
-
         List<S> temp = new ArrayList<S>();
 
         q.setOptions(getOptions());
-        q.setPageable(page);
+
+        triggerQueryListener(q);
 
         QueryInfo qinfo =  q.doQuery(); //getQueryPage().doQuery(q, page);// = queryString(names, false);
 
@@ -1130,13 +1104,11 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         return temp;
     }
 
-
     public int queryCount(IQuery q){
         //setClob通用
 
         Connection conn = null;
         int count = 0;
-
 
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -1144,6 +1116,7 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         try {
             conn = getConnection();
             q.setOptions(getOptions());
+            triggerQueryListener(q);
             qinfo = q.doQueryCount();
             if(ORMUtils.getDebug()) {
                 logger.info("list:" + qinfo);
@@ -1174,40 +1147,88 @@ public abstract class BaseServiceImpl<T> extends SQLServiceImpl implements IBase
         return count;
     }
 
-
     public <S> Pageable<S> queryPage(IQuery query, Pageable page){
         if(page == null){
             page = new Pageable();
         }
-        List<S> list = query(query, page);
-        int total = queryCount(query);
-        page.setRows(list);
+        query.setPageable(page);
+
+        Connection conn = getConnection();
+
+        //setClob通用
+        List<S> temp = new ArrayList<S>();
+
+        query.setOptions(getOptions());
+
+        triggerQueryListener(query);
+
+        QueryInfo qinfo =  query.doQuery(); //getQueryPage().doQuery(q, page);// = queryString(names, false);
+
+        if(ORMUtils.getDebug()) {
+            logger.info("list:" + qinfo);
+        }
+
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        int total = 0;
+        try{
+            try {
+                ps = conn.prepareStatement(qinfo.getSql());
+                SQLHelperCreator.setParameter(getOptions(), ps, qinfo.getValues(), conn);
+                rs = ps.executeQuery();
+                while(rs.next()){
+                    S t = SQLHelperCreator.newClass(qinfo.getClazz(), rs, getResultSetHandler());
+                    temp.add(t);
+                }
+            } catch (SQLException e) {
+                logger.error("SQL : " + qinfo, e);
+                throw new RuntimeException("QUERY_SQL_ERROR, SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            } catch (SecurityException e) {
+                logger.error("SQL : " + qinfo, e);
+                throw new RuntimeException("QUERY_SQL_SECURITY, SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            } catch (IllegalAccessException e) {
+                logger.error("SQL : " + qinfo, e);
+                throw new RuntimeException("QUERY_SQL_ILLEGAL_ACCESS, SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            } catch (IllegalArgumentException e) {
+                logger.error("SQL : " + qinfo, e);
+                throw new RuntimeException("QUERY_SQL_ILLEGAL_ARGUMENT, SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            } finally {
+                closeConnection(rs, ps, null);
+            }
+
+            try {
+                qinfo = query.doQueryCount();
+                if(ORMUtils.getDebug()) {
+                    logger.info("list:" + qinfo);
+                }
+                String countSQL = qinfo.getSql();// = queryString(names, false);
+
+                ps = conn.prepareStatement(countSQL);
+                SQLHelperCreator.setParameter(getOptions(), ps, qinfo.getValues(), conn);
+                rs = ps.executeQuery();
+
+                if(rs.next()){
+                    total = rs.getInt(1);
+                }
+            } catch (SQLException e) {
+                logger.error("SQL : " + qinfo, e);
+                throw new RuntimeException("QUERY_SQL_ERROR, SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            } catch (SecurityException e) {
+                logger.error("SQL : " + qinfo, e);
+                throw new RuntimeException("QUERY_SQL_SECURITY, SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            } catch (IllegalArgumentException e) {
+                logger.error("SQL : " + qinfo, e);
+                throw new RuntimeException("QUERY_SQL_ILLEGAL_ARGUMENT, SQL[" + qinfo.getSql() + "]" + e.getMessage());
+            } finally {
+                closeConnection(rs, ps, null);
+            }
+        } finally {
+            closeConnection(null, null, conn);
+        }
+        page.setRows(temp);
         page.setTotal(total);
         return page;
     }
-
-    /*
-    public int executeBatch(ISQLScript script, Object[] ... parameters){
-        ResultSet rs = null;
-        PreparedStatement ps = null;
-
-        Connection conn = null;
-        try {
-            //LogUtil.info("SQL:" + sql + " Parameers: " + parameters, BaseSQLImpl.class);
-            conn = getConnection();
-            ps = conn.prepareStatement(sql);
-            for(Object[] objects : parameters) {
-                SQLHelperCreator.setParameter(getOptions(), ps, objects);
-                ps.addBatch();
-            }
-            ps.executeBatch();
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        } finally{
-            close(conn, ps, rs);
-        }
-        return 0;
-    }*/
 
     @Override
     public String tableName() throws ORMException{

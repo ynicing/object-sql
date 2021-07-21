@@ -77,8 +77,7 @@ public interface ISQLService {
      * @param batchCount
      * @param autoCommit auto commit
      * @param rollback 当autoCommit=false 有效， rollback = false 不回滚， 为true 回滚
-     * @param <S>
-     * @return
+     * @return List
      */
     <S> List<S> batchSaves(List<S> ts, int batchCount, boolean autoCommit, boolean rollback);
 
