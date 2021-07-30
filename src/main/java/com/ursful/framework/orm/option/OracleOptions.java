@@ -216,10 +216,14 @@ public class OracleOptions extends AbstractOptions{
 
         sb.append("SELECT ");
         Map<String, String> asNames = new HashMap<String, String>();
+        String group = groups(query, null);
+        if(!ORMUtils.isEmpty(group)){
+            alias = null;
+        }
         sb.append(selectColumns(query, alias, asNames));
         String order = orders(query, alias, asNames);
         boolean hasOrder = !ORMUtils.isEmpty(order);
-        if(page != null && !hasOrder){
+        if(page != null && !hasOrder && ORMUtils.isEmpty(group)){
             sb.append(",ROWNUM rn_ ");
         }
         sb.append(" FROM ");
@@ -231,11 +235,11 @@ public class OracleOptions extends AbstractOptions{
         sb.append(wheres(query, values, null));
         int then = sb.length();
         boolean hasCondition = then > now;
-        sb.append(groups(query, null));
+        sb.append(group);
         sb.append(havings(query, values, null));
         sb.append(order);
         if(page != null){
-            if(hasOrder){
+            if(hasOrder || !ORMUtils.isEmpty(group)){
                 sb = new StringBuffer("SELECT ora_a_.* FROM (SELECT ora_b_.*,ROWNUM rn_  FROM (" + sb.toString() + ") ora_b_ WHERE ROWNUM <= ?) ora_a_ WHERE ora_a_.rn_ > ? ");
             }else{
                 sb = new StringBuffer("SELECT ora_a_.* FROM (" + sb.toString() + (hasCondition?" AND " : " WHERE ") + "ROWNUM <= ? ) ora_a_ WHERE ora_a_.rn_ > ? ");

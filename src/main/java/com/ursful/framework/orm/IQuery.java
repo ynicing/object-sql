@@ -37,6 +37,8 @@ public interface IQuery{
     List<Condition> getHavings();
 
     List<Column> getGroups();
+    //快速group
+    List<Column> getGroupCountSelectColumns();
 
     List<Order> getOrders();
 

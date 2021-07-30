@@ -117,7 +117,8 @@ public class SQLServerOptions extends AbstractOptions{
         sb.append("SELECT ");
         Map<String, String> asNames = new HashMap<String, String>();
         sb.append(selectColumns(query, null, asNames));
-        if(page != null){
+        String group = groups(query, null);
+        if(page != null && ORMUtils.isEmpty(group)){
             String byOrders = orders(query, null, asNames);
             if(!ORMUtils.isEmpty(byOrders)){
                 sb.append(" ,row_number() over(" + byOrders + ") rn_ ");
@@ -137,7 +138,12 @@ public class SQLServerOptions extends AbstractOptions{
             String tempSQL = sb.toString();
             sb = new StringBuffer("SELECT TOP " + page.getSize() +" * ");
             sb.append(" FROM (");
-            sb.append(tempSQL);
+            if(ORMUtils.isEmpty(group)) {
+                sb.append(tempSQL);
+            }else{
+                sb.append("SELECT sqlserver_.*, ROW_NUMBER() OVER(ORDER BY (SELECT 0)) RN_ FROM " +
+                        "(" + tempSQL +  ") as sqlserver_ ");
+            }
             sb.append(") ms_ ");
             sb.append(" WHERE ms_.rn_ > " +page.getOffset()+" ");
         }else{

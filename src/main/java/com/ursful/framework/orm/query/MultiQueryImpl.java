@@ -57,7 +57,8 @@ public class MultiQueryImpl implements IMultiQuery {
     private List<Condition> conditions = new ArrayList<Condition>();
 	private List<Condition> havings = new ArrayList<Condition>();
 	private List<Column> groups = new ArrayList<Column>();
-	private List<Order> orders = new ArrayList<Order>();
+    private List<Column> groupCountsSelectColumns = new ArrayList<Column>();
+    private List<Order> orders = new ArrayList<Order>();
 	private List<Join> joins = new ArrayList<Join>();
 
     private Class<?> returnClass;
@@ -392,6 +393,18 @@ public class MultiQueryImpl implements IMultiQuery {
         }
         return this;
     }
+
+    public List<Column> getGroupCountSelectColumns(){
+        return groupCountsSelectColumns;
+    }
+
+    public IMultiQuery groupCountSelectColumn(Column ... columns) {
+        if(columns != null) {
+            groupCountsSelectColumns.addAll(Arrays.asList(columns));
+        }
+        return this;
+    }
+
 
     public IMultiQuery group(Columns ... columns) {
         if(columns != null) {

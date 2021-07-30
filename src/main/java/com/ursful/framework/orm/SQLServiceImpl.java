@@ -258,7 +258,7 @@ public class SQLServiceImpl implements ISQLService{
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         } finally{
             closeConnection(rs, ps, conn);
         }
@@ -289,7 +289,7 @@ public class SQLServiceImpl implements ISQLService{
                 temp.add(tempMap);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         } finally{
             closeConnection(rs, ps, conn);
         }
@@ -311,7 +311,7 @@ public class SQLServiceImpl implements ISQLService{
                 temp = rs.getInt(1);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         } finally{
             closeConnection(rs, ps, conn);
         }
@@ -332,7 +332,7 @@ public class SQLServiceImpl implements ISQLService{
                 temp = rs.getObject(1);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         } finally{
             closeConnection(rs, ps, conn);
         }
@@ -401,7 +401,7 @@ public class SQLServiceImpl implements ISQLService{
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         } finally{
             closeConnection(rs, ps, conn);
         }
@@ -730,11 +730,10 @@ public class SQLServiceImpl implements ISQLService{
             Connection connection = getRealConnection(temp);
             return options.tableExists(connection, table);
         }catch (Exception e){
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }finally{
             closeConnection(null, null, temp);
         }
-        return false;
     }
     @Override
     public String getTableName(Class<?> clazz) throws ORMException{
@@ -771,11 +770,10 @@ public class SQLServiceImpl implements ISQLService{
             Connection connection = getRealConnection(temp);
             return options.table(connection, rdTable);
         }catch (Exception e){
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }finally{
             closeConnection(null, null, temp);
         }
-        return null;
     }
 
     @Override
@@ -790,11 +788,10 @@ public class SQLServiceImpl implements ISQLService{
             Connection connection = getRealConnection(temp);
             return options.table(connection, tableName);
         }catch (Exception e){
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }finally{
             closeConnection(null, null, temp);
         }
-        return null;
     }
 
     @Override
@@ -821,11 +818,10 @@ public class SQLServiceImpl implements ISQLService{
             }
             return columns;
         }catch (Exception e){
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }finally{
             closeConnection(null, null, temp);
         }
-        return null;
     }
 
     @Override
@@ -845,11 +841,10 @@ public class SQLServiceImpl implements ISQLService{
             Connection connection = getRealConnection(temp);
             return options.tables(connection, keyword);
         }catch (Exception e){
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }finally{
             closeConnection(null, null, temp);
         }
-        return null;
     }
 
     @Override
@@ -865,7 +860,7 @@ public class SQLServiceImpl implements ISQLService{
             Connection connection = getRealConnection(temp);
             columns = options.columns(connection, tableName);
         }catch (Exception e){
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }finally{
             closeConnection(null, null, temp);
         }
@@ -914,10 +909,9 @@ public class SQLServiceImpl implements ISQLService{
             }
             return columnClasses;
         }catch (Exception e){
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }finally{
             closeConnection(rs, stmt, temp);
         }
-        return null;
     }
 }

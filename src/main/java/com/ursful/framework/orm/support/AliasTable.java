@@ -42,6 +42,14 @@ public class AliasTable implements Serializable {
         return new Columns(alias, names);
     }
 
+    public Columns cs(Column column){
+        return new Columns(alias).c(column);
+    }
+
+    public Column c(Column column){
+        return column.alias(alias);
+    }
+
     public Column c(String name){
         return new Column(alias, name);
     }

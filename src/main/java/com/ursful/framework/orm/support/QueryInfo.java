@@ -28,6 +28,8 @@ public class QueryInfo implements Serializable {
 	private List<Column> columns;
 	private List<Pair> values;
 
+
+
 	public Column getColumn() {
 		return column;
 	}

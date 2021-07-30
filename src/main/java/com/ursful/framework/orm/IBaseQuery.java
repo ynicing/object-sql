@@ -60,6 +60,7 @@ public interface IBaseQuery extends IQuery{
 	IBaseQuery whereBetween(String name, Object value, Object andValue);
 
 	IBaseQuery group(String name);
+	IBaseQuery groupCountSelectColumn(String name);
 	IBaseQuery having(String name, Object value, ExpressionType type);
 	IBaseQuery having(Terms terms);//group by  having (a = ? or b = ? ...)
 	IBaseQuery orderDesc(String name);

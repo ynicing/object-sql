@@ -16,6 +16,8 @@
 
 package com.ursful.framework.orm.support;
 
+import com.ursful.framework.orm.utils.ORMUtils;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +26,7 @@ public class Columns implements Serializable {
 
     //as
 
-	private List<Column> columnList = new ArrayList<Column>();
+	private List<Column> columns = new ArrayList<Column>();
 
     public Columns(){}
 
@@ -52,8 +54,18 @@ public class Columns implements Serializable {
         return this;
     }
 
+    public Columns c(Column column){
+        if(column != null){
+           if(ORMUtils.isEmpty(column.getAlias()) && !ORMUtils.isEmpty(alias)){
+               column.setAlias(alias);
+           }
+           columns.add(column);
+        }
+        return this;
+    }
+
     public List<Column> getColumnList() {
-        columnList.clear();
+        List<Column> columnList = new ArrayList<Column>();
         if(names != null && alias != null){
             if(asNames == null){
                 for(String name : names){
@@ -70,10 +82,8 @@ public class Columns implements Serializable {
                 }
             }
         }
+        columnList.addAll(columns);
         return columnList;
     }
 
-    public void setColumnList(List<Column> columnList) {
-        this.columnList = columnList;
-    }
 }

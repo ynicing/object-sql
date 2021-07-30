@@ -35,7 +35,8 @@ public class BaseQueryImpl implements IBaseQuery {
 
 	private List<Condition> conditions = new ArrayList<Condition>();
 	private List<Condition> havings = new ArrayList<Condition>();
-	private List<Column> groups = new ArrayList<Column>();
+    private List<Column> groups = new ArrayList<Column>();
+    private List<Column> groupCountsSelectColumns = new ArrayList<Column>();
 	private List<Order> orders = new ArrayList<Order>();
 	
 	private boolean distinct = false;
@@ -213,6 +214,15 @@ public class BaseQueryImpl implements IBaseQuery {
 		groups.add(new Column(name));
 		return this;
 	}
+
+    public List<Column> getGroupCountSelectColumns(){
+        return groupCountsSelectColumns;
+    }
+
+    public IBaseQuery groupCountSelectColumn(String name) {
+        groupCountsSelectColumns.add(new Column(name));
+        return this;
+    }
 
 	
 	public IBaseQuery having(String name, Object value, ExpressionType type) {

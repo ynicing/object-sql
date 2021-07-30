@@ -185,10 +185,20 @@ public abstract class AbstractOptions implements Options{
         List<Pair> values = new ArrayList<Pair>();
         StringBuffer sb = new StringBuffer();
         sb.append("SELECT ");
+        String groups = groups(query, null);
         if(query.isDistinct()){
             sb.append(selectColumns(query, null, null));
         }else {
-            sb.append(selectCount());
+            if(!ORMUtils.isEmpty(groups)){
+                List<Column> groupSelect = query.getGroupCountSelectColumns();
+                if(groupSelect == null || groupSelect.isEmpty()){
+                    sb.append(selectColumns(query, null, null));
+                }else{
+                    sb.append(groupCountSelect(query));
+                }
+            }else {
+                sb.append(selectCount());
+            }
         }
         sb.append(" FROM ");
         sb.append(tables(query, values, null));
@@ -196,13 +206,17 @@ public abstract class AbstractOptions implements Options{
             sb.append(joins((IMultiQuery)query, values));
         }
         sb.append(wheres(query, values, null));
-        sb.append(groups(query, null));
+        sb.append(groups);
         sb.append(havings(query, values, null));
         info.setClazz(Integer.class);
         if(query.isDistinct()) {
-            info.setSql("SELECT COUNT(*) FROM (" + sb.toString() + ")  _distinct_table");
+            info.setSql("SELECT COUNT(*) FROM (" + sb.toString() + ")  distinct_table_");
         }else{
-            info.setSql(sb.toString());
+            if(ORMUtils.isEmpty(groups)){
+                info.setSql(sb.toString());
+            }else {
+                info.setSql("SELECT COUNT(*) FROM (" + sb.toString() + ")  group_table_");
+            }
         }
         info.setValues(values);
         return info;
@@ -285,6 +299,19 @@ public abstract class AbstractOptions implements Options{
             }
         }
         return sb.toString();
+    }
+
+    public String groupCountSelect(IQuery query){
+
+        List<Column> otherColumns = query.getGroupCountSelectColumns();
+        List<String> temp = new ArrayList<String>();
+        for(Column column : otherColumns){
+            String sql = parseColumn(column);
+            if(!temp.contains(sql)) {
+                temp.add(sql);
+            }
+        }
+        return ORMUtils.join(temp, ",");
     }
 
     public String orders(IQuery query, String alias, Map<String, String> asNames){
